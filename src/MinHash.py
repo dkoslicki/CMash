@@ -77,8 +77,8 @@ class CountEstimator(object):
         if ksize is None:
             raise Exception
 
-        if ksize % 2 == 0:
-            raise Exception("Due to an issue with khmer, only odd ksizes are allowed")
+        #if ksize % 2 == 0:
+        #    raise Exception("Due to an issue with khmer, only odd ksizes are allowed")
 
         self.ksize = ksize
         self.hash_list = hash_list

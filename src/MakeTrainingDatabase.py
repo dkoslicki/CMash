@@ -6,7 +6,6 @@ import MinHash as MH
 from multiprocessing import Pool  # Much faster without dummy (threading)
 import multiprocessing
 from itertools import *
-from timeit import default_timer
 
 
 num_threads = multiprocessing.cpu_count()
@@ -32,13 +31,13 @@ def make_minhash(genome, max_h, prime, ksize):
 		seq = record.sequence
 		for i in range(len(seq) - ksize + 1):
 			kmer = seq[i:i+ksize]
-			kmer_rev = khmer.reverse_complement(kmer)
-			if kmer < kmer_rev:
-				kmers.add(kmer)
-				MHS.add(kmer)
-			else:
-				kmers.add(kmer_rev)
-				MHS.add(kmer_rev)
+			#kmer_rev = khmer.reverse_complement(kmer)  # No need to care about revcomp since nodegraph ID's them
+			#if kmer < kmer_rev:
+			kmers.add(kmer)
+			MHS.add(kmer)
+			#else:
+			#	kmers.add(kmer_rev)
+			#	MHS.add(kmer_rev)
 	MHS._true_num_kmers = len(kmers)
 	MHS.input_file_name = genome
 	# Export the hash k-mers
