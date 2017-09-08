@@ -16,6 +16,8 @@ results_file = os.path.abspath('../data/results.csv')
 force = False
 ksize = 21
 fprate = 0.0001
+coverage_threshold = 0.02  # desired coverage cutoff
+confidence = 0.95  # desired confidence that you got all the organisms with coverage >= desired coverage
 
 if not os.path.exists(node_graph_out) or force is True:
 	hll = khmer.HLLCounter(0.01)
@@ -46,11 +48,14 @@ training_file_names = []
 for i in range(len(sketches)):
 	training_file_names.append(sketches[i].input_file_name)
 
-# Let's do it all in one go
-intersection_cardinalities = np.zeros(len(sketches))
-containment_indexes = np.zeros(len(sketches))
-jaccard_indexes = np.zeros(len(sketches))
-
+# Helper function that uses equations (2.1) and (2.7) that tells you where you need
+# to set the threshold to ensure (with confidence 1-t) that you got all organisms
+# with coverage >= c
+def threshold_calc(k, c, p, confidence):
+	delta = c*(1-np.sqrt(-2*np.log(1 - confidence)*(c+p) / float(c**2 * k)))
+	if delta < 0:
+		delta = 0
+	return delta
 
 def compute_indicies(sketch, num_sample_kmers):
 	num_hashes = len(sketch._kmers)
@@ -76,6 +81,9 @@ pool = Pool(processes=num_threads)
 res = pool.map(unwrap_compute_indicies, zip(sketches, repeat(num_sample_kmers)))
 
 # Gather up the results in a nice form
+intersection_cardinalities = np.zeros(len(sketches))
+containment_indexes = np.zeros(len(sketches))
+jaccard_indexes = np.zeros(len(sketches))
 for i in range(len(res)):
 	(intersection_cardinality, containment_index, jaccard_index) = res[i]
 	intersection_cardinalities[i] = intersection_cardinality
@@ -87,9 +95,12 @@ d = {'intersection': intersection_cardinalities,
 	 'jaccard index': jaccard_indexes}
 
 df = pd.DataFrame(d, index=map(os.path.basename, training_file_names))
-# Sort them in descending order by containment index
-#df_sorted = df.sort_values('containment index', axis=0, ascending=False, inplace=False, kind='quicksort', na_position='last')
+
 # Only get the rows above a certain threshold
-filtered_results = df[df['containment index'] > 0].sort_values('containment index', ascending=False)
+if coverage_threshold <= 0:
+	est_threshold = 0
+else:
+	est_threshold = threshold_calc(num_hashes, coverage_threshold, fprate, confidence)
+filtered_results = df[df['containment index'] > est_threshold].sort_values('containment index', ascending=False)
 # Export the results
 filtered_results.to_csv(results_file, index=True, encoding='utf-8')
