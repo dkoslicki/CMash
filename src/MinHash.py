@@ -134,16 +134,16 @@ class CountEstimator(object):
         _kmers = self._kmers
 
         if rev_comp:
-            #h1 = khmer.hash_murmur3(kmer)
-            #h2 = khmer.hash_murmur3(khmer.reverse_complement(kmer))
-            h1 = hash(kmer)
-            h2 = hash(khmer.reverse_complement(kmer))
+            h1 = khmer.hash_murmur3(kmer)
+            h2 = khmer.hash_murmur3(khmer.reverse_complement(kmer))
+            #h1 = hash(kmer)
+            #h2 = hash(khmer.reverse_complement(kmer))
             h = min(h1, h2)
             if h == h2:
                 kmer = khmer.reverse_complement(kmer)
         else:
-            #h = khmer.hash_murmur3(kmer)
-            h = hash(kmer)
+            h = khmer.hash_murmur3(kmer)
+            #h = hash(kmer)
 
         h = h % self.p
         if self.hash_list:  # If I only want to include hashes that occur in hash_list
@@ -175,7 +175,9 @@ class CountEstimator(object):
         """
         # seq = seq.upper().replace('N', 'G')
         seq = notACTG.sub('G', seq.upper())  # more intelligent sanatization?
+        # seq = seq.upper()
         for kmer in kmers(seq, self.ksize):
+            #if notACTG.search(kmer) is None:  # If it's free of non-ACTG characters
             self.add(kmer, rev_comp)
 
     def jaccard_count(self, other):
