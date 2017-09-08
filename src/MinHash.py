@@ -355,17 +355,20 @@ def export_multiple_to_single_hdf5(CEs, export_file_name):
     fid = h5py.File(export_file_name, 'w')
     grp = fid.create_group("CountEstimators")
     for CE in CEs:
-        subgrp = grp.create_group(os.path.basename(CE.input_file_name))  # the key of a subgroup is the basename (not the whole file)
-        mins_data = subgrp.create_dataset("mins", data=CE._mins)
-        counts_data = subgrp.create_dataset("counts", data=CE._counts)
-        if CE._kmers:
-            kmer_data = subgrp.create_dataset("kmers", data=CE._kmers)
+        try:
+            subgrp = grp.create_group(os.path.basename(CE.input_file_name))  # the key of a subgroup is the basename (not the whole file)
+            mins_data = subgrp.create_dataset("mins", data=CE._mins)
+            counts_data = subgrp.create_dataset("counts", data=CE._counts)
+            if CE._kmers:
+                kmer_data = subgrp.create_dataset("kmers", data=CE._kmers)
 
-        subgrp.attrs['class'] = np.string_("CountEstimator")
-        subgrp.attrs['filename'] = np.string_(CE.input_file_name)  # But keep the full file name on hand
-        subgrp.attrs['ksize'] = CE.ksize
-        subgrp.attrs['prime'] = CE.p
-        subgrp.attrs['true_num_kmers'] = CE._true_num_kmers
+            subgrp.attrs['class'] = np.string_("CountEstimator")
+            subgrp.attrs['filename'] = np.string_(CE.input_file_name)  # But keep the full file name on hand
+            subgrp.attrs['ksize'] = CE.ksize
+            subgrp.attrs['prime'] = CE.p
+            subgrp.attrs['true_num_kmers'] = CE._true_num_kmers
+        except ValueError:
+            raise Exception("It appears that the training file name %s exists twice in the input data. Please make sure all names are unique (i.e. remove duplicates) and tray again." % CE.input_file_name)
 
     fid.close()
 
