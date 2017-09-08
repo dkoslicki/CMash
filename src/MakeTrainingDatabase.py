@@ -37,7 +37,7 @@ def main():
 	parser.add_argument('-n', '--num_hashes', type=int, help="Number of hashes to use.", default=500)
 	parser.add_argument('-k', '--k_size', type=int, help="K-mer size", default=21)
 	parser.add_argument('in_file', help="Input file: file containing file names of training genomes.")
-	parser.add_argument('out_file', help='Output file (in HDF5 format)')
+	parser.add_argument('out_file', help='Output training database/reference file (in HDF5 format)')
 	args = parser.parse_args()
 
 	num_threads = args.threads

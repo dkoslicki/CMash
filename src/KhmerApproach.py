@@ -35,6 +35,16 @@ def compute_indicies(sketch, num_sample_kmers):
 	intersection_cardinality = count  # Should adjust this by the FP rate of the NodGraph, but I don't think I can get that...
 	containment_index = count / float(num_hashes - adjust)
 	jaccard_index = num_training_kmers * containment_index / float(num_training_kmers + num_sample_kmers - num_training_kmers * containment_index)
+	#print("Train %d sample %d" % (num_training_kmers, num_sample_kmers))
+	# It can happen that the query file has less k-mers in it than the training file, so just round to nearest reasonable value
+	if containment_index > 1:
+		containment_index = 1
+	elif containment_index < 0:
+		containment_index = 0
+	if jaccard_index > 1:
+		jaccard_index = 1
+	elif jaccard_index < 0:
+		jaccard_index = 0
 	return intersection_cardinality, containment_index, jaccard_index
 
 
@@ -84,7 +94,7 @@ def main():
 		node_graph_out = os.path.join(os.path.dirname(os.path.abspath(args.out_csv)),
 									os.path.basename(query_file) + ".NodeGraph.K" + str(ksize))
 		if not os.path.exists(node_graph_out):  # Don't complain if the default location works
-			print("Node graph does not exist. Creating one at: %s" % node_graph_out)
+			print("Node graph not provided (via -ng). Creating one at: %s" % node_graph_out)
 	elif os.path.exists(args.node_graph):  # If one is specified and it exists, use it
 		node_graph_out = args.node_graph
 	else:  # Otherwise, the specified one doesn't exist
@@ -132,7 +142,8 @@ def main():
 			raise Exception("Node graph %s has wrong k-mer size of %d (input was %d). Try --force or change -k." % (
 			node_graph_out, node_ksize, ksize))
 
-	num_sample_kmers = sample_kmers.n_unique_kmers()
+	#num_sample_kmers = sample_kmers.n_unique_kmers()  # For some reason this only works when creating a new node graph, use the following instead
+	num_sample_kmers = sample_kmers.n_occupied()
 
 	# Compute all the indicies for all the training data
 	pool = Pool(processes=num_threads)
