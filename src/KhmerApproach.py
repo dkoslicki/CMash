@@ -4,7 +4,11 @@ from khmer.khmer_args import optimal_size
 import os
 import MinHash as MH
 import pandas as pd
+from multiprocessing import Pool  # Much faster without dummy (threading)
+import multiprocessing
+from itertools import *
 
+num_threads = multiprocessing.cpu_count()
 query_file = os.path.abspath('../data/1Mil.fastq')
 node_graph_out = query_file + ".NodeGraph"
 training_data = os.path.abspath('../data/AllSketches.h5')
@@ -46,8 +50,10 @@ for i in range(len(sketches)):
 intersection_cardinalities = np.zeros(len(sketches))
 containment_indexes = np.zeros(len(sketches))
 jaccard_indexes = np.zeros(len(sketches))
-for i in range(len(sketches)):
-	sketch = sketches[i]
+
+
+def compute_indicies(sketch, num_sample_kmers):
+	num_hashes = len(sketch._kmers)
 	num_training_kmers = sketch._true_num_kmers
 	count = 0
 	adjust = 0
@@ -56,10 +62,25 @@ for i in range(len(sketches)):
 			count += sample_kmers.get(kmer)
 		else:
 			adjust += 1
-	intersection_cardinalities[i] = count  # Should adjust this by the FP rate of the NodGraph, but I don't think I can get that...
+	intersection_cardinality = count  # Should adjust this by the FP rate of the NodGraph, but I don't think I can get that...
 	containment_index = count / float(num_hashes - adjust)
+	jaccard_index = num_training_kmers * containment_index / float(num_training_kmers + num_sample_kmers - num_training_kmers * containment_index)
+	return intersection_cardinality, containment_index, jaccard_index
+
+
+def unwrap_compute_indicies(arg):
+	return compute_indicies(*arg)
+
+
+pool = Pool(processes=num_threads)
+res = pool.map(unwrap_compute_indicies, zip(sketches, repeat(num_sample_kmers)))
+
+# Gather up the results in a nice form
+for i in range(len(res)):
+	(intersection_cardinality, containment_index, jaccard_index) = res[i]
+	intersection_cardinalities[i] = intersection_cardinality
 	containment_indexes[i] = containment_index
-	jaccard_indexes[i] = num_training_kmers * containment_index / float(num_training_kmers + num_sample_kmers - num_training_kmers * containment_index)
+	jaccard_indexes[i] = jaccard_index
 
 d = {'intersection': intersection_cardinalities,
 	 'containment index': containment_indexes,
