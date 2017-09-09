@@ -423,6 +423,33 @@ def import_multiple_from_single_hdf5(file_name, import_list=None):
     return(CEs)
 
 
+def delete_from_database(database_location, delete_list):
+    """
+    This function will delete specified entries from count estimators stored in a single HDF5 file.
+    :param database_location: file name for the single HDF5 database file
+    :param delete_list: List of names of files to delete (or a single name)
+    :return: None
+    """
+    file_name = os.path.abspath(database_location)
+    fid = h5py.File(file_name, 'r')  # Let's take a peak at what's already in there
+    grp = fid["CountEstimators"]
+    all_keys = grp.keys()  # All the current data sets in there
+    fid.close()
+    fid = h5py.File(file_name, "a")  # Open in append mode to modify in place
+    if isinstance(delete_list, basestring):  # If it's just a single name, delete it
+        keys_to_delete = delete_list  # Yeah it's bad naming (should be key_to_delete) but I need the print command below to show up
+        if keys_to_delete in all_keys:  # If it's actually one of the keys in there
+            del fid["CountEstimators"][keys_to_delete]  # Delete it
+    else:
+        keys_to_delete = list(set(map(os.path.basename, delete_list)))  # Uniqueify and get base names
+        for key_to_delete in keys_to_delete:  # If it's a whole list
+            if key_to_delete in all_keys:  # If it's actually one of the keys in there
+                del fid["CountEstimators"][key_to_delete]  # Delete it
+    fid.close()
+    print("The following entries have been deleted from %s:" % file_name)
+    print(keys_to_delete)
+
+
 class CE_map(object):
     """
     Helper function for mapping CountEstimator class over multiple input_file arguments
@@ -903,7 +930,7 @@ def test_vector_formation():
     assert (Y2 == np.array([1.,1.,0.4])).all()
 
 
-def form_matrices_test():
+def test_form_matrices():
     CE1 = CountEstimator(n=5, max_prime=1e10, ksize=3, save_kmers='y')
     CE2 = CountEstimator(n=5, max_prime=1e10, ksize=3, save_kmers='y')
     CE3 = CountEstimator(n=5, max_prime=1e10, ksize=3, save_kmers='y')
@@ -917,6 +944,38 @@ def form_matrices_test():
     assert (A == np.array([[1., 1., 0.80952380952380953], [1., 1., 0.80952380952380953], [0.5625, 0.5625, 1.]])).all()
     B = form_jaccard_matrix([CE1, CE2, CE3])
     assert (B == np.array([[1., 1., 0.4], [1., 1., 0.4], [0.4, 0.4, 1.]])).all()
+
+def test_delete_from_database():
+    seq1 = "ATCGTATGAGTATCGTCGATGCATGCATCGATGCATGCTACGTATCGCATGCATG"
+    seq2 = "ATCTACTCAACATTAACTACTCATATTAACTCACATTCATATCCATACTACTCGT"
+    seq3 = "ACTCATGTTAGATCGATATTGACTGATGACTCGTTGCACTGCATGCTGCATGATGC"
+    CE1 = CountEstimator(n=5, max_prime=1e10, ksize=3, save_kmers='y')
+    CE2 = CountEstimator(n=5, max_prime=1e10, ksize=3, save_kmers='y')
+    CE3 = CountEstimator(n=5, max_prime=1e10, ksize=3, save_kmers='y')
+    CE1.add_sequence(seq1)
+    CE2.add_sequence(seq2)
+    CE3.add_sequence(seq3)
+    # CE's must have names to delete them
+    CE1.input_file_name = "seq1"
+    CE2.input_file_name = "seq2"
+    CE3.input_file_name = "seq3"
+    temp_file = tempfile.mktemp()
+    export_multiple_to_single_hdf5([CE1, CE2, CE3], temp_file)
+    fid = h5py.File(temp_file, 'r')
+    assert len(fid["CountEstimators"].keys()) == 3
+    fid.close()
+    # delete one
+    delete_from_database(temp_file, "seq1")
+    # Check if it was deleted
+    fid = h5py.File(temp_file, 'r')
+    assert len(fid["CountEstimators"].keys()) == 2
+    fid.close()
+    # Delete two
+    delete_from_database(temp_file, ["seq2", "seq3"])
+    fid = h5py.File(temp_file, 'r')
+    assert len(fid["CountEstimators"].keys()) == 0
+    fid.close()
+    os.remove(temp_file)
 
 
 def test_suite():
@@ -934,4 +993,7 @@ def test_suite():
     test_import_export()
     test_hash_list()
     test_vector_formation()
-    form_matrices_test()
+    test_form_matrices()
+    test_delete_from_database()
+    print("All test successful")
+
