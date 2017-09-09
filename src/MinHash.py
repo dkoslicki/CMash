@@ -450,6 +450,62 @@ def delete_from_database(database_location, delete_list):
     print(keys_to_delete)
 
 
+def insert_to_database(database_location, insert_list):
+    """
+    This function will insert specified FASTA/Q files into the HDF5 database at database_location
+    :param database_location: location of HDF5 database
+    :param insert_list: list of (full paths) to FASTA/Q files to insert
+    :return: None
+    """
+    if isinstance(insert_list, basestring):
+        insert_list = [insert_list]  # Make into a list if it's only one guy
+    insert_list = list(set(insert_list))  # Uniqueify it
+    # Get the info from one of the existing guys
+    fid = h5py.File(database_location, 'r')
+    grp = fid["CountEstimators"]
+    orig_keys = grp.keys()
+    fid.close()
+    temp_CE = import_multiple_from_single_hdf5(database_location, import_list=[orig_keys[0]])[0]
+    k_size = temp_CE.ksize
+    p = temp_CE.p
+    n = len(temp_CE._mins)
+    if temp_CE._kmers is not None:
+        save_kmers = 'y'
+    else:
+        save_kmers = 'n'
+    rev_comp = False
+    # Now create the new sketches and stick them in the database
+    fid = h5py.File(database_location, 'a')
+    grp = fid["CountEstimators"]
+    for insert_file_name in insert_list:
+        if os.path.basename(insert_file_name) not in orig_keys:
+            # Populate the hash and find the true number of k-mers
+            kmers = set()
+            to_insert_CE = CountEstimator(n=n, max_prime=p, ksize=k_size, save_kmers=save_kmers)
+            for record in screed.open(insert_file_name):
+                seq = record.sequence
+                for i in range(len(seq) - k_size + 1):
+                    kmer = seq[i:i + k_size]
+                    # No need to care about revcomp since nodegraph ID's them
+                    kmers.add(kmer)
+                    to_insert_CE.add(kmer)
+            to_insert_CE._true_num_kmers = len(kmers)
+            to_insert_CE.input_file_name = insert_file_name
+            # Now stick it in the database
+            subgrp = grp.create_group(
+                os.path.basename(insert_file_name))  # the key of a subgroup is the basename (not the whole file)
+            mins_data = subgrp.create_dataset("mins", data=to_insert_CE._mins)
+            counts_data = subgrp.create_dataset("counts", data=to_insert_CE._counts)
+            if to_insert_CE._kmers:
+                kmer_data = subgrp.create_dataset("kmers", data=to_insert_CE._kmers)
+            subgrp.attrs['class'] = np.string_("CountEstimator")
+            subgrp.attrs['filename'] = np.string_(to_insert_CE.input_file_name)  # But keep the full file name on hand
+            subgrp.attrs['ksize'] = to_insert_CE.ksize
+            subgrp.attrs['prime'] = to_insert_CE.p
+            subgrp.attrs['true_num_kmers'] = to_insert_CE._true_num_kmers
+    fid.close()
+
+
 class CE_map(object):
     """
     Helper function for mapping CountEstimator class over multiple input_file arguments
@@ -977,6 +1033,24 @@ def test_delete_from_database():
     fid.close()
     os.remove(temp_file)
 
+def test_insert_to_database():
+    file1 = "../data/PRJNA67111.fna"
+    file2 = "../data/PRJNA32727.fna"
+    file3 = "../data/PRJNA298068.fna"
+    CE1 = CountEstimator(n=5, max_prime=1e10, ksize=3, save_kmers='y', input_file_name=file1)
+    CE2 = CountEstimator(n=5, max_prime=1e10, ksize=3, save_kmers='y', input_file_name=file2)
+    CE3 = CountEstimator(n=5, max_prime=1e10, ksize=3, save_kmers='y', input_file_name=file3)
+    temp_file = tempfile.mktemp()
+    export_multiple_to_single_hdf5([CE1], temp_file)
+    insert_to_database(temp_file, file2)
+    CEs = import_multiple_from_single_hdf5(temp_file)
+    assert len(CEs) == 2
+    assert len(CEs[0]._kmers) == len(CEs[1]._kmers)
+    insert_to_database(temp_file, [file2, file3])
+    CEs = import_multiple_from_single_hdf5(temp_file)
+    assert len(CEs) == 3
+    assert len(CEs[0]._kmers) == len(CEs[2]._kmers)
+    os.remove(temp_file)
 
 def test_suite():
     """
@@ -995,5 +1069,6 @@ def test_suite():
     test_vector_formation()
     test_form_matrices()
     test_delete_from_database()
-    print("All test successful")
+    test_insert_to_database()
+    print("All tests successful!")
 
