@@ -370,7 +370,7 @@ def export_multiple_to_single_hdf5(CEs, export_file_name):
             subgrp.attrs['prime'] = CE.p
             subgrp.attrs['true_num_kmers'] = CE._true_num_kmers
         except ValueError:
-            raise Exception("It appears that the training file name %s exists twice in the input data. Please make sure all names are unique (i.e. remove duplicates) and tray again." % CE.input_file_name)
+            raise Exception("It appears that the training file name %s exists twice in the input data. Please make sure all names are unique (i.e. remove duplicates) and try again." % CE.input_file_name)
 
     fid.close()
 
