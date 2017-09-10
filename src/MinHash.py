@@ -509,6 +509,43 @@ def insert_to_database(database_location, insert_list):
     fid.close()
 
 
+def union_databases(database1_file_name, database2_file_name, out_file):
+    """
+    This funtion will union the two training databases and export to the specified HDF5 file.
+    :param database1_file_name: Input HDF5 file of one of the input databases.
+    :param database2_file_name: Input HDF5 file of the other input database.
+    :param out_file: File name for the exported HDF5 file
+    :return: None
+    """
+    out_file = os.path.abspath(out_file)
+    database1_file_name = os.path.abspath(database1_file_name)
+    database2_file_name = os.path.abspath(database2_file_name)
+    # Read in the existing database
+    CEs1 = import_multiple_from_single_hdf5(database1_file_name)
+    CEs2 = import_multiple_from_single_hdf5(database2_file_name)
+    # Sanity check the existing databases
+    if len(set([item.ksize for item in CEs1]).union(set([item.ksize for item in CEs2]))) > 1:
+        raise Exception("Incompatible k-mer lengths.")
+    if len(set([item.p for item in CEs1]).union(set([item.p for item in CEs2]))) > 1:
+        raise Exception("Incompatible primes. Re-run with same -p value for both databases")
+    # Join up the two existing databases
+    all_CEs = list(set(CEs1).union(set(CEs2)))
+    all_input_names = set([os.path.basename(item.input_file_name) for item in CEs1]).union(
+        set([os.path.basename(item.input_file_name) for item in CEs2]))
+    # For some odd reason, even if the data is identical, it's identifying the same CEs (loaded from different sources) as the same
+    # so instead, let's just pick one of them to include
+    included_names = set()
+    to_include_CEs = list()
+    for CE in all_CEs:
+        if CE.input_file_name not in included_names:
+            included_names.add(CE.input_file_name)
+            to_include_CEs.append(CE)
+    #if len(all_input_names) != len(all_CEs):
+    #    raise Exception("Number of items in union does not match total number of unique input FASTQ/A file names")
+    # export the union of the databases
+    export_multiple_to_single_hdf5(to_include_CEs, out_file)
+
+
 class CE_map(object):
     """
     Helper function for mapping CountEstimator class over multiple input_file arguments
@@ -1055,12 +1092,36 @@ def test_insert_to_database():
     assert len(CEs[0]._kmers) == len(CEs[2]._kmers)
     os.remove(temp_file)
 
+
+def test_union_databases():
+    file1 = "../data/PRJNA67111.fna"
+    file2 = "../data/PRJNA32727.fna"
+    file3 = "../data/PRJNA298068.fna"
+    CE1 = CountEstimator(n=5, max_prime=1e10, ksize=3, save_kmers='y', input_file_name=file1)
+    CE2 = CountEstimator(n=5, max_prime=1e10, ksize=3, save_kmers='y', input_file_name=file2)
+    CE3 = CountEstimator(n=5, max_prime=1e10, ksize=3, save_kmers='y', input_file_name=file3)
+    temp_file1 = tempfile.mktemp()
+    temp_file2 = tempfile.mktemp()
+    temp_file3 = tempfile.mktemp()
+    export_multiple_to_single_hdf5([CE1], temp_file1)
+    export_multiple_to_single_hdf5([CE1, CE2, CE3], temp_file2)
+    try:
+        union_databases(temp_file1, temp_file2, temp_file3)
+    except:
+        raise Exception("Unioning databases test did not succeed")
+    all_3 = import_multiple_from_single_hdf5(temp_file3)
+    assert len(all_3) == 3
+    assert len(set([item.input_file_name for item in all_3])) == 3
+    os.remove(temp_file1)
+    os.remove(temp_file2)
+    os.remove(temp_file3)
+
 def test_suite():
     """
     Runs all the test functions
     :return:
     """
-    from sys import platform as _platform
+    #from sys import platform as _platform
     test_jaccard_1()
     test_jaccard_2_difflen()
     test_yield_overlaps()
@@ -1073,5 +1134,6 @@ def test_suite():
     test_form_matrices()
     test_delete_from_database()
     test_insert_to_database()
+    test_union_databases()
     print("All tests successful!")
 
