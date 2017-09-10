@@ -370,6 +370,7 @@ def export_multiple_to_single_hdf5(CEs, export_file_name):
             subgrp.attrs['prime'] = CE.p
             subgrp.attrs['true_num_kmers'] = CE._true_num_kmers
         except ValueError:
+            fid.close()
             raise Exception("It appears that the training file name %s exists twice in the input data. Please make sure all names are unique (i.e. remove duplicates) and try again." % CE.input_file_name)
 
     fid.close()
@@ -385,6 +386,7 @@ def import_multiple_from_single_hdf5(file_name, import_list=None):
     CEs = list()
     fid = h5py.File(file_name, 'r')
     if "CountEstimators" not in fid:
+        fid.close()
         raise Exception("This function imports a single HDF5 file containing multiple sketches."
                         " It appears you've used it on a file containing a single sketch."
                         "Try using import_single_hdf5 instead")
@@ -397,6 +399,7 @@ def import_multiple_from_single_hdf5(file_name, import_list=None):
 
     for key in iterator:
         if key not in grp:
+            fid.close()
             raise Exception("The key " + key + " is not in " + file_name)
 
         subgrp = grp[key]
