@@ -361,7 +361,7 @@ def export_multiple_to_single_hdf5(CEs, export_file_name):
             subgrp = grp.create_group(os.path.basename(CE.input_file_name))  # the key of a subgroup is the basename (not the whole file)
             mins_data = subgrp.create_dataset("mins", data=CE._mins)
             counts_data = subgrp.create_dataset("counts", data=CE._counts)
-            if CE._kmers:
+            if CE._kmers is not None:
                 kmer_data = subgrp.create_dataset("kmers", data=CE._kmers)
 
             subgrp.attrs['class'] = np.string_("CountEstimator")
