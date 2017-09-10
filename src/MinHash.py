@@ -1042,11 +1042,11 @@ def test_insert_to_database():
     CE3 = CountEstimator(n=5, max_prime=1e10, ksize=3, save_kmers='y', input_file_name=file3)
     temp_file = tempfile.mktemp()
     export_multiple_to_single_hdf5([CE1], temp_file)
-    insert_to_database(temp_file, file2)
+    insert_to_database(temp_file, file2)  # Tests if only a single file is inserted
     CEs = import_multiple_from_single_hdf5(temp_file)
     assert len(CEs) == 2
     assert len(CEs[0]._kmers) == len(CEs[1]._kmers)
-    insert_to_database(temp_file, [file2, file3])
+    insert_to_database(temp_file, [file2, file3])  # Tests if a list of files is inserted (with some already in the database)
     CEs = import_multiple_from_single_hdf5(temp_file)
     assert len(CEs) == 3
     assert len(CEs[0]._kmers) == len(CEs[2]._kmers)
