@@ -78,6 +78,7 @@ def main():
 	parser.add_argument('-ng', '--node_graph', help="NodeGraph/bloom filter location. Used if it exists; if not, one "
 													"will be created and put in the same directory as the specified "
 													"output CSV file.", default=None)
+	parser.add_argument('-b', '--base_name', action="store_true", help="Flag to indicate that only the base names (not the full path) should be saved in the output CSV file")
 	parser.add_argument('in_file', help="Input file: FASTQ/A file (can be gzipped).")
 	parser.add_argument('training_data', help="Training/reference data (HDF5 file created by MakeTrainingDatabase.py)")
 	parser.add_argument('out_csv', help='Output CSV file')
@@ -85,6 +86,7 @@ def main():
 	# Parse and check args
 	args = parser.parse_args()
 	#ksize = args.k_size
+	base_name = args.base_name
 	training_data = os.path.abspath(args.training_data)
 	if not os.path.exists(training_data):
 		raise Exception("Training/reference file %s does not exist." % training_data)
@@ -169,7 +171,11 @@ def main():
 
 	d = {'intersection': intersection_cardinalities, 'containment index': containment_indexes, 'jaccard index': jaccard_indexes}
 	#df = pd.DataFrame(d, index=map(os.path.basename, training_file_names))
-	df = pd.DataFrame(d, training_file_names)
+	# Use only the basenames to label the rows (if requested)
+	if base_name is True:
+		df = pd.DataFrame(d, map(os.path.basename, training_file_names))
+	else:
+		df = pd.DataFrame(d, training_file_names)
 
 	# Only get the rows above a certain threshold
 	if coverage_threshold <= 0:
