@@ -66,7 +66,7 @@ def main():
 									formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 	parser.add_argument('-p', '--prime', help='Prime (for modding hashes)', default=9999999999971)
 	parser.add_argument('-t', '--threads', type=int, help="Number of threads to use", default=multiprocessing.cpu_count())
-	parser.add_argument('-n', '--num_hashes', type=int, help="Number of hashes to use.", default=500)
+	#parser.add_argument('-n', '--num_hashes', type=int, help="Number of hashes to use.", default=500)
 	parser.add_argument('-k', '--k_size', type=int, help="K-mer size", default=21)
 	parser.add_argument('-f', '--force', action="store_true", help="Force creation of new NodeGraph.")
 	parser.add_argument('-fp', '--fp_rate', type=restricted_float, help="False positive rate.", default=0.0001)
