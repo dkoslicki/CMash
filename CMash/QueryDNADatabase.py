@@ -55,7 +55,7 @@ def unwrap_compute_indicies(arg):
 def restricted_float(x):
 	x = float(x)
 	if x < 0.0 or x >= 1.0:
-		raise argparse.ArgumentTypeError("%r not in range [0.0, 1.0)"%(x,))
+		raise argparse.ArgumentTypeError("%r not in range [0.0, 1.0)" % (x,))
 	return x
 
 
@@ -64,10 +64,10 @@ def main():
 	parser = argparse.ArgumentParser(description="This script creates a CSV file of similarity indicies between the"
 									" input file and each of the sketches in the training/reference file.",
 									formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-	parser.add_argument('-p', '--prime', help='Prime (for modding hashes)', default=9999999999971)
+	#parser.add_argument('-p', '--prime', help='Prime (for modding hashes)', default=9999999999971)
 	parser.add_argument('-t', '--threads', type=int, help="Number of threads to use", default=multiprocessing.cpu_count())
 	#parser.add_argument('-n', '--num_hashes', type=int, help="Number of hashes to use.", default=500)
-	parser.add_argument('-k', '--k_size', type=int, help="K-mer size", default=21)
+	#parser.add_argument('-k', '--k_size', type=int, help="K-mer size", default=21)
 	parser.add_argument('-f', '--force', action="store_true", help="Force creation of new NodeGraph.")
 	parser.add_argument('-fp', '--fp_rate', type=restricted_float, help="False positive rate.", default=0.0001)
 	parser.add_argument('-ct', '--containment_threshold', type=restricted_float,
@@ -84,7 +84,30 @@ def main():
 
 	# Parse and check args
 	args = parser.parse_args()
-	ksize = args.k_size
+	#ksize = args.k_size
+	training_data = os.path.abspath(args.training_data)
+	if not os.path.exists(training_data):
+		raise Exception("Training/reference file %s does not exist." % training_data)
+	# Let's get the k-mer sizes in the training database
+	ksizes = set()
+	# Import all the training data
+	sketches = MH.import_multiple_from_single_hdf5(training_data)
+	# Check for issues with the sketches (can also check if all the kmers make sense (i.e. no '' or non-ACTG characters))
+	if sketches[0]._kmers is None:
+		raise Exception("For some reason, the k-mers were not saved when the database was created. Try running MakeDNADatabase.py again.")
+	num_hashes = len(sketches[0]._kmers)
+	for i in range(len(sketches)):
+		sketch = sketches[i]
+		if sketch._kmers is None:
+			raise Exception(
+				"For some reason, the k-mers were not saved when the database was created. Try running MakeDNADatabase.py again.")
+		if len(sketch._kmers) != num_hashes:
+			raise Exception("Unequal number of hashes for sketch of %s" % sketch.input_file_name)
+		ksizes.add(sketch.ksize)
+		if len(ksizes) > 1:
+			raise Exception("Training/reference data uses different k-mer sizes. Culprit was %s." % (sketch.input_file_name))
+	# Get the appropriate k-mer size
+	ksize = ksizes.pop()
 	num_threads = args.threads
 	query_file = os.path.abspath(args.in_file)
 	if not os.path.exists(query_file):
@@ -99,26 +122,11 @@ def main():
 		node_graph_out = args.node_graph
 	else:  # Otherwise, the specified one doesn't exist
 		raise Exception("Provided NodeGraph %s does not exist." % args.node_graph)
-	training_data = os.path.abspath(args.training_data)
-	if not os.path.exists(training_data):
-		raise Exception("Training/reference file %s does not exist." % training_data)
 	results_file = os.path.abspath(args.out_csv)
 	force = args.force
 	fprate = args.fp_rate
 	coverage_threshold = args.containment_threshold  # desired coverage cutoff
 	confidence = args.confidence  # desired confidence that you got all the organisms with coverage >= desired coverage
-
-	# Import all the training data
-	sketches = MH.import_multiple_from_single_hdf5(training_data)
-	# Check for issues with the sketches (can also check if all the kmers make sense (i.e. no '' or non-ACTG characters))
-	num_hashes = len(sketches[0]._kmers)
-	for i in range(len(sketches)):
-		sketch = sketches[i]
-		if len(sketch._kmers) != num_hashes:
-			raise Exception("Unequal number of hashes for sketch of %s" % sketch.input_file_name)
-		if sketch.ksize != ksize:
-			raise Exception("Training/reference data uses K=%d while the value K=%d was requested. Culprit was %s." %
-							(sketch.ksize, ksize, sketch.input_file_name))
 
 	# Get names of training files for use as rows in returned tabular data
 	training_file_names = []
