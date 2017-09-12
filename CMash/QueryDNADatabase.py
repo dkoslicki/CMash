@@ -21,7 +21,7 @@ def threshold_calc(k, c, p, confidence):
 
 
 # This will calculate the similarity indicies between one sketch and the sample NodeGraph
-def compute_indicies(sketch, num_sample_kmers):
+def compute_indicies(sketch, num_sample_kmers, true_fprate):
 	#global sample_kmers
 	num_hashes = len(sketch._kmers)
 	num_training_kmers = sketch._true_num_kmers
@@ -32,7 +32,8 @@ def compute_indicies(sketch, num_sample_kmers):
 			count += sample_kmers.get(kmer)
 		else:
 			adjust += 1  # Hash wasn't full, adjust accordingly
-	intersection_cardinality = count  # Should adjust this by the FP rate of the NodGraph, but I don't think I can get that...
+	count -= int(np.round(true_fprate*num_hashes))  # adjust by the FP rate of the bloom filter
+	intersection_cardinality = count
 	containment_index = count / float(num_hashes - adjust)
 	jaccard_index = num_training_kmers * containment_index / float(num_training_kmers + num_sample_kmers - num_training_kmers * containment_index)
 	#print("Train %d sample %d" % (num_training_kmers, num_sample_kmers))
@@ -145,19 +146,21 @@ def main():
 		sample_kmers.consume_seqfile(query_file)
 		# Save the sample_kmers
 		sample_kmers.save(node_graph_out)
+		true_fprate = khmer.calc_expected_collisions(sample_kmers, max_false_pos=0.99)
 	else:
 		sample_kmers = khmer.load_nodegraph(node_graph_out)
 		node_ksize = sample_kmers.ksize()
 		if node_ksize != ksize:
 			raise Exception("Node graph %s has wrong k-mer size of %d (input was %d). Try --force or change -k." % (
 			node_graph_out, node_ksize, ksize))
+		true_fprate = khmer.calc_expected_collisions(sample_kmers, max_false_pos=0.99)
 
 	#num_sample_kmers = sample_kmers.n_unique_kmers()  # For some reason this only works when creating a new node graph, use the following instead
 	num_sample_kmers = sample_kmers.n_occupied()
 
 	# Compute all the indicies for all the training data
 	pool = Pool(processes=num_threads)
-	res = pool.map(unwrap_compute_indicies, zip(sketches, repeat(num_sample_kmers)))
+	res = pool.map(unwrap_compute_indicies, zip(sketches, repeat(num_sample_kmers), repeat(true_fprate)))
 
 	# Gather up the results in a nice form
 	intersection_cardinalities = np.zeros(len(sketches))
