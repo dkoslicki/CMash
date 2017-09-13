@@ -11,16 +11,20 @@ from khmer.khmer_args import optimal_size
 
 # This function will make a single min hash sketch upon being given a file name, sketch size, prime, and k-mer size
 def make_minhash(genome, max_h, prime, ksize):
-	kmers = set()
+	#kmers = set()
 	MHS = MH.CountEstimator(n=max_h, max_prime=prime, ksize=ksize, save_kmers='y')
 	for record in screed.open(genome):
 		seq = record.sequence
 		for i in range(len(seq) - ksize + 1):
 			kmer = seq[i:i+ksize]
 			# No need to care about revcomp since nodegraph ID's them
-			kmers.add(kmer)
+			#kmers.add(kmer)
 			MHS.add(kmer)
-	MHS._true_num_kmers = len(kmers)
+	#MHS._true_num_kmers = len(kmers)
+	# Just use HLL to estimate the number of kmers, no need to get exact count
+	hll = khmer.HLLCounter(0.01, ksize)
+	hll.consume_seqfile(genome)
+	MHS._true_num_kmers = hll.estimate_cardinality()
 	MHS.input_file_name = genome
 	return MHS
 

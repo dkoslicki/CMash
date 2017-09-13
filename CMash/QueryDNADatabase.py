@@ -160,7 +160,7 @@ def main():
 	# Only form the Nodegraph if we need to
 	global sample_kmers
 	if not os.path.exists(node_graph_out) or force is True:
-		hll = khmer.HLLCounter(0.01)
+		hll = khmer.HLLCounter(0.01, ksize)
 		hll.consume_seqfile(query_file)
 		full_kmer_count_estimate = hll.estimate_cardinality()
 		res = optimal_size(full_kmer_count_estimate, fp_rate=fprate)
