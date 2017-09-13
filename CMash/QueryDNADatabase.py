@@ -8,6 +8,7 @@ from multiprocessing import Pool  # Much faster without dummy (threading)
 import multiprocessing
 from itertools import *
 import argparse
+import screed
 
 
 # Helper function that uses equations (2.1) and (2.7) that tells you where you need
@@ -65,10 +66,7 @@ def main():
 	parser = argparse.ArgumentParser(description="This script creates a CSV file of similarity indicies between the"
 									" input file and each of the sketches in the training/reference file.",
 									formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-	#parser.add_argument('-p', '--prime', help='Prime (for modding hashes)', default=9999999999971)
 	parser.add_argument('-t', '--threads', type=int, help="Number of threads to use", default=multiprocessing.cpu_count())
-	#parser.add_argument('-n', '--num_hashes', type=int, help="Number of hashes to use.", default=500)
-	#parser.add_argument('-k', '--k_size', type=int, help="K-mer size", default=21)
 	parser.add_argument('-f', '--force', action="store_true", help="Force creation of new NodeGraph.")
 	parser.add_argument('-fp', '--fp_rate', type=restricted_float, help="False positive rate.", default=0.0001)
 	parser.add_argument('-ct', '--containment_threshold', type=restricted_float,
@@ -79,14 +77,19 @@ def main():
 	parser.add_argument('-ng', '--node_graph', help="NodeGraph/bloom filter location. Used if it exists; if not, one "
 													"will be created and put in the same directory as the specified "
 													"output CSV file.", default=None)
-	parser.add_argument('-b', '--base_name', action="store_true", help="Flag to indicate that only the base names (not the full path) should be saved in the output CSV file")
+	parser.add_argument('-b', '--base_name', action="store_true",
+						help="Flag to indicate that only the base names (not the full path) should be saved in the output CSV file")
+	parser.add_argument('-i', '--intersect_nodegraph', action="store_true",
+						help="Option to only insert query k-mers in bloom filter if they appear anywhere in the training"
+							 " database. Note that the Jaccard estimates will now be "
+							 "J(query \intersect \union_i training_i, training_i) instead of J(query, training_i), "
+							 "but will use significantly less space.")
 	parser.add_argument('in_file', help="Input file: FASTQ/A file (can be gzipped).")
 	parser.add_argument('training_data', help="Training/reference data (HDF5 file created by MakeTrainingDatabase.py)")
 	parser.add_argument('out_csv', help='Output CSV file')
 
 	# Parse and check args
 	args = parser.parse_args()
-	#ksize = args.k_size
 	base_name = args.base_name
 	training_data = os.path.abspath(args.training_data)
 	if not os.path.exists(training_data):
@@ -111,7 +114,9 @@ def main():
 			raise Exception("Training/reference data uses different k-mer sizes. Culprit was %s." % (sketch.input_file_name))
 	# Get the appropriate k-mer size
 	ksize = ksizes.pop()
+	# Get number of threads to use
 	num_threads = args.threads
+	# Check and parse the query file
 	query_file = os.path.abspath(args.in_file)
 	if not os.path.exists(query_file):
 		raise Exception("Query file %s does not exist." % query_file)
@@ -125,6 +130,22 @@ def main():
 		node_graph_out = args.node_graph
 	else:  # Otherwise, the specified one doesn't exist
 		raise Exception("Provided NodeGraph %s does not exist." % args.node_graph)
+	# import and check the intersect nodegraph
+	if args.intersect_nodegraph is True:
+		intersect_nodegraph_file = os.path.splitext(training_data)[0] + ".intersect.Nodegraph"
+	else:
+		intersect_nodegraph_file = None
+	intersect_nodegraph = None
+	if intersect_nodegraph_file is not None:
+		if not os.path.exists(intersect_nodegraph_file):
+			raise Exception("Intersection nodegraph does not exist. Please re-run MakeDNADatabase.py with the -i flag.")
+		try:
+			intersect_nodegraph = khmer.load_nodegraph(intersect_nodegraph_file)
+			if intersect_nodegraph.ksize() != ksize:
+				raise Exception("Given intersect nodegraph %s has K-mer size %d while the database K-mer size is %d"
+								% (intersect_nodegraph_file, intersect_nodegraph.ksize(), ksize))
+		except:
+			raise Exception("Could not load given intersect nodegraph %s" % intersect_nodegraph_file)
 	results_file = os.path.abspath(args.out_csv)
 	force = args.force
 	fprate = args.fp_rate
@@ -141,9 +162,27 @@ def main():
 	if not os.path.exists(node_graph_out) or force is True:
 		hll = khmer.HLLCounter(0.01)
 		hll.consume_seqfile(query_file)
-		res = optimal_size(hll.estimate_cardinality(), fp_rate=fprate)
-		sample_kmers = khmer.Nodegraph(ksize, res.htable_size, res.num_htables)
-		sample_kmers.consume_seqfile(query_file)
+		full_kmer_count_estimate = hll.estimate_cardinality()
+		res = optimal_size(full_kmer_count_estimate, fp_rate=fprate)
+		if intersect_nodegraph is None:  # If no intersect list was given, just populate the bloom filter
+			sample_kmers = khmer.Nodegraph(ksize, res.htable_size, res.num_htables)
+			sample_kmers.consume_seqfile(query_file)
+		else:  # Otherwise, only put a k-mer in the bloom filter if it's in the intersect list
+			# (WARNING: this will cause the Jaccard index to be calculated in terms of J(query\intersect hash_list, training)
+			#  instead of J(query, training)
+			#intersect_nodegraph_kmer_count = intersect_nodegraph.n_unique_kmers()  # Doesnt work due to khmer bug
+			intersect_nodegraph_kmer_count = intersect_nodegraph.n_occupied()  # Doesnt work due to khmer bug
+			if intersect_nodegraph_kmer_count < full_kmer_count_estimate:  # At max, we have as many k-mers as in the union of the training database (But makes this always return 0)
+				res = optimal_size(intersect_nodegraph_kmer_count, fp_rate=fprate)
+				sample_kmers = khmer.Nodegraph(ksize, res.htable_size, res.num_htables)
+			else:
+				sample_kmers = khmer.Nodegraph(ksize, res.htable_size, res.num_htables)
+			for record in screed.open(query_file):
+				seq = record.sequence
+				for i in range(len(seq) - ksize + 1):
+					kmer = seq[i:i + ksize]
+					if intersect_nodegraph.get(kmer) > 0:
+						sample_kmers.add(kmer)
 		# Save the sample_kmers
 		sample_kmers.save(node_graph_out)
 		true_fprate = khmer.calc_expected_collisions(sample_kmers, max_false_pos=0.99)
@@ -173,7 +212,6 @@ def main():
 		jaccard_indexes[i] = jaccard_index
 
 	d = {'intersection': intersection_cardinalities, 'containment index': containment_indexes, 'jaccard index': jaccard_indexes}
-	#df = pd.DataFrame(d, index=map(os.path.basename, training_file_names))
 	# Use only the basenames to label the rows (if requested)
 	if base_name is True:
 		df = pd.DataFrame(d, map(os.path.basename, training_file_names))
