@@ -9,3 +9,5 @@ Until further notice:
 3. ``QueryDNADatbase.py --help`` to query a fasta/q file against a reference database. Forgot step #2? No problem! The file will be prepped automatically!
 
 Install via traditional ``git clone`` (with ``pip install khmer`` and ``argparse``, ``blist``, ``h5py``, ``numpy``, ``pandas``, ``matplotlib``, and ``screed`` installed similarly).
+
+Protein databases (and for that matter, arbitrary K-length strings) coming soon...
