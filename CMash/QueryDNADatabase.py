@@ -2,7 +2,10 @@ import khmer
 import numpy as np
 from khmer.khmer_args import optimal_size
 import os
-import MinHash as MH
+try:
+	from CMash import MinHash as MH
+except ImportError:
+	import MinHash as MH
 import pandas as pd
 from multiprocessing import Pool  # Much faster without dummy (threading)
 import multiprocessing
