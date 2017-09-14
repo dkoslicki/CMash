@@ -12,6 +12,7 @@ setup(
 	author="David Koslicki",
 	author_email="dmkoslicki@gmail.com",
 	description=("Fast and accurate set similarity estimation via containment min hash (for genomic datasets)."),
+	long_description=open('README.md').read(),
 	#license="BSD-3-Clause",  # see classifiers
 	keywords="jaccard min hash containment genomics metagenomics",
 	url="https://github.com/dkoslicki/CMash",
@@ -28,7 +29,7 @@ setup(
 		'six'
 	],
 	python_requires='>=3',
-	long_description=open('README.md').read(),
+	package_data={'CMash': ['data/*.fna']},
 	classifiers=[
 		"Development Status :: 3 - Alpha",
 		"Topic :: Scientific/Engineering :: Bio-Informatics",

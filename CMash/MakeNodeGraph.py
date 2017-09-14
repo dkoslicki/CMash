@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 # This script will create node graph for a given k-mer size and query file (can be used as input to QueryDNADatabase.py)
 import khmer
 from khmer.khmer_args import optimal_size

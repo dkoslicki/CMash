@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 import khmer
 import numpy as np
 from khmer.khmer_args import optimal_size

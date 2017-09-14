@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 # This script will make a training database of hashes
 import os
 # The following is for ease of development (so I don't need to keep re-installing the tool)
