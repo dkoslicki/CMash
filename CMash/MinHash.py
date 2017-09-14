@@ -942,12 +942,15 @@ def test_delete_from_database():
     os.remove(temp_file)
 
 def test_insert_to_database():
-    file1 = os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "PRJNA67111.fna")
-    file2 = os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "PRJNA32727.fna")
-    file3 = os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "PRJNA298068.fna")
-    #file1 = "../data/PRJNA67111.fna"
-    #file2 = "../data/PRJNA32727.fna"
-    #file3 = "../data/PRJNA298068.fna"
+    try:
+        import CMash
+        file1 = CMash.get_data("PRJNA67111.fna")
+        file2 = CMash.get_data("PRJNA32727.fna")
+        file3 = CMash.get_data("PRJNA298068.fna")
+    except ImportError:
+        file1 = os.path.join(os.path.dirname(__file__), "data", "PRJNA67111.fna")
+        file2 = os.path.join(os.path.dirname(__file__), "data", "PRJNA32727.fna")
+        file3 = os.path.join(os.path.dirname(__file__), "data", "PRJNA298068.fna")
     CE1 = CountEstimator(n=5, max_prime=1e10, ksize=3, save_kmers='y', input_file_name=file1)
     CE2 = CountEstimator(n=5, max_prime=1e10, ksize=3, save_kmers='y', input_file_name=file2)
     CE3 = CountEstimator(n=5, max_prime=1e10, ksize=3, save_kmers='y', input_file_name=file3)
@@ -965,12 +968,15 @@ def test_insert_to_database():
 
 
 def test_union_databases():
-    file1 = os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "PRJNA67111.fna")
-    file2 = os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "PRJNA32727.fna")
-    file3 = os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "PRJNA298068.fna")
-    #file1 = "../data/PRJNA67111.fna"
-    #file2 = "../data/PRJNA32727.fna"
-    #file3 = "../data/PRJNA298068.fna"
+    try:
+        import CMash
+        file1 = CMash.get_data("PRJNA67111.fna")
+        file2 = CMash.get_data("PRJNA32727.fna")
+        file3 = CMash.get_data("PRJNA298068.fna")
+    except ImportError:
+        file1 = os.path.join(os.path.dirname(__file__), "data", "PRJNA67111.fna")
+        file2 = os.path.join(os.path.dirname(__file__), "data", "PRJNA32727.fna")
+        file3 = os.path.join(os.path.dirname(__file__), "data", "PRJNA298068.fna")
     CE1 = CountEstimator(n=5, max_prime=1e10, ksize=3, save_kmers='y', input_file_name=file1)
     CE2 = CountEstimator(n=5, max_prime=1e10, ksize=3, save_kmers='y', input_file_name=file2)
     CE3 = CountEstimator(n=5, max_prime=1e10, ksize=3, save_kmers='y', input_file_name=file3)
