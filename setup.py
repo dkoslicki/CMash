@@ -6,6 +6,13 @@ from setuptools import setup
 # Used for the long_description.  It's nice, because now 1) we have a top level
 # README file and 2) it's easier to type in the README file than to put a raw
 # string in below ...
+
+SCRIPTS = []
+SCRIPTS.extend([os.path.join("scripts", script)
+                for script in os.listdir(os.path.join(os.path.dirname(__file__), "scripts"))
+                if script.endswith(".py")])
+
+
 setup(
 	name="CMash",
 	version="0.1.0",
@@ -30,6 +37,7 @@ setup(
 	],
 	python_requires='>=3',
 	package_data={'CMash': ['data/*.fna']},
+	scripts=SCRIPTS,
 	classifiers=[
 		"Development Status :: 3 - Alpha",
 		"Topic :: Scientific/Engineering :: Bio-Informatics",
