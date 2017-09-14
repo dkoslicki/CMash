@@ -429,7 +429,8 @@ def delete_from_database(database_location, delete_list):
     file_name = os.path.abspath(database_location)
     fid = h5py.File(file_name, 'r')  # Let's take a peak at what's already in there
     grp = fid["CountEstimators"]
-    all_keys = grp.keys()  # All the current data sets in there
+    #all_keys = grp.keys()  # All the current data sets in there
+    all_keys = [item for item in grp.keys()]  # All the current data sets in there (python 3 loads it as a view)
     fid.close()
     fid = h5py.File(file_name, "a")  # Open in append mode to modify in place
     if isinstance(delete_list, string_types):  # If it's just a single name, delete it
@@ -459,7 +460,8 @@ def insert_to_database(database_location, insert_list):
     # Get the info from one of the existing guys
     fid = h5py.File(database_location, 'r')
     grp = fid["CountEstimators"]
-    orig_keys = grp.keys()
+    #orig_keys = grp.keys()
+    orig_keys = [item for item in grp.keys()]  # Python3 h5py imports it as a view, not the data itself
     fid.close()
     temp_CE = import_multiple_from_single_hdf5(database_location, import_list=[orig_keys[0]])[0]
     k_size = temp_CE.ksize
@@ -940,9 +942,12 @@ def test_delete_from_database():
     os.remove(temp_file)
 
 def test_insert_to_database():
-    file1 = "../data/PRJNA67111.fna"
-    file2 = "../data/PRJNA32727.fna"
-    file3 = "../data/PRJNA298068.fna"
+    file1 = os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "PRJNA67111.fna")
+    file2 = os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "PRJNA32727.fna")
+    file3 = os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "PRJNA298068.fna")
+    #file1 = "../data/PRJNA67111.fna"
+    #file2 = "../data/PRJNA32727.fna"
+    #file3 = "../data/PRJNA298068.fna"
     CE1 = CountEstimator(n=5, max_prime=1e10, ksize=3, save_kmers='y', input_file_name=file1)
     CE2 = CountEstimator(n=5, max_prime=1e10, ksize=3, save_kmers='y', input_file_name=file2)
     CE3 = CountEstimator(n=5, max_prime=1e10, ksize=3, save_kmers='y', input_file_name=file3)
@@ -960,9 +965,12 @@ def test_insert_to_database():
 
 
 def test_union_databases():
-    file1 = "../data/PRJNA67111.fna"
-    file2 = "../data/PRJNA32727.fna"
-    file3 = "../data/PRJNA298068.fna"
+    file1 = os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "PRJNA67111.fna")
+    file2 = os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "PRJNA32727.fna")
+    file3 = os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "PRJNA298068.fna")
+    #file1 = "../data/PRJNA67111.fna"
+    #file2 = "../data/PRJNA32727.fna"
+    #file3 = "../data/PRJNA298068.fna"
     CE1 = CountEstimator(n=5, max_prime=1e10, ksize=3, save_kmers='y', input_file_name=file1)
     CE2 = CountEstimator(n=5, max_prime=1e10, ksize=3, save_kmers='y', input_file_name=file2)
     CE3 = CountEstimator(n=5, max_prime=1e10, ksize=3, save_kmers='y', input_file_name=file3)
