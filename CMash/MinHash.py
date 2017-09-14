@@ -17,6 +17,7 @@ from blist import *  # note, the import functions import the _mins etc. as lists
 import bisect
 import ctypes
 import warnings
+from six import string_types
 warnings.simplefilter("ignore", RuntimeWarning)
 
 # To Do:
@@ -431,7 +432,7 @@ def delete_from_database(database_location, delete_list):
     all_keys = grp.keys()  # All the current data sets in there
     fid.close()
     fid = h5py.File(file_name, "a")  # Open in append mode to modify in place
-    if isinstance(delete_list, basestring):  # If it's just a single name, delete it
+    if isinstance(delete_list, string_types):  # If it's just a single name, delete it
         keys_to_delete = delete_list  # Yeah it's bad naming (should be key_to_delete) but I need the print command below to show up
         if keys_to_delete in all_keys:  # If it's actually one of the keys in there
             del fid["CountEstimators"][keys_to_delete]  # Delete it
@@ -452,7 +453,7 @@ def insert_to_database(database_location, insert_list):
     :param insert_list: list of (full paths) to FASTA/Q files to insert
     :return: None
     """
-    if isinstance(insert_list, basestring):
+    if isinstance(insert_list, string_types):
         insert_list = [insert_list]  # Make into a list if it's only one guy
     insert_list = list(set(insert_list))  # Uniqueify it
     # Get the info from one of the existing guys
