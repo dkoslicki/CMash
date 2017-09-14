@@ -1,11 +1,16 @@
 #! /usr/bin/env python
 # This script will make a training database of hashes
 import os
+import sys
 # The following is for ease of development (so I don't need to keep re-installing the tool)
 try:
 	from CMash import MinHash as MH
 except ImportError:
-	import MinHash as MH
+	try:
+		import MinHash as MH
+	except ImportError:
+		sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+		from CMash import MinHash as MH
 from multiprocessing import Pool  # Much faster without dummy (threading)
 import multiprocessing
 from itertools import *
