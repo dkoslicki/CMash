@@ -1,13 +1,7 @@
 # This script will create node graph for a given k-mer size and query file (can be used as input to QueryDNADatabase.py)
 import khmer
-import numpy as np
 from khmer.khmer_args import optimal_size
 import os
-import MinHash as MH
-import pandas as pd
-from multiprocessing import Pool  # Much faster without dummy (threading)
-import multiprocessing
-from itertools import *
 import argparse
 import screed
 

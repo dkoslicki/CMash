@@ -1,6 +1,5 @@
 # This script will make a training database of hashes
 import os
-import screed
 import MinHash as MH
 from multiprocessing import Pool  # Much faster without dummy (threading)
 import multiprocessing
