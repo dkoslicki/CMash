@@ -12,6 +12,9 @@ SCRIPTS.extend([os.path.join("scripts", script)
                 for script in os.listdir(os.path.join(os.path.dirname(__file__), "scripts"))
                 if script.endswith(".py")])
 
+HERE = os.path.abspath(os.path.dirname(__file__))
+with open(os.path.join(HERE, 'README.md'), 'r') as fid:
+    LONG_DESCRIPTION = fid.read()
 
 setup(
 	name="CMash",
@@ -19,7 +22,7 @@ setup(
 	author="David Koslicki",
 	author_email="dmkoslicki@gmail.com",
 	description=("Fast and accurate set similarity estimation via containment min hash (for genomic datasets)."),
-	long_description=open('README.md').read(),
+	long_description=LONG_DESCRIPTION,
 	#license="BSD-3-Clause",  # see classifiers
 	keywords="jaccard min hash containment genomics metagenomics",
 	url="https://github.com/dkoslicki/CMash",

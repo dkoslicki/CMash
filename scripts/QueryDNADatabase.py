@@ -92,7 +92,7 @@ def main():
 	parser.add_argument('-i', '--intersect_nodegraph', action="store_true",
 						help="Option to only insert query k-mers in bloom filter if they appear anywhere in the training"
 							 " database. Note that the Jaccard estimates will now be "
-							 "J(query \intersect \union_i training_i, training_i) instead of J(query, training_i), "
+							 "J(query intersect union_i training_i, training_i) instead of J(query, training_i), "
 							 "but will use significantly less space.")
 	parser.add_argument('in_file', help="Input file: FASTQ/A file (can be gzipped).")
 	parser.add_argument('training_data', help="Training/reference data (HDF5 file created by MakeTrainingDatabase.py)")
