@@ -12,7 +12,7 @@ source CMashVE/bin/activate
 pip install -U pip
 pip install CMash
 ```
-You can also just do use ``pip install CMash`` if you don't want to create a virtual environment.
+You can also just use ``pip install CMash`` if you don't want to create a virtual environment.
 
 To get the absolute latest edition of CMash, then you can build from the Github repository via:
 ```bash
