@@ -10,9 +10,9 @@ The easiest way to install this is to use [virtualenv](https://virtualenv.pypa.i
 virtualenv -p python3 CMashVE
 source CMashVE/bin/activate
 pip install -U pip
-pip install CMash
+pip3 install CMash
 ```
-You can also just use ``pip install CMash`` if you don't want to create a virtual environment.
+You can also just use ``pip3 install CMash`` if you don't want to create a virtual environment.
 
 To get the absolute latest edition of CMash, then you can build from the Github repository via:
 ```bash
@@ -21,7 +21,7 @@ source CMashVE/bin/activate
 pip install -U pip
 git clone https://github.com/dkoslicki/CMash.git
 cd CMash
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 ```
 ## Usage
 The basic paradigm is to create a reference/training database, form a sample bloom filter, and then query the database.

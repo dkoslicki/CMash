@@ -39,6 +39,7 @@ setup(
 		'six'
 	],
 	python_requires='>=3',
+	zip_safe=False,
 	package_data={'CMash': ['data/*.fna']},
 	scripts=SCRIPTS,
 	classifiers=[
