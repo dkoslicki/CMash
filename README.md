@@ -7,7 +7,7 @@ CMash is a fast and accurate way to estimate the similarity of two sets. This is
 ## Installation
 The easiest way to install this is to use [virtualenv](https://virtualenv.pypa.io/en/stable/):
 ```bash
-virtualenv -p python3 CMashVE
+virtualenv -p python3 CMashVE  # or python3 -m venv CMashVE
 source CMashVE/bin/activate
 pip install -U pip
 pip3 install CMash

@@ -5,7 +5,8 @@ from khmer.khmer_args import optimal_size
 import os
 import argparse
 import screed
-
+import threading
+#import multiprocessing
 
 def restricted_float(x):
 	x = float(x)
@@ -22,8 +23,9 @@ def main():
 						help="Location of Node Graph. Will only insert query k-mers in bloom filter if they appear anywhere in the training"
 							 " database. Note that the Jaccard estimates will now be "
 							 "J(query intersect union_i training_i, training_i) instead of J(query, training_i), "
-							 "but will use significantly less space.")
+							 "but will use significantly less space (unfortunately will also disable threading).")
 	parser.add_argument('-k', '--k_size', type=int, help="K-mer size", default=21)
+	parser.add_argument('-t', '--threads', type=int, help="Number of threads to use", default=8)#default=multiprocessing.cpu_count())
 	parser.add_argument('in_file', help="Input file: FASTQ/A file (can be gzipped).")
 	parser.add_argument('out_dir', help='Output directory')
 
@@ -31,6 +33,7 @@ def main():
 	args = parser.parse_args()
 	query_file = os.path.abspath(args.in_file)
 	ksize = args.k_size
+	num_threads = args.threads
 	node_graph_out = os.path.join(os.path.abspath(args.out_dir), os.path.basename(query_file) + ".NodeGraph.K" + str(ksize))
 	if args.intersect_nodegraph is not None:
 		intersect_nodegraph_file = args.intersect_nodegraph
@@ -54,7 +57,16 @@ def main():
 	res = optimal_size(full_kmer_count_estimate, fp_rate=fprate)
 	if intersect_nodegraph is None:  # If no intersect list was given, just populate the bloom filter
 		sample_kmers = khmer.Nodegraph(ksize, res.htable_size, res.num_htables)
-		sample_kmers.consume_seqfile(query_file)
+		#sample_kmers.consume_seqfile(query_file)
+		print("here")
+		rparser = khmer.ReadParser(query_file)
+		threads = []
+		for _ in range(num_threads):
+			cur_thrd = threading.Thread(target=sample_kmers.consume_seqfile_with_reads_parser, args=(rparser,))
+			threads.append(cur_thrd)
+			cur_thrd.start()
+		for thread in threads:
+			thread.join()
 	else:  # Otherwise, only put a k-mer in the bloom filter if it's in the intersect list
 		# (WARNING: this will cause the Jaccard index to be calculated in terms of J(query\intersect hash_list, training)
 		#  instead of J(query, training)
