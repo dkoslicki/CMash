@@ -23,6 +23,8 @@ git clone https://github.com/dkoslicki/CMash.git
 cd CMash
 pip3 install -r requirements.txt
 ```
+
+Note that this repository itself is python2 and python3 compatible, but the dependency ``khmer`` requires python3 (though curiously enough, it appears ``khmer`` version ``2.1.1`` runs just fine in python2.)
 ## Usage
 The basic paradigm is to create a reference/training database, form a sample bloom filter, and then query the database.
 
