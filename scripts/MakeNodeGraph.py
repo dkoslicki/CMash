@@ -6,7 +6,7 @@ import os
 import argparse
 import screed
 import threading
-#import multiprocessing
+import multiprocessing
 
 def restricted_float(x):
 	x = float(x)
@@ -25,7 +25,7 @@ def main():
 							 "J(query intersect union_i training_i, training_i) instead of J(query, training_i), "
 							 "but will use significantly less space (unfortunately will also disable threading).")
 	parser.add_argument('-k', '--k_size', type=int, help="K-mer size", default=21)
-	parser.add_argument('-t', '--threads', type=int, help="Number of threads to use", default=8)#default=multiprocessing.cpu_count())
+	parser.add_argument('-t', '--threads', type=int, help="Number of threads to use", default=multiprocessing.cpu_count())
 	parser.add_argument('in_file', help="Input file: FASTQ/A file (can be gzipped).")
 	parser.add_argument('out_dir', help='Output directory')
 
@@ -58,7 +58,6 @@ def main():
 	if intersect_nodegraph is None:  # If no intersect list was given, just populate the bloom filter
 		sample_kmers = khmer.Nodegraph(ksize, res.htable_size, res.num_htables)
 		#sample_kmers.consume_seqfile(query_file)
-		print("here")
 		rparser = khmer.ReadParser(query_file)
 		threads = []
 		for _ in range(num_threads):
@@ -70,6 +69,7 @@ def main():
 	else:  # Otherwise, only put a k-mer in the bloom filter if it's in the intersect list
 		# (WARNING: this will cause the Jaccard index to be calculated in terms of J(query\intersect hash_list, training)
 		#  instead of J(query, training)
+		# (TODO: fix this after khmer is updated)
 		#intersect_nodegraph_kmer_count = intersect_nodegraph.n_unique_kmers()  # Doesnt work due to khmer bug
 		intersect_nodegraph_kmer_count = intersect_nodegraph.n_occupied()  # Doesnt work due to khmer bug
 		if intersect_nodegraph_kmer_count < full_kmer_count_estimate:  # At max, we have as many k-mers as in the union of the training database (But makes this always return 0)

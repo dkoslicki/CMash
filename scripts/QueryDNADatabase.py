@@ -16,6 +16,7 @@ except ImportError:
 import pandas as pd
 from multiprocessing import Pool  # Much faster without dummy (threading)
 import multiprocessing
+import threading
 from itertools import *
 import argparse
 import screed
@@ -176,12 +177,21 @@ def main():
 		res = optimal_size(full_kmer_count_estimate, fp_rate=fprate)
 		if intersect_nodegraph is None:  # If no intersect list was given, just populate the bloom filter
 			sample_kmers = khmer.Nodegraph(ksize, res.htable_size, res.num_htables)
-			sample_kmers.consume_seqfile(query_file)
+			#sample_kmers.consume_seqfile(query_file)
+			rparser = khmer.ReadParser(query_file)
+			threads = []
+			for _ in range(num_threads):
+				cur_thrd = threading.Thread(target=sample_kmers.consume_seqfile_with_reads_parser, args=(rparser,))
+				threads.append(cur_thrd)
+				cur_thrd.start()
+			for thread in threads:
+				thread.join()
 		else:  # Otherwise, only put a k-mer in the bloom filter if it's in the intersect list
 			# (WARNING: this will cause the Jaccard index to be calculated in terms of J(query\intersect hash_list, training)
 			#  instead of J(query, training)
+			# (TODO: fix this after khmer is updated)
 			#intersect_nodegraph_kmer_count = intersect_nodegraph.n_unique_kmers()  # Doesnt work due to khmer bug
-			intersect_nodegraph_kmer_count = intersect_nodegraph.n_occupied()  # Doesnt work due to khmer bug
+			intersect_nodegraph_kmer_count = intersect_nodegraph.n_occupied()  # Not technically correct, but I need to wait until khmer is updated
 			if intersect_nodegraph_kmer_count < full_kmer_count_estimate:  # At max, we have as many k-mers as in the union of the training database (But makes this always return 0)
 				res = optimal_size(intersect_nodegraph_kmer_count, fp_rate=fprate)
 				sample_kmers = khmer.Nodegraph(ksize, res.htable_size, res.num_htables)
