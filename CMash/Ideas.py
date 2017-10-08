@@ -50,7 +50,7 @@ def cluster_matrix(A_eps, A_indicies, taxonomy, cluster_eps=.01):
         raise Exception("For some reason, the total number of indicies in the clusters doesn't equal the number of indicies you started with")
     if set([item for subset in clusters_full_indicies for item in subset]) != set(A_indicies_numerical):  # Make sure no indicies were missed or added
         raise Exception("For some reason, the indicies in all the clusters doesn't match the indicies you started with")
-    return clusters_full_indicies, cluster_LCAs(clusters_full_indicies, taxonomy)
+    return clusters_full_indicies#, cluster_LCAs(clusters_full_indicies, taxonomy)
 
 
 def cluster_LCAs(clusters, taxonomy):

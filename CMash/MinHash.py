@@ -18,6 +18,7 @@ import bisect
 import ctypes
 import warnings
 from six import string_types
+from scipy.cluster.hierarchy import dendrogram, linkage, to_tree
 warnings.simplefilter("ignore", RuntimeWarning)
 
 # To Do:
@@ -674,7 +675,7 @@ def form_jaccard_matrix(all_CEs):
     :param all_CEs: a list of count estimators
     :return: a numpy array of the jaccard count matrix
     """
-    A = np.zeros((len(all_CEs), len(all_CEs)), dtype=np.float64)
+    A = np.zeros((len(all_CEs), len(all_CEs)), dtype=np.float16)  # 64 bits is overkill and uses a bunch of memory
     # Can precompute all the indicies
     indicies = []
     for i in range(len(all_CEs)):
@@ -796,6 +797,84 @@ def get_prime_lt_x(target):
 
     if i <= 0:
         raise RuntimeError("unable to find a prime number < %d" % (target))
+
+
+# Tree stuff
+class Kmer_Tree(object):
+    def __init__(self):
+        self.left = None
+        self.right = None
+        self.data = None
+        self.id = None
+
+    def query(self, kmer):  # Breadth first search for the k-mer
+        if self.data:
+            test_kmer = self.data.iterkeys().next()
+            if len(test_kmer) != len(kmer):
+                raise Exception("Query k-mer length %d different than tree k-mer length %d" % (len(kmer), len(test_kmer)))
+        else:
+            raise Exception("Tree has no data in it, cannot be queried")
+        this_level = [self]  # start at the root
+        locations = list()  # locations of the tips containing the k-mer
+        while this_level:
+            next_level = list()  # next level down the tree
+            for n in this_level:
+                if kmer in n.data:
+                    if n.id is not None:  # if the node is labeled, add it
+                        locations.append(n.id)
+                    else:
+                        if n.left:  # if there is a left child node, add it to the next level to search
+                            next_level.append(n.left)
+                        if n.right:
+                            next_level.append(n.right)
+            this_level = next_level
+        return locations
+
+
+def make_tree(CEs):
+    A = form_jaccard_matrix(CEs)  # I should first perform the rough clustering with the cluster_matrix, then do the heir. clustering
+    # otherwise, O(n^2) will be hard to get around for large training databases...
+    Z = linkage(A, 'ward')
+    tree = to_tree(Z)
+    sketches_dicts = list()
+    for sketch_i in range(len(CEs)):
+        kmer_dict = dict()
+        for kmer in CEs[sketch_i]._kmers:
+            kmer_dict[kmer] = True
+        sketches_dicts.append(kmer_dict)
+
+    # Make the tree where nodes have dictionaries containing all the subsequent node k-mers
+    kmer_tree = Kmer_Tree()
+    kmer_tree.data = dict()
+    for sketch in sketches_dicts:
+        kmer_tree.data.update(sketch)
+    this_level_query = [tree]
+    this_level_update = [kmer_tree]
+    while this_level_query:
+        next_level_query = list()
+        next_level_update = list()
+        for (n_query, n_update) in zip(this_level_query, this_level_update):
+            if n_query.get_left():
+                n_update.left = Kmer_Tree()
+                n_update.left.data = dict()
+                for index in n_query.get_left().pre_order(lambda x: x.id):
+                    n_update.left.data.update(sketches_dicts[index])
+                if n_query.get_left().is_leaf():
+                    n_update.left.id = n_query.get_left().id
+                next_level_query.append(n_query.get_left())
+                next_level_update.append(n_update.left)
+            if n_query.get_right():
+                n_update.right = Kmer_Tree()
+                n_update.right.data = dict()
+                for index in n_query.get_right().pre_order(lambda x: x.id):
+                    n_update.right.data.update(sketches_dicts[index])
+                if n_query.get_right().is_leaf():
+                    n_update.right.id = n_query.get_right().id
+                next_level_query.append(n_query.get_right())
+                next_level_update.append(n_update.right)
+        this_level_query = next_level_query
+        this_level_update = next_level_update
+    return kmer_tree
 
 ##########################################################################
 # Tests
@@ -996,6 +1075,25 @@ def test_union_databases():
     os.remove(temp_file2)
     os.remove(temp_file3)
 
+def test_make_tree():
+    try:
+        import CMash
+        file1 = CMash.get_data("PRJNA67111.fna")
+        file2 = CMash.get_data("PRJNA32727.fna")
+        file3 = CMash.get_data("PRJNA298068.fna")
+    except ImportError:
+        file1 = os.path.join(os.path.dirname(__file__), "data", "PRJNA67111.fna")
+        file2 = os.path.join(os.path.dirname(__file__), "data", "PRJNA32727.fna")
+        file3 = os.path.join(os.path.dirname(__file__), "data", "PRJNA298068.fna")
+    CE1 = CountEstimator(n=5, max_prime=1e10, ksize=3, save_kmers='y', input_file_name=file1)
+    CE2 = CountEstimator(n=5, max_prime=1e10, ksize=3, save_kmers='y', input_file_name=file2)
+    CE3 = CountEstimator(n=5, max_prime=1e10, ksize=3, save_kmers='y', input_file_name=file3)
+    CEs = [CE1, CE2, CE3]
+    tree = make_tree(CEs)
+    kmer = "ATC"  # or AGG or TGA or GGC or TTG
+    res = tree.query(kmer)
+    assert sorted(res) == [0, 2]  # this should be [0, 2] since ATC shows up in CE1 and CE3
+
 def test_suite():
     """
     Runs all the test functions
@@ -1015,5 +1113,6 @@ def test_suite():
     test_delete_from_database()
     test_insert_to_database()
     test_union_databases()
+    test_make_tree()
     print("All tests successful!")
 
