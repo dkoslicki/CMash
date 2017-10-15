@@ -668,6 +668,8 @@ def jaccard(ij):
             common += 1
     return common/float(truelen)
 
+#  TO DO: I think a better idea would be to return a sparse matrix, still share the mins, but only return a sparse matrix
+
 
 def form_jaccard_matrix(all_CEs):
     """
@@ -804,8 +806,9 @@ class Kmer_Tree(object):
     def __init__(self):
         self.left = None
         self.right = None
-        self.data = None
-        self.id = None
+        self.data = None  # this should be a dictionary of the k-mer counts at this node
+        self.id = None  # this is None, except for the leaf nodes, in which case it's supposed to be the index
+        #  in the global sketches
 
     def query(self, kmer):  # Breadth first search for the k-mer
         if self.data:
@@ -830,8 +833,59 @@ class Kmer_Tree(object):
             this_level = next_level
         return locations
 
+    def insert(self, sketches, left_list, right_list):
+        # This function will insert the sketches into the tree, left child node corresponding to the indicies
+        # in the left_list (and same with the right)
+        # As I have currently designed it, the left_list and right_list will be progressively bisected
+        # (see 0:len(left_list)/2 part), so it assumes that the given left_list and right_list give the ordering
+        # of the nodes
+        i = 0
+        for update_list in left_list, right_list:
+            # create a dictionary of all the k-mers supposed to go in the left/right node
+            update_dict = dict()
+            for index in update_list:
+                for kmer in sketches[index]._kmers:
+                    if len(kmer) > 0:  # ignore '' k-mers (from really short database genomes)
+                        update_dict[kmer] = True
+            update_tree = Kmer_Tree()  # initialize the left tree
+            if update_dict:  # if the insert_dict is not empty
+                update_tree.data = update_dict
+                if len(update_list) == 1:  # if the left list is terminal
+                    update_tree.id = update_list[0]  # assign it the correct index
+            if i == 0:  # if it's the left guy
+                if len(left_list) > 1:
+                    update_tree.insert(sketches, left_list[0:(len(left_list)/2)], left_list[(len(left_list)/2):])
+                    self.left = update_tree
+                else:
+                    self.left = update_tree
+            else:  # if it's the right guy
+                if len(right_list) > 1:
+                    update_tree.insert(sketches, right_list[0:(len(right_list) / 2)], right_list[(len(right_list) / 2):])
+                    self.right = update_tree
+                else:
+                    self.right = update_tree
+            i += 1  # iterate i
+
+    def make_tree(self, sketches, index_list):
+        # This function will initialize the tree
+        # putting all the index_list kmers in the root dictionary, and then progressively bisecting the index_list
+        # First, make the root node (all k-mers in sketches at the indices given in index_list)
+        update_dict = dict()
+        for index in index_list:
+            sketch = sketches[index]
+            for kmer in sketch._kmers:
+                if len(kmer) > 0:  # ignore '' k-mers
+                    update_dict[kmer] = True
+        self.data = update_dict
+        # Then bisect the index_list and create the child nodes
+        self.insert(sketches, index_list[0:len(index_list)/2], index_list[len(index_list)/2:])
+
+
+
 
 def make_tree(CEs):
+    # This function relies on making the whole jaccard matrix, so will be O(n^2) in complexity...
+    # avoid it unless few sketches
     A = form_jaccard_matrix(CEs)  # I should first perform the rough clustering with the cluster_matrix, then do the heir. clustering
     # otherwise, O(n^2) will be hard to get around for large training databases...
     Z = linkage(A, 'ward')
@@ -875,6 +929,9 @@ def make_tree(CEs):
         this_level_query = next_level_query
         this_level_update = next_level_update
     return kmer_tree
+
+def jaccard_dist(CE1, CE2):
+    return 1 - CE1.jaccard(CE2)
 
 ##########################################################################
 # Tests
