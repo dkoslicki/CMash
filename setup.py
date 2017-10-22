@@ -18,7 +18,7 @@ with open(os.path.join(HERE, 'README.md'), 'r') as fid:
 
 setup(
 	name="CMash",
-	version="0.2.0",
+	version="0.2.1",
 	author="David Koslicki",
 	author_email="dmkoslicki@gmail.com",
 	description=("Fast and accurate set similarity estimation via containment min hash (for genomic datasets)."),
