@@ -90,7 +90,7 @@ class CountEstimator(object):
 
         # initialize the list of kmers used, if appropriate
         if save_kmers == 'y':
-            self._kmers = blist(['']*n)
+            self._kmers = blist([b'']*n)
         else:
             self._kmers = None
 
@@ -812,7 +812,8 @@ class Kmer_Tree(object):
 
     def query(self, kmer):  # Breadth first search for the k-mer
         if self.data:
-            test_kmer = self.data.iterkeys().next()
+            #test_kmer = self.data.iterkeys().next()
+            test_kmer = next(iter(self.data))
             if len(test_kmer) != len(kmer):
                 raise Exception("Query k-mer length %d different than tree k-mer length %d" % (len(kmer), len(test_kmer)))
         else:
@@ -1043,7 +1044,8 @@ def test_form_matrices():
     A = form_jaccard_count_matrix([CE1, CE2, CE3])
     assert (A == np.array([[1., 1., 0.80952380952380953], [1., 1., 0.80952380952380953], [0.5625, 0.5625, 1.]])).all()
     B = form_jaccard_matrix([CE1, CE2, CE3])
-    assert (B == np.array([[1., 1., 0.4], [1., 1., 0.4], [0.4, 0.4, 1.]])).all()
+    #assert (B == np.array([[1., 1., 0.4], [1., 1., 0.4], [0.4, 0.4, 1.]])).all()
+    assert np.sum(np.abs(B - np.array([[1., 1., 0.4], [1., 1., 0.4], [0.4, 0.4, 1.]]))) < 0.001
 
 def test_delete_from_database():
     seq1 = "ATCGTATGAGTATCGTCGATGCATGCATCGATGCATGCTACGTATCGCATGCATG"
@@ -1147,8 +1149,9 @@ def test_make_tree():
     CE3 = CountEstimator(n=5, max_prime=1e10, ksize=3, save_kmers='y', input_file_name=file3)
     CEs = [CE1, CE2, CE3]
     tree = make_tree(CEs)
-    kmer = "ATC"  # or AGG or TGA or GGC or TTG
+    kmer = b"ATC"  # or AGG or TGA or GGC or TTG
     res = tree.query(kmer)
+    print(res)
     assert sorted(res) == [0, 2]  # this should be [0, 2] since ATC shows up in CE1 and CE3
 
 def test_suite():
