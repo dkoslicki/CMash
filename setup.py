@@ -9,12 +9,12 @@ from setuptools import setup
 
 SCRIPTS = []
 SCRIPTS.extend([os.path.join("scripts", script)
-                for script in os.listdir(os.path.join(os.path.dirname(__file__), "scripts"))
-                if script.endswith(".py")])
+				for script in os.listdir(os.path.join(os.path.dirname(__file__), "scripts"))
+				if script.endswith(".py")])
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(HERE, 'README.md'), 'r') as fid:
-    LONG_DESCRIPTION = fid.read()
+	LONG_DESCRIPTION = fid.read()
 
 setup(
 	name="CMash",
