@@ -18,7 +18,7 @@ with open(os.path.join(HERE, 'README.md'), 'r') as fid:
 
 setup(
 	name="CMash",
-	version="0.2.1",
+	version="0.2.3",
 	author="David Koslicki",
 	author_email="dmkoslicki@gmail.com",
 	description=("Fast and accurate set similarity estimation via containment min hash (for genomic datasets)."),
@@ -36,9 +36,12 @@ setup(
 		'argparse',
 		'pandas',
 		'setuptools>=24.2.0',
-		'six'
+		'six',
+		'scipy',
+		'pytst2'
 	],
-	python_requires='>=3',
+	dependency_links=['https://github.com/dkoslicki/pytst2/blob/master/dist/pytst-1.18.tar.gz#egg=pytst2'],
+	#python_requires='>=3',
 	zip_safe=False,
 	package_data={'CMash': ['data/*.fna']},
 	scripts=SCRIPTS,
@@ -46,7 +49,7 @@ setup(
 		"Development Status :: 3 - Alpha",
 		"Topic :: Scientific/Engineering :: Bio-Informatics",
 		"Topic :: Scientific/Engineering :: Mathematics",
-		"Programming Language :: Python :: 3.5",
+		"Programming Language :: Python :: 2.7",
 		"License :: OSI Approved :: BSD License",
 		"Intended Audience :: Science/Research",
 		"Programming Language :: Python :: 3.5",
