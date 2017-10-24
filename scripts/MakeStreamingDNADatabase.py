@@ -41,11 +41,9 @@ def main():
 	parser.add_argument('-t', '--threads', type=int, help="Number of threads to use", default=multiprocessing.cpu_count())
 	parser.add_argument('-n', '--num_hashes', type=int, help="Number of hashes to use.", default=500)
 	parser.add_argument('-k', '--k_size', type=int, help="k-mer size", default=21)
-	parser.add_argument('-s', '--streaming_database', action="store_true",
-						help="Optional flag to export a ternary search tree (tst file) in the same location as out_file."
-							 "This can then be used with StreamingQueryDNADatabase.py")
 	parser.add_argument('in_file', help="Input file: file containing (absolute) file names of training genomes.")
-	parser.add_argument('out_file', help='Output training database/reference file (in HDF5 format)')
+	parser.add_argument('out_file', help='Output training database/reference file (in HDF5 format). An additional file '
+										 '(ending in .tst) will also be created in the same directory with the same base name.')
 	args = parser.parse_args()
 	num_threads = args.threads
 	prime = args.prime  # taking hashes mod this prime
@@ -57,11 +55,8 @@ def main():
 	out_file = os.path.abspath(args.out_file)
 
 	# check for and make filename for tst file
-	if args.streaming_database is True:
-		streaming_database_file = os.path.splitext(out_file)[0] + ".tst"
-		streaming_database_file = os.path.abspath(streaming_database_file)
-	else:
-		streaming_database_file = None
+	streaming_database_file = os.path.splitext(out_file)[0] + ".tst"
+	streaming_database_file = os.path.abspath(streaming_database_file)
 
 	file_names = list()
 	fid = open(input_file_names, 'r')
@@ -79,14 +74,13 @@ def main():
 	# Export all the sketches
 	MH.export_multiple_to_single_hdf5(genome_sketches, out_file)
 
-	# If requested, save the ternary search tree
-	if streaming_database_file is not None:
-		tree = tst.TST()  # tst array
-		for i in range(len(genome_sketches)):
-			for kmer_index in range(len(genome_sketches[i]._kmers)):
-				kmer = genome_sketches[i]._kmers[kmer_index]
-				tree[kmer + 'x' + str(i) + 'x' + str(kmer_index)] = True  # format here is kmer+x+hash_index+kmer_index
-		tree.write_to_file(streaming_database_file)
+	# Save the ternary search tree
+	tree = tst.TST()  # tst array
+	for i in range(len(genome_sketches)):
+		for kmer_index in range(len(genome_sketches[i]._kmers)):
+			kmer = genome_sketches[i]._kmers[kmer_index]
+			tree[kmer + 'x' + str(i) + 'x' + str(kmer_index)] = True  # format here is kmer+x+hash_index+kmer_index
+	tree.write_to_file(streaming_database_file)
 
 
 if __name__ == "__main__":
