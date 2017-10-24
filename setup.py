@@ -38,6 +38,7 @@ setup(
 		'setuptools>=24.2.0',
 		'six',
 		'scipy',
+		'matplotlib',
 		#'pytst==1.18'
 	],
 	#dependency_links=['https://github.com/dkoslicki/pytst2/blob/master/dist/pytst-1.18.tar.gz#egg=pytst2'],
