@@ -204,7 +204,7 @@ if __name__ == '__main__':
 		if queue.empty():
 			break
 		else:
-			print("Sequences left: %d" % queue.qsize())
+			print("Sequences left to process: %d" % queue.qsize())
 			time.sleep(1)
 	queue.close()
 	queue.join_thread()
