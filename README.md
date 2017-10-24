@@ -19,6 +19,7 @@ To get the absolute latest edition of CMash, then you can build from the Github 
 virtualenv CMashVE
 source CMashVE/bin/activate
 pip install -U pip
+pip install git+https://github.com/dkoslicki/pytst2.git#egg=pytst-1.18
 git clone https://github.com/dkoslicki/CMash.git
 cd CMash
 pip3 install -r requirements.txt

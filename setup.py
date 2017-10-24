@@ -38,9 +38,9 @@ setup(
 		'setuptools>=24.2.0',
 		'six',
 		'scipy',
-		'pytst2'
+		'pytst==1.18'
 	],
-	dependency_links=['https://github.com/dkoslicki/pytst2/blob/master/dist/pytst-1.18.tar.gz#egg=pytst2'],
+	#dependency_links=['https://github.com/dkoslicki/pytst2/blob/master/dist/pytst-1.18.tar.gz#egg=pytst2'],
 	#python_requires='>=3',
 	zip_safe=False,
 	package_data={'CMash': ['data/*.fna']},
