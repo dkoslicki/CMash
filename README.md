@@ -14,6 +14,12 @@ pip install CMash
 ```
 You can also just use ``pip install CMash`` if you don't want to create a virtual environment.
 
+If you get an error such as ``No module named tst`` try using:
+```bash
+pip install git+http://github.com/dkoslicki/pytst2.git#egg=pytst-1.18
+```
+and this should properly install the ``pytst`` module.
+
 To get the absolute latest edition of CMash, then you can build from the Github repository via:
 ```bash
 virtualenv CMashVE
