@@ -7,10 +7,10 @@ CMash is a fast and accurate way to estimate the similarity of two sets. This is
 ## Installation
 The easiest way to install this is to use [virtualenv](https://virtualenv.pypa.io/en/stable/):
 ```bash
-virtualenv CMashVE  # or python3 -m venv CMashVE
+virtualenv CMashVE
 source CMashVE/bin/activate
 pip install -U pip
-pip3 install CMash
+pip install CMash
 ```
 You can also just use ``pip install CMash`` if you don't want to create a virtual environment.
 
@@ -19,14 +19,13 @@ To get the absolute latest edition of CMash, then you can build from the Github 
 virtualenv CMashVE
 source CMashVE/bin/activate
 pip install -U pip
-pip install git+https://github.com/dkoslicki/pytst2.git#egg=pytst-1.18
 git clone https://github.com/dkoslicki/CMash.git
 cd CMash
-pip3 install -r requirements.txt
+pip install -r requirements.txt
 ```
 
 Note that the python code in this repository is python2 and python3 compatible, but the dependency ``khmer`` technically requires python3 (but ``khmer`` version ``2.1.1`` runs just fine in python2.)
-The external dependency ``pytst2`` requires python2, so I'm making this a python2 repository.
+The external dependency ``pytst`` requires python2, so I'm making this a python2 repository.
 ## Usage
 The basic paradigm is to create a reference/training database, form a sample bloom filter, and then query the database.
 
