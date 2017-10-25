@@ -1,5 +1,4 @@
 #! /usr/bin/env python
-from __future__ import print_function
 import khmer
 import tst  # via pip install git+https://github.com/dkoslicki/pytst2.git#egg=pytst-1.18
 import numpy as np
