@@ -10,21 +10,6 @@ The easiest way to install this is to use [virtualenv](https://virtualenv.pypa.i
 virtualenv CMashVE
 source CMashVE/bin/activate
 pip install -U pip
-pip install CMash
-```
-You can also just use ``pip install CMash`` if you don't want to create a virtual environment.
-
-If you get an error such as ``No module named tst`` try using:
-```bash
-pip install git+http://github.com/dkoslicki/pytst2.git#egg=pytst-1.18
-```
-and this should properly install the ``pytst`` module.
-
-To get the absolute latest edition of CMash, then you can build from the Github repository via:
-```bash
-virtualenv CMashVE
-source CMashVE/bin/activate
-pip install -U pip
 git clone https://github.com/dkoslicki/CMash.git
 cd CMash
 pip install -r requirements.txt
