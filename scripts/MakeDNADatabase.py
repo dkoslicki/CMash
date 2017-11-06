@@ -50,6 +50,8 @@ def main():
 	num_threads = args.threads
 	prime = args.prime  # taking hashes mod this prime
 	ksize = args.k_size
+	if ksize > 31:
+		raise Exception("Unfortunately, ksize must be size 32 or smaller (due to khmer contraints). Please reduce the ksize or use MakeStreamingDNADatabase.py instead.")
 	max_h = args.num_hashes
 	input_file_names = os.path.abspath(args.in_file)
 	if not os.path.exists(input_file_names):
