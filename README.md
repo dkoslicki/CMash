@@ -46,6 +46,13 @@ To get containment and Jaccard index estimates of the references files in your q
 
 There are a bunch of options available: ``QueryDNADatabase.py -h``. The output file is a CSV file with rows corresponding (in this case) to ``ref1.fa``, ``ref2.fa``, and ``ref3.fa`` and columns corresponding to the containment index estimate, intersection cardinality, and Jaccard index estimate.
 
+## Streaming
+
+There are streaming versions of database formation and querying. These are contained in the scripts:
+``MakeStreamingDNADatabase.py`` and ``StreamingQueryDNADatabase.py``. Both of these are similar to the bloom filter counterparts (given above) except for the fact that:
+1. They stream the data (so no bloom filters are required)
+2. They allow multiple k-mer sizes to be used simultaneously. This allows for visualizing the containment index as a function of ``k`` (ala Figure 4a in [the MetaPalette publication](http://msystems.asm.org/content/1/3/e00020-16)).
+
 #### Other functionality
 The module ``MinHash`` (imported in python via ``from CMash import MinHash as MH``) has a bunch more functionality, including (but not limited to!):
 1. Fast updates to the training databases (via ``help(MH.delete_from_database)``, ``help(MH.insert_to_database)``, ``help(MH.union_databases)``)
