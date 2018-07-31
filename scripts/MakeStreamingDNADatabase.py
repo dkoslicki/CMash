@@ -16,7 +16,7 @@ import multiprocessing
 from itertools import *
 import argparse
 import khmer
-import tst
+import marisa_trie as mt
 
 # This function will make a single min hash sketch upon being given a file name, sketch size, prime, and k-mer size
 def make_minhash(genome, max_h, prime, ksize):
@@ -75,12 +75,13 @@ def main():
 	MH.export_multiple_to_single_hdf5(genome_sketches, out_file)
 
 	# Save the ternary search tree
-	tree = tst.TST()  # tst array
+	to_insert = set()
 	for i in range(len(genome_sketches)):
 		for kmer_index in range(len(genome_sketches[i]._kmers)):
 			kmer = genome_sketches[i]._kmers[kmer_index]
-			tree[kmer + 'x' + str(i) + 'x' + str(kmer_index)] = True  # format here is kmer+x+hash_index+kmer_index
-	tree.write_to_file(streaming_database_file)
+			to_insert.add(kmer + 'x' + str(i) + 'x' + str(kmer_index))  # format here is kmer+x+hash_index+kmer_index
+	tree = mt.Trie(to_insert)
+	tree.save(streaming_database_file)
 
 
 if __name__ == "__main__":
