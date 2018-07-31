@@ -203,10 +203,12 @@ if __name__ == '__main__':
 	# Wait for everything to finish
 	while True:
 		if queue.empty():
+			# TODO: for some frustrating reason, the queue will be empty when workers are still working, will need to find a way to wait for them to finish
 			break
 		else:
 			print("Sequences left to process: %d" % queue.qsize())
 			time.sleep(1)
+	time.sleep(100)
 	queue.close()
 	queue.join_thread()
 
