@@ -39,10 +39,8 @@ setup(
 		'six',
 		'scipy',
 		'matplotlib',
-		#'pytst==1.18'
+		'marisa-trie'
 	],
-	#dependency_links=['https://github.com/dkoslicki/pytst2/blob/master/dist/pytst-1.18.tar.gz#egg=pytst2'],
-	#python_requires='>=3',
 	zip_safe=False,
 	package_data={'CMash': ['data/*.fna']},
 	scripts=SCRIPTS,
