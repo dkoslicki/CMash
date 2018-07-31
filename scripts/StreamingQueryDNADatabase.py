@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 import khmer
-import tst  # via pip install git+https://github.com/dkoslicki/pytst2.git#egg=pytst-1.18
+import marisa_trie as mt
 import numpy as np
 import os
 import sys
@@ -112,15 +112,16 @@ if __name__ == '__main__':
 		print("It appears a tst training file has not been created (did you remember to use MakeStreamingDNADatabase.py?).")
 		print("I'm creating one anyway at: %s" % streaming_database_file)
 		print("This may take a while...")
-		tree = tst.TST()  # tst array
+		to_insert = set()
 		for i in range(len(sketches)):
 			for kmer_index in range(len(sketches[i]._kmers)):
 				kmer = sketches[i]._kmers[kmer_index]
-				tree[kmer + 'x' + str(i) + 'x' + str(kmer_index)] = True  # format here is kmer+x+hash_index+kmer_index
-		tree.write_to_file(streaming_database_file)
+				to_insert.add(kmer + 'x' + str(i) + 'x' + str(kmer_index))  # format here is kmer+x+hash_index+kmer_index
+		tree = mt.Trie(to_insert)
+		tree.save(streaming_database_file)
 	else:
-		tree = tst.TST()
-		tree.read_from_file(streaming_database_file)
+		tree = mt.Trie()
+		tree.load(streaming_database_file)
 
 	# all the k-mers of interest in a set (as a pre-filter)
 	all_kmers_set = set()
@@ -156,12 +157,12 @@ if __name__ == '__main__':
 				for i in range(len(seq) - ksize + 1):
 					kmer = seq[i:i + ksize]
 					if kmer in all_kmers_set:
-						tuples = tree.prefix_match(kmer, None, tst.TupleListAction())  # get all the k-mers whose prefix matches
+						prefix_matches = tree.keys(kmer)  # get all the k-mers whose prefix matches
 						all_kmers_set.remove(kmer)  # Drop from the pre-filter list, since it will subsequently not be used
 						hash_loc_kmer_loc = []
 						# get the location of the found kmers in the counters
-						for item in tuples:
-							split_string = item[0].split('x')
+						for item in prefix_matches:
+							split_string = item.split('x')
 							hash_loc_kmer_loc.append((int(split_string[1]), int(
 								split_string[2])))  # first is the hash location, second is which k-mer
 						if len(hash_loc_kmer_loc) > 0:
