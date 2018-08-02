@@ -137,19 +137,16 @@ if __name__ == '__main__':
 		def __init__(self):
 			self.ksize = max_ksize
 			N = len(sketches)
-			to_share = multiprocessing.Array(ctypes.c_bool, N * num_hashes * len(k_range))  # vector
-			to_share_np = np.frombuffer(to_share.get_obj(), dtype=ctypes.c_bool)  # get it
-			self.vals = to_share_np.reshape(N, num_hashes, len(k_range))
+			to_share = multiprocessing.Array(ctypes.c_int64, N * len(k_range))  # vector
+			to_share_np = np.frombuffer(to_share.get_obj(), dtype=ctypes.c_int64)  # get it
+			self.vals = to_share_np.reshape(N, len(k_range))
 			self.lock = Lock()  # don't need since I don't care about collisions (once matched, always matched)
 
-		def increment(self, hash_index, kmer_index, k_size_loc):
-			self.vals[hash_index, kmer_index, k_size_loc] = True  # array
+		def increment(self, hash_index, k_size_loc):
+			self.vals[hash_index, k_size_loc] += 1  # array
 
 		def value(self, hash_index, k_size_loc):
-			return np.sum(self.vals[hash_index, :, k_size_loc])  # get the number of True's
-
-		def value_at_kmer(self, hash_index, kmer_index, k_size_loc):
-			return self.vals[hash_index, kmer_index, k_size_loc]
+			return self.vals[hash_index, k_size_loc]
 
 		def process_seq(self, seq):
 			for k_size_loc in range(len(k_range)):  # could do this more efficiently by putting this in the inner loop
@@ -159,15 +156,16 @@ if __name__ == '__main__':
 					if kmer in all_kmers_set:
 						prefix_matches = tree.keys(kmer)  # get all the k-mers whose prefix matches
 						all_kmers_set.remove(kmer)  # Drop from the pre-filter list, since it will subsequently not be used
-						hash_loc_kmer_loc = []
+						hash_to_increment = []
 						# get the location of the found kmers in the counters
 						for item in prefix_matches:
 							split_string = item.split('x')
-							hash_loc_kmer_loc.append((int(split_string[1]), int(
-								split_string[2])))  # first is the hash location, second is which k-mer
-						if len(hash_loc_kmer_loc) > 0:
-							for hash_index, kmer_index in hash_loc_kmer_loc:
-								self.increment(hash_index, kmer_index, k_size_loc)
+							hash_to_increment.append(int(split_string[1]))  # first is the hash location, second is which k-mer
+						# uniquify so I don't over count
+						hash_to_increment = set(hash_to_increment)
+						if hash_to_increment:
+							for hash_index in hash_to_increment:
+								self.increment(hash_index, k_size_loc)
 
 	# helper function
 	def q_func(queue, counter):
@@ -223,14 +221,11 @@ if __name__ == '__main__':
 				kmer = sketches[sketch_index]._kmers[index][0:k_range[k_size_loc]]  # get the first few characters of the kmer
 				if kmer not in uniqe_kmers:
 					uniqe_kmers.add(kmer)
-					uniqe_kmer_indicies.add(index)
+					#uniqe_kmer_indicies.add(index)
 			# get the total counts for these unique k-mer indices
-			count = 0
-			for index in uniqe_kmer_indicies:
-				count += counter.value_at_kmer(sketch_index, index, k_size_loc)
+			count = counter.value(sketch_index, k_size_loc)
 			# update the containment index
 			containment_indices[sketch_index, k_size_loc] = count / float(len(uniqe_kmers))  # this is the containment index estimate
-			#intersection_counts[sketch_index, k_size_loc] = counter.value(sketch_index, k_size_loc)  # this old way contained duplicate counts
 
 	results = dict()
 	for k_size_loc in range(len(k_range)):
@@ -238,10 +233,9 @@ if __name__ == '__main__':
 		key = 'k=%d' % ksize
 		results[key] = containment_indices[:, k_size_loc]
 	df = pd.DataFrame(results, map(os.path.basename, training_file_names))
-	df = df.reindex_axis(['k=' + str(k_size) for k_size in k_range], axis=1)  # sort columns in ascending order
+	df = df.reindex(labels=['k=' + str(k_size) for k_size in k_range], axis=1)  # sort columns in ascending order
 	max_key = 'k=%d' % k_range[-1]
 	filtered_results = df[df[max_key] > coverage_threshold].sort_values(max_key, ascending=False)
-	#filtered_results.reindex_axis(['Unnamed: 0'] + ['k=' + str(k_size) for k_size in k_range], axis=1)  # sort columns in ascending order
 	filtered_results.to_csv(results_file, index=True, encoding='utf-8')
 
 	# If requested, plot the results
@@ -255,19 +249,3 @@ if __name__ == '__main__':
 		plt.xlabel('K-mer size')
 		plt.ylabel('Containment Index')
 		fig.savefig(plot_file)
-
-
-
-
-# To check results using bash
-#for sketch_index in range(len(sketches)):
-#	if os.path.basename(sketches[sketch_index].input_file_name) == 'G000312105.fna':
-#		print(sketch_index)
-#		to_print_index = sketch_index
-
-#with open('/home/dkoslicki/Dropbox/Repositories/CMash/CMash/data/kmers.txt','w') as fid:
-#	for kmer in sketches[to_print_index]._kmers:
-#		fid.write('%s\n' % kmer)
-
-
-
