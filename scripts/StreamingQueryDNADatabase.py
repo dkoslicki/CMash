@@ -147,7 +147,7 @@ if __name__ == '__main__':
 		def process_seq(self, seq):
 			for k_size_loc in range(len(k_range)):  # could do this more efficiently by putting this in the inner loop
 				ksize = k_range[k_size_loc]
-				for i in range(len(seq) - ksize + 1):
+				for i in range(len(seq) - ksize + 1):  # TODO: this is definitely over-counting
 					kmer = seq[i:i + ksize]  # TODO: might still be over counting: say kmer = AA then AAA which both match to prefix AA -> over count
 					if kmer not in already_seen_kmers:
 						prefix_matches = tree.keys(kmer)  # get all the k-mers whose prefix matches
@@ -203,7 +203,7 @@ if __name__ == '__main__':
 		else:
 			print("Sequences left to process: %d" % queue.qsize())
 			time.sleep(1)
-	time.sleep(100)
+	time.sleep(10)
 	queue.close()
 	queue.join_thread()
 

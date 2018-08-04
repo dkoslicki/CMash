@@ -4,6 +4,8 @@ CMash is a fast and accurate way to estimate the similarity of two sets. This is
 >David Koslicki, Hooman Zabeti
 >bioRxiv 184150; doi: https://doi.org/10.1101/184150
 
+# Be aware, this is a work in progress and isn't guaranteed to be functional
+
 ## Installation
 The easiest way to install this is to use [virtualenv](https://virtualenv.pypa.io/en/stable/):
 ```bash
