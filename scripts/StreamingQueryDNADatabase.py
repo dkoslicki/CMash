@@ -123,12 +123,8 @@ if __name__ == '__main__':
 		tree = mt.Trie()
 		tree.load(streaming_database_file)
 
-	# all the k-mers of interest in a set (as a pre-filter)
-	all_kmers_set = set()
-	for sketch in sketches:
-		for kmer in sketch._kmers:
-			for ksize in k_range:
-				all_kmers_set.add(kmer[0:ksize])  # put all the k-mers and the appropriate suffixes in
+	# set of already seen k-mers (to reduce the number of times I hit the trie)
+	already_seen_kmers = set()
 
 	# shared object that will update the intersection counts
 	class Counters(object):
@@ -153,9 +149,10 @@ if __name__ == '__main__':
 				ksize = k_range[k_size_loc]
 				for i in range(len(seq) - ksize + 1):
 					kmer = seq[i:i + ksize]
-					if kmer in all_kmers_set:
+					if kmer not in already_seen_kmers:
 						prefix_matches = tree.keys(kmer)  # get all the k-mers whose prefix matches
-						all_kmers_set.remove(kmer)  # Drop from the pre-filter list, since it will subsequently not be used
+						if prefix_matches:  # it matched, so add to the already seen set
+							already_seen_kmers.add(kmer)  # Drop from the pre-filter list, since it will subsequently not be used
 						hash_to_increment = []
 						# get the location of the found kmers in the counters
 						for item in prefix_matches:
