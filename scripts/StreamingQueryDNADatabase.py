@@ -148,7 +148,7 @@ if __name__ == '__main__':
 			for k_size_loc in range(len(k_range)):  # could do this more efficiently by putting this in the inner loop
 				ksize = k_range[k_size_loc]
 				for i in range(len(seq) - ksize + 1):
-					kmer = seq[i:i + ksize]
+					kmer = seq[i:i + ksize]  # TODO: might still be over counting: say kmer = AA then AAA which both match to prefix AA -> over count
 					if kmer not in already_seen_kmers:
 						prefix_matches = tree.keys(kmer)  # get all the k-mers whose prefix matches
 						if prefix_matches:  # it matched, so add to the already seen set
