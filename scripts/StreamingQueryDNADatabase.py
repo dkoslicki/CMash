@@ -123,8 +123,12 @@ if __name__ == '__main__':
 		tree = mt.Trie()
 		tree.load(streaming_database_file)
 
-	# set of already seen k-mers (to reduce the number of times I hit the trie)
-	already_seen_kmers = set()
+	# all the k-mers of interest in a set (as a pre-filter)
+	all_kmers_set = set()
+	for sketch in sketches:
+		for kmer in sketch._kmers:
+			for ksize in k_range:
+				all_kmers_set.add(kmer[0:ksize])  # put all the k-mers and the appropriate suffixes in
 
 	# shared object that will update the intersection counts
 	class Counters(object):
@@ -149,10 +153,9 @@ if __name__ == '__main__':
 				ksize = k_range[k_size_loc]
 				for i in range(len(seq) - ksize + 1):  # TODO: this is definitely over-counting
 					kmer = seq[i:i + ksize]  # TODO: might still be over counting: say kmer = AA then AAA which both match to prefix AA -> over count
-					if kmer not in already_seen_kmers:
+					if kmer in all_kmers_set:
+						all_kmers_set.remove(kmer)
 						prefix_matches = tree.keys(kmer)  # get all the k-mers whose prefix matches
-						if prefix_matches:  # it matched, so add to the already seen set
-							already_seen_kmers.add(kmer)  # Drop from the pre-filter list, since it will subsequently not be used
 						hash_to_increment = []
 						# get the location of the found kmers in the counters
 						for item in prefix_matches:
@@ -232,7 +235,7 @@ if __name__ == '__main__':
 	df = pd.DataFrame(results, map(os.path.basename, training_file_names))
 	df = df.reindex(labels=['k=' + str(k_size) for k_size in k_range], axis=1)  # sort columns in ascending order
 	max_key = 'k=%d' % k_range[-1]
-	filtered_results = df[df[max_key] > coverage_threshold].sort_values(max_key, ascending=False)
+	filtered_results = df[df[max_key] > coverage_threshold].sort_values(max_key, ascending=False)  # only select those where the highest k-mer size's count is above the threshold
 	filtered_results.to_csv(results_file, index=True, encoding='utf-8')
 
 	# If requested, plot the results
