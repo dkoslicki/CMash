@@ -23,6 +23,7 @@ from argparse import ArgumentParser, ArgumentTypeError
 import re
 import matplotlib.pyplot as plt
 from hydra import WritingBloomFilter, ReadingBloomFilter
+import timeit
 
 def parseNumList(input):
 	m = re.match(r'(\d+)(?:-(\d+))?(?:-(\d+))?$', input)
@@ -125,20 +126,29 @@ if __name__ == '__main__':
 		tree.load(streaming_database_file)
 
 	# all the k-mers of interest in a set (as a pre-filter)
-	try:
-		os.remove('test.bloom')
-		os.remove('test.bloom.desc')
-	except:
-		pass
-	all_kmers_bf = WritingBloomFilter(len(sketches)*len(k_range)*num_hashes, 0.0001, 'test.bloom')
-	#all_kmers_bf = ReadingBloomFilter('test.bloom')
-	#all_kmers_bf = set()
-	print("Start BF create")
-	for sketch in sketches:
-		for kmer in sketch._kmers:
-			for ksize in k_range:
-				all_kmers_bf.add(kmer[0:ksize])  # put all the k-mers and the appropriate suffixes in
-	print("End BF create")
+	#try:
+	#	os.remove('test.bloom')
+	#	os.remove('test.bloom.desc')
+	#except:
+	#	pass
+	if not os.path.isfile('test.bloom'):
+		all_kmers_bf = WritingBloomFilter(len(sketches)*len(k_range)*num_hashes, 0.0001, 'test.bloom')
+		#all_kmers_bf = ReadingBloomFilter('test.bloom')
+		#all_kmers_bf = set()
+		print("Start BF create")
+		for sketch in sketches:
+			for kmer in sketch._kmers:
+				for ksize in k_range:
+					all_kmers_bf.add(kmer[0:ksize])  # put all the k-mers and the appropriate suffixes in
+		print("End BF create")
+	else:
+		print("Start reading BF")
+		t0 = timeit.default_timer()
+		all_kmers_bf = ReadingBloomFilter('test.bloom')
+		t1 = timeit.default_timer()
+		print(t1-t0)
+		print("End reading BF")
+
 	# Seen k-mers (set of k-mers that already hit the trie, so don't need to check again)
 	seen_kmers = set()
 
