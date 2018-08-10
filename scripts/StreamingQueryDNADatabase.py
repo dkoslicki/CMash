@@ -22,6 +22,7 @@ import argparse
 from argparse import ArgumentParser, ArgumentTypeError
 import re
 import matplotlib.pyplot as plt
+from hydra import WritingBloomFilter, ReadingBloomFilter
 
 def parseNumList(input):
 	m = re.match(r'(\d+)(?:-(\d+))?(?:-(\d+))?$', input)
@@ -124,11 +125,22 @@ if __name__ == '__main__':
 		tree.load(streaming_database_file)
 
 	# all the k-mers of interest in a set (as a pre-filter)
-	all_kmers_set = set()
+	try:
+		os.remove('test.bloom')
+		os.remove('test.bloom.desc')
+	except:
+		pass
+	all_kmers_bf = WritingBloomFilter(len(sketches)*len(k_range)*num_hashes, 0.0001, 'test.bloom')
+	#all_kmers_bf = ReadingBloomFilter('test.bloom')
+	#all_kmers_bf = set()
+	print("Start BF create")
 	for sketch in sketches:
 		for kmer in sketch._kmers:
 			for ksize in k_range:
-				all_kmers_set.add(kmer[0:ksize])  # put all the k-mers and the appropriate suffixes in
+				all_kmers_bf.add(kmer[0:ksize])  # put all the k-mers and the appropriate suffixes in
+	print("End BF create")
+	# Seen k-mers (set of k-mers that already hit the trie, so don't need to check again)
+	seen_kmers = set()
 
 	# shared object that will update the intersection counts
 	class Counters(object):
@@ -153,19 +165,21 @@ if __name__ == '__main__':
 				ksize = k_range[k_size_loc]
 				for i in range(len(seq) - ksize + 1):  # TODO: this is definitely over-counting
 					kmer = seq[i:i + ksize]  # TODO: might still be over counting: say kmer = AA then AAA which both match to prefix AA -> over count
-					if kmer in all_kmers_set:
-						all_kmers_set.remove(kmer)
-						prefix_matches = tree.keys(kmer)  # get all the k-mers whose prefix matches
-						hash_to_increment = []
-						# get the location of the found kmers in the counters
-						for item in prefix_matches:
-							split_string = item.split('x')
-							hash_to_increment.append(int(split_string[1]))  # first is the hash location, second is which k-mer
-						# uniquify so I don't over count
-						hash_to_increment = set(hash_to_increment)
-						if hash_to_increment:
-							for hash_index in hash_to_increment:
-								self.increment(hash_index, k_size_loc)
+					if kmer not in seen_kmers:
+						if kmer in all_kmers_bf:
+							prefix_matches = tree.keys(kmer)  # get all the k-mers whose prefix matches
+							if prefix_matches:
+								seen_kmers.add(kmer)
+							hash_to_increment = []
+							# get the location of the found kmers in the counters
+							for item in prefix_matches:
+								split_string = item.split('x')
+								hash_to_increment.append(int(split_string[1]))  # first is the hash location, second is which k-mer
+							# uniquify so I don't over count
+							hash_to_increment = set(hash_to_increment)
+							if hash_to_increment:
+								for hash_index in hash_to_increment:
+									self.increment(hash_index, k_size_loc)
 
 	# helper function
 	def q_func(queue, counter):
