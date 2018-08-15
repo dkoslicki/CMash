@@ -132,7 +132,7 @@ if __name__ == '__main__':
 	# all the k-mers of interest in a set (as a pre-filter)
 	if not hydra_file:  # create one
 		try:
-			all_kmers_bf = WritingBloomFilter(len(sketches)*len(k_range)*num_hashes, 0.0001, hydra_file)
+			all_kmers_bf = WritingBloomFilter(len(sketches)*len(k_range)*num_hashes, 0.0001)
 			print("Start BF create")
 			for sketch in sketches:
 				for kmer in sketch._kmers:
@@ -175,26 +175,46 @@ if __name__ == '__main__':
 		def value(self, hash_index, k_size_loc):
 			return self.vals[hash_index, k_size_loc]
 
+		def return_matches(self, kmer, k_size_loc):
+			""" Get all the matches in the trie with the kmer prefix"""
+			prefix_matches = tree.keys(kmer)  # get all the k-mers whose prefix matches
+			hash_to_increment = []
+			# get the location of the found kmers in the counters
+			for item in prefix_matches:
+				split_string = item.split('x')
+				hash_to_increment.append(int(split_string[1]))  # first is the hash location, second is which k-mer
+			# uniquify so I don't over count
+			hash_to_increment = set(hash_to_increment)
+			if hash_to_increment:
+				for hash_index in hash_to_increment:
+					self.increment(hash_index, k_size_loc)
+				return True
+
 		def process_seq(self, seq):
-			for k_size_loc in range(len(k_range)):  # could do this more efficiently by putting this in the inner loop
-				ksize = k_range[k_size_loc]
-				for i in range(len(seq) - ksize + 1):  # TODO: this is definitely over-counting
-					kmer = seq[i:i + ksize]  # TODO: might still be over counting: say kmer = AA then AAA which both match to prefix AA -> over count
-					if kmer not in seen_kmers:
+			#  start with small kmer size, if see match, then continue looking for longer k-mer sizes, otherwise move on
+			small_k_size = k_range[0]  # start with the small k-size
+			for i in range(len(seq) - small_k_size + 1):  # look at all k-mers
+				kmer = seq[i:i + small_k_size]
+				possible_match = False
+				if kmer not in seen_kmers:  # if we should process it
+					if kmer in all_kmers_bf:  # if we should process it
+						saw_match = self.return_matches(kmer, 0)
+						if saw_match:  #  TODO: note, I *could* add all the trie matches and their sub-kmers to the seen_kmers
+							seen_kmers.add(kmer)
+						possible_match = True
+					# note: I could (since it'd only be for a single kmer size, keep a set of *all* small_kmers I've tried and use this as another pre-filter
+				else:
+					possible_match = True
+				# start looking at the other k_sizes, don't overhang len(seq)
+				if possible_match:
+					for other_k_size in [x for x in k_range[1:] if i+x <= len(seq)]:
+						kmer = seq[i:i + other_k_size]
 						if kmer in all_kmers_bf:
-							prefix_matches = tree.keys(kmer)  # get all the k-mers whose prefix matches
-							if prefix_matches:
-								seen_kmers.add(kmer)
-							hash_to_increment = []
-							# get the location of the found kmers in the counters
-							for item in prefix_matches:
-								split_string = item.split('x')
-								hash_to_increment.append(int(split_string[1]))  # first is the hash location, second is which k-mer
-							# uniquify so I don't over count
-							hash_to_increment = set(hash_to_increment)
-							if hash_to_increment:
-								for hash_index in hash_to_increment:
-									self.increment(hash_index, k_size_loc)
+							k_size_loc = k_range.index(other_k_size)
+							self.return_matches(kmer, k_size_loc)
+						else:
+							break
+
 
 	# helper function
 	def q_func(queue, counter):
@@ -235,7 +255,7 @@ if __name__ == '__main__':
 		else:
 			print("Sequences left to process: %d" % queue.qsize())
 			time.sleep(1)
-	time.sleep(10)
+	time.sleep(5)
 	queue.close()
 	queue.join_thread()
 
