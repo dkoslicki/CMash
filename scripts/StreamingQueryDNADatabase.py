@@ -48,6 +48,9 @@ if __name__ == '__main__':
 	parser.add_argument('-p', '--plot_file', action="store_true", help="Optional flag to specify that a plot of the "
 																	   "k-mer curves should also be saved (same basename"
 																	   "as the out_file).")
+	parser.add_argument('-f', '--filter_file',
+						help="Location of pre-filter bloom filter. Use only if you absolutely know what you're doing "
+							"(hard to error check bloom filters).")
 	parser.add_argument('in_file', help="Input file: FASTA/Q file to be processes")
 	parser.add_argument('reference_file', help='Training database/reference file (in HDF5 format). Created with MakeStreamingDNADatabase.py')
 	parser.add_argument('out_file', help='Output csv file with the containment indices.')
@@ -67,6 +70,7 @@ if __name__ == '__main__':
 	coverage_threshold = args.containment_threshold
 	streaming_database_file = os.path.splitext(training_data)[0] + ".tst"  # name of the tst training file
 	streaming_database_file = os.path.abspath(streaming_database_file)
+	hydra_file = args.filter_file
 	if not os.path.exists(streaming_database_file):
 		streaming_database_file = None
 	if args.plot_file:
@@ -107,7 +111,7 @@ if __name__ == '__main__':
 	for i in range(len(sketches)):
 		training_file_names.append(sketches[i].input_file_name)
 
-	# Make the tst tree
+	# Make the Marissa tree
 	if streaming_database_file is None:
 		streaming_database_file = os.path.splitext(training_data)[0] + ".tst"
 		streaming_database_file = os.path.abspath(streaming_database_file)
@@ -126,28 +130,29 @@ if __name__ == '__main__':
 		tree.load(streaming_database_file)
 
 	# all the k-mers of interest in a set (as a pre-filter)
-	#try:
-	#	os.remove('test.bloom')
-	#	os.remove('test.bloom.desc')
-	#except:
-	#	pass
-	if not os.path.isfile('test.bloom'):
-		all_kmers_bf = WritingBloomFilter(len(sketches)*len(k_range)*num_hashes, 0.0001, 'test.bloom')
-		#all_kmers_bf = ReadingBloomFilter('test.bloom')
-		#all_kmers_bf = set()
-		print("Start BF create")
-		for sketch in sketches:
-			for kmer in sketch._kmers:
-				for ksize in k_range:
-					all_kmers_bf.add(kmer[0:ksize])  # put all the k-mers and the appropriate suffixes in
-		print("End BF create")
-	else:
-		print("Start reading BF")
-		t0 = timeit.default_timer()
-		all_kmers_bf = ReadingBloomFilter('test.bloom')
-		t1 = timeit.default_timer()
-		print(t1-t0)
-		print("End reading BF")
+	if not hydra_file:  # create one
+		try:
+			all_kmers_bf = WritingBloomFilter(len(sketches)*len(k_range)*num_hashes, 0.0001, hydra_file)
+			print("Start BF create")
+			for sketch in sketches:
+				for kmer in sketch._kmers:
+					for ksize in k_range:
+						all_kmers_bf.add(kmer[0:ksize])  # put all the k-mers and the appropriate suffixes in
+			print("End BF create")
+		except IOError:
+			print("No such file or directory/error opening file: %s" % hydra_file)
+			sys.exit(1)
+	else:  # otherwise read it in
+		try:
+			print("Start reading BF")
+			t0 = timeit.default_timer()
+			all_kmers_bf = ReadingBloomFilter(hydra_file)
+			t1 = timeit.default_timer()
+			print(t1-t0)
+			print("End reading BF")
+		except IOError:
+			print("No such file or directory/error opening file: %s" % hydra_file)
+			sys.exit(1)
 
 	# Seen k-mers (set of k-mers that already hit the trie, so don't need to check again)
 	seen_kmers = set()
