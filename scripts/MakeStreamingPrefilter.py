@@ -1,7 +1,4 @@
 #! /usr/bin/env python
-import khmer
-import marisa_trie as mt
-import numpy as np
 import os
 import sys
 # The following is for ease of development (so I don't need to keep re-installing the tool)
@@ -13,15 +10,10 @@ except ImportError:
 	except ImportError:
 		sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 		from CMash import MinHash as MH
-import time
-import multiprocessing
-import pandas as pd
 import argparse
 from argparse import ArgumentTypeError
 import re
-import matplotlib.pyplot as plt
-from hydra import WritingBloomFilter, ReadingBloomFilter
-from scipy.sparse import csr_matrix
+from hydra import WritingBloomFilter
 
 
 def parseNumList(input):
