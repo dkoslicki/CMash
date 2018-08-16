@@ -264,25 +264,30 @@ if __name__ == '__main__':
 	while True:
 		try:
 			tup = out_queue.get(True, 1)
-			hash_loc, k_size_loc, kmer_loc = tup
-			match_tuples.add((hash_loc, k_size_loc, kmer_loc))
+			match_tuples.add(tup)
 		except:
 			break
 
 	#print("Len matches: %d" % len(match_tuples))
+	# create k_range spare matrices. Rows index by genomes (sketch/hash index), columns index by k_mer_loc
 	row_ind_dict = dict()
 	col_ind_dict = dict()
 	value_dict = dict()
+	unique_kmers = dict()
 	for k_size in k_range:
 		row_ind_dict[k_size] = []
 		col_ind_dict[k_size] = []
 		value_dict[k_size] = []
+		unique_kmers[k_size] = set()
 
 	for hash_loc, k_size_loc, kmer_loc in match_tuples:
 		k_size = k_range[k_size_loc]
-		row_ind_dict[k_size].append(hash_loc)
-		col_ind_dict[k_size].append(kmer_loc)
-		value_dict[k_size].append(1)
+		kmer = sketches[hash_loc]._kmers[kmer_loc][:k_size]
+		if kmer not in unique_kmers[k_size]:  # if you've seen this k-mer before, don't add it
+			row_ind_dict[k_size].append(hash_loc)
+			col_ind_dict[k_size].append(kmer_loc)
+			value_dict[k_size].append(1)
+			unique_kmers[k_size].add(kmer)
 
 	hit_matrices = []
 	for k_size in k_range:
@@ -290,9 +295,19 @@ if __name__ == '__main__':
 		hit_matrices.append(mat)
 
 	containment_indices = np.zeros((len(sketches), len(k_range)))  # TODO: could make this thing sparse, or do the filtering for above threshold here
-	# TODO: this doesn't take into consideration the duplicate k-mers in the sketches
 	for k_size_loc in range(len(k_range)):
-		containment_indices[:, k_size_loc] = (hit_matrices[k_size_loc].sum(axis=1).ravel()/float(num_hashes))
+		containment_indices[:, k_size_loc] = (hit_matrices[k_size_loc].sum(axis=1).ravel()) #/float(num_hashes))
+
+	for k_size_loc in range(len(k_range)):
+		k_size = k_range[k_size_loc]
+		for hash_loc in np.where(containment_indices[:, k_size_loc])[0]:  # find the genomes with non-zero containment
+			unique_kmers = set()
+			for kmer in sketches[hash_loc]._kmers:
+				unique_kmers.add(kmer[:k_size])  # find the unique k-mers
+			containment_indices[hash_loc, k_size_loc] /= float(len(unique_kmers))  # divide by the unique num of k-mers
+
+
+	# now find the numer of unique sketch k-mer per kmer_size
 
 
 
