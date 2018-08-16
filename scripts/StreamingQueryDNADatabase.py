@@ -14,20 +14,18 @@ except ImportError:
 		sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 		from CMash import MinHash as MH
 import time
-from multiprocessing import Process, Value, Lock
 import multiprocessing
-import ctypes
 import pandas as pd
 import argparse
-from argparse import ArgumentParser, ArgumentTypeError
+from argparse import ArgumentTypeError
 import re
 import matplotlib.pyplot as plt
 from hydra import WritingBloomFilter, ReadingBloomFilter
-import timeit
 from scipy.sparse import csr_matrix
 
 
 def parseNumList(input):
+	"""Thank you stack overflow"""
 	m = re.match(r'(\d+)(?:-(\d+))?(?:-(\d+))?$', input)
 	# ^ (or use .split('-'). anyway you like.)
 	if not m:
