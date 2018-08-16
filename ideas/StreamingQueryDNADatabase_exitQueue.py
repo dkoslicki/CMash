@@ -24,8 +24,6 @@ import re
 import matplotlib.pyplot as plt
 from hydra import WritingBloomFilter, ReadingBloomFilter
 import timeit
-from scipy.sparse import csr_matrix
-
 
 def parseNumList(input):
 	m = re.match(r'(\d+)(?:-(\d+))?(?:-(\d+))?$', input)
@@ -92,7 +90,6 @@ if __name__ == '__main__':
 		raise Exception(
 			"For some reason, the k-mers were not saved when the database was created. Try running MakeDNADatabase.py again.")
 	num_hashes = len(sketches[0]._kmers)
-	# TODO: may not need to do this tedious error checking
 	for i in range(len(sketches)):
 		sketch = sketches[i]
 		if sketch._kmers is None:
@@ -160,42 +157,43 @@ if __name__ == '__main__':
 	# Seen k-mers (set of k-mers that already hit the trie, so don't need to check again)
 	seen_kmers = set()
 
+	test = set()
+
 	# shared object that will update the intersection counts
 	class Counters(object):
 		# This class is basically an array of counters (on the same basis as the sketches)
 		# it's used to keep track (in a parallel friendly way) of which streamed k-mers went into the training file sketches
 		def __init__(self):
-			pass
-			#self.ksize = max_ksize
-			#N = len(sketches)
-			#to_share = multiprocessing.Array(ctypes.c_int64, N * len(k_range))  # vector
-			#to_share_np = np.frombuffer(to_share.get_obj(), dtype=ctypes.c_int64)  # get it
-			#self.vals = to_share_np.reshape(N, len(k_range))
-			#self.lock = Lock()  # don't need since I don't care about collisions (once matched, always matched)
+			self.ksize = max_ksize
+			N = len(sketches)
+			to_share = multiprocessing.Array(ctypes.c_int64, N * len(k_range))  # vector
+			to_share_np = np.frombuffer(to_share.get_obj(), dtype=ctypes.c_int64)  # get it
+			self.vals = to_share_np.reshape(N, len(k_range))
+			self.lock = Lock()  # don't need since I don't care about collisions (once matched, always matched)
 
-		#def increment(self, hash_index, k_size_loc):
-		#	self.vals[hash_index, k_size_loc] += 1  # array
+		def increment(self, hash_index, k_size_loc):
+			self.vals[hash_index, k_size_loc] += 1  # array
 
-		#def value(self, hash_index, k_size_loc):
-		#	return self.vals[hash_index, k_size_loc]
+		def value(self, hash_index, k_size_loc):
+			return self.vals[hash_index, k_size_loc]
 
-		def return_matches(self, kmer, k_size_loc, out_queue):
+		def return_matches(self, kmer, k_size_loc):
 			""" Get all the matches in the trie with the kmer prefix"""
 			prefix_matches = tree.keys(kmer)  # get all the k-mers whose prefix matches
-			match_info = set()
+			hash_to_increment = []
 			# get the location of the found kmers in the counters
 			for item in prefix_matches:
-				split_string = item.split('x')  # first is the hash location, second is which k-mer
-				hash_loc = int(split_string[1])
-				kmer_loc = int(split_string[2])
-				match_info.add((hash_loc, k_size_loc, kmer_loc))
-			if match_info:
-				for tup in match_info:
-					#self.increment(hash_index, k_size_loc)
-					out_queue.put(tup)
+				split_string = item.split('x')
+				hash_to_increment.append(int(split_string[1]))  # first is the hash location, second is which k-mer
+			# uniquify so I don't over count
+			hash_to_increment = set(hash_to_increment)
+			if hash_to_increment:
+				test.add(kmer)
+				for hash_index in hash_to_increment:
+					self.increment(hash_index, k_size_loc)
 				return True
 
-		def process_seq(self, seq, out_queue):
+		def process_seq(self, seq, return_dict):
 			#  start with small kmer size, if see match, then continue looking for longer k-mer sizes, otherwise move on
 			small_k_size = k_range[0]  # start with the small k-size
 			for i in range(len(seq) - small_k_size + 1):  # look at all k-mers
@@ -203,9 +201,10 @@ if __name__ == '__main__':
 				possible_match = False
 				if kmer not in seen_kmers:  # if we should process it
 					if kmer in all_kmers_bf:  # if we should process it
-						saw_match = self.return_matches(kmer, 0, out_queue)
+						saw_match = self.return_matches(kmer, 0)
 						if saw_match:  #  TODO: note, I *could* add all the trie matches and their sub-kmers to the seen_kmers
 							seen_kmers.add(kmer)
+							return_dict.put(kmer)
 						possible_match = True
 					# note: I could (since it'd only be for a single kmer size, keep a set of *all* small_kmers I've tried and use this as another pre-filter
 				else:
@@ -216,29 +215,29 @@ if __name__ == '__main__':
 						kmer = seq[i:i + other_k_size]
 						if kmer in all_kmers_bf:
 							k_size_loc = k_range.index(other_k_size)
-							self.return_matches(kmer, k_size_loc, out_queue)
+							self.return_matches(kmer, k_size_loc)
 						else:
 							break
 
 
 	# helper function
-	def q_func(queue, counter, out_queue):
+	def q_func(queue, counter, return_dict):
 		# Worker function to process the reads in the queue
 		while True:
 			record = queue.get()
 			if record is False:  # In case I need to pass a poison pill
 				return
 			else:
-				counter.process_seq(record, out_queue)
+				counter.process_seq(record, return_dict)
 
 	# Initialize the counters
 	counter = Counters()
 	# Start the q
 	queue = multiprocessing.Queue()
-	out_queue = multiprocessing.Queue()  # TODO: consider using a pipe
+	return_dict = multiprocessing.Queue()  # TODO: consider using a pipe
 	ps = list()
 	for i in range(num_threads):
-		p = multiprocessing.Process(target=q_func, args=(queue, counter, out_queue))
+		p = multiprocessing.Process(target=q_func, args=(queue, counter, return_dict))
 		p.daemon = True
 		p.start()
 		ps.append(p)
@@ -266,53 +265,28 @@ if __name__ == '__main__':
 	queue.close()
 	queue.join_thread()
 
-	match_tuples = set()
-	while not out_queue.empty():
-		hash_loc, k_size_loc, kmer_loc = out_queue.get()
-		match_tuples.add((hash_loc, k_size_loc, kmer_loc))
-
-	row_ind_dict = dict()
-	col_ind_dict = dict()
-	value_dict = dict()
-	for k_size in k_range:
-		row_ind_dict[k_size] = []
-		col_ind_dict[k_size] = []
-		value_dict[k_size] = []
-
-	for hash_loc, k_size_loc, kmer_loc in match_tuples:
-		k_size = k_range[k_size_loc]
-		row_ind_dict[k_size].append(hash_loc)
-		col_ind_dict[k_size].append(kmer_loc)
-		value_dict[k_size].append(1)
-
-	hit_matrices = []
-	for k_size in k_range:
-		mat = csr_matrix((value_dict[k_size], (row_ind_dict[k_size], col_ind_dict[k_size])), shape=(len(sketches), num_hashes))
-		hit_matrices.append(mat)
-
-	containment_indices = np.zeros((len(sketches), len(k_range)))  # TODO: could make this thing sparse, or do the filtering for above threshold here
-	# TODO: this doesn't take into consideration the duplicate k-mers in the sketches
-	for k_size_loc in range(len(k_range)):
-		containment_indices[:, k_size_loc] = (hit_matrices[k_size_loc].sum(axis=1).ravel()/float(num_hashes))
-
-
+	end_set = set()
+	while not return_dict.empty():
+		kmer = return_dict.get()
+		end_set.add(kmer)
+	print("Size of set is %d" % len(end_set))
 
 	# collect the intersection counts
-	#containment_indices = np.zeros((len(sketches), len(k_range)))
-	#for sketch_index in range(len(sketches)):
-	#	for k_size_loc in range(len(k_range)):
-	#		uniqe_kmer_indicies = set()
-	#		uniqe_kmers = set()
-	#		# get the indices of the unique k-mers
-	#		for index in range(num_hashes):
-	#			kmer = sketches[sketch_index]._kmers[index][0:k_range[k_size_loc]]  # get the first few characters of the kmer
-	#			if kmer not in uniqe_kmers:
-	#				uniqe_kmers.add(kmer)
-	#				#uniqe_kmer_indicies.add(index)
-	#		# get the total counts for these unique k-mer indices
-	#		count = counter.value(sketch_index, k_size_loc)
-	#		# update the containment index
-	#		containment_indices[sketch_index, k_size_loc] = count / float(len(uniqe_kmers))  # this is the containment index estimate
+	containment_indices = np.zeros((len(sketches), len(k_range)))
+	for sketch_index in range(len(sketches)):
+		for k_size_loc in range(len(k_range)):
+			uniqe_kmer_indicies = set()
+			uniqe_kmers = set()
+			# get the indices of the unique k-mers
+			for index in range(num_hashes):
+				kmer = sketches[sketch_index]._kmers[index][0:k_range[k_size_loc]]  # get the first few characters of the kmer
+				if kmer not in uniqe_kmers:
+					uniqe_kmers.add(kmer)
+					#uniqe_kmer_indicies.add(index)
+			# get the total counts for these unique k-mer indices
+			count = counter.value(sketch_index, k_size_loc)
+			# update the containment index
+			containment_indices[sketch_index, k_size_loc] = count / float(len(uniqe_kmers))  # this is the containment index estimate
 
 	results = dict()
 	for k_size_loc in range(len(k_range)):
