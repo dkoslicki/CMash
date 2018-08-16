@@ -87,25 +87,12 @@ if __name__ == '__main__':
 
 	# Training data
 	sketches = MH.import_multiple_from_single_hdf5(training_data)
-	ksizes = set()
 	if sketches[0]._kmers is None:
 		raise Exception(
 			"For some reason, the k-mers were not saved when the database was created. Try running MakeDNADatabase.py again.")
-	num_hashes = len(sketches[0]._kmers)
-	# TODO: may not need to do this tedious error checking
-	for i in range(len(sketches)):
-		sketch = sketches[i]
-		if sketch._kmers is None:
-			raise Exception(
-				"For some reason, the k-mers were not saved when the database was created. Try running MakeDNADatabase.py again.")
-		if len(sketch._kmers) != num_hashes:
-			raise Exception("Unequal number of hashes for sketch of %s" % sketch.input_file_name)
-		ksizes.add(sketch.ksize)
-		if len(ksizes) > 1:
-			raise Exception(
-				"Training/reference data uses different k-mer sizes. Culprit was %s." % (sketch.input_file_name))
+	num_hashes = len(sketches[0]._kmers)  # note: this is relying on the fact that the sketches were properly constructed
+	max_ksize = sketches[0].ksize
 
-	max_ksize = ksizes.pop()
 	# adjust the k-range if necessary
 	k_range = [val for val in k_range if val <= max_ksize]
 
@@ -159,18 +146,6 @@ if __name__ == '__main__':
 		# it's used to keep track (in a parallel friendly way) of which streamed k-mers went into the training file sketches
 		def __init__(self):
 			pass
-			#self.ksize = max_ksize
-			#N = len(sketches)
-			#to_share = multiprocessing.Array(ctypes.c_int64, N * len(k_range))  # vector
-			#to_share_np = np.frombuffer(to_share.get_obj(), dtype=ctypes.c_int64)  # get it
-			#self.vals = to_share_np.reshape(N, len(k_range))
-			#self.lock = Lock()  # don't need since I don't care about collisions (once matched, always matched)
-
-		#def increment(self, hash_index, k_size_loc):
-		#	self.vals[hash_index, k_size_loc] += 1  # array
-
-		#def value(self, hash_index, k_size_loc):
-		#	return self.vals[hash_index, k_size_loc]
 
 		def return_matches(self, kmer, k_size_loc, out_queue):
 			""" Get all the matches in the trie with the kmer prefix"""
@@ -184,7 +159,6 @@ if __name__ == '__main__':
 				match_info.add((hash_loc, k_size_loc, kmer_loc))
 			if match_info:
 				for tup in match_info:
-					#self.increment(hash_index, k_size_loc)
 					out_queue.put(tup)
 				return True
 
@@ -200,7 +174,7 @@ if __name__ == '__main__':
 						if saw_match:  #  TODO: note, I *could* add all the trie matches and their sub-kmers to the seen_kmers
 							seen_kmers.add(kmer)
 						possible_match = True
-					# note: I could (since it'd only be for a single kmer size, keep a set of *all* small_kmers I've tried and use this as another pre-filter
+					# TODO: note: I could (since it'd only be for a single kmer size, keep a set of *all* small_kmers I've tried and use this as another pre-filter
 				else:
 					possible_match = True
 				# start looking at the other k_sizes, don't overhang len(seq)
@@ -305,28 +279,6 @@ if __name__ == '__main__':
 			for kmer in sketches[hash_loc]._kmers:
 				unique_kmers.add(kmer[:k_size])  # find the unique k-mers
 			containment_indices[hash_loc, k_size_loc] /= float(len(unique_kmers))  # divide by the unique num of k-mers
-
-
-	# now find the numer of unique sketch k-mer per kmer_size
-
-
-
-	# collect the intersection counts
-	#containment_indices = np.zeros((len(sketches), len(k_range)))
-	#for sketch_index in range(len(sketches)):
-	#	for k_size_loc in range(len(k_range)):
-	#		uniqe_kmer_indicies = set()
-	#		uniqe_kmers = set()
-	#		# get the indices of the unique k-mers
-	#		for index in range(num_hashes):
-	#			kmer = sketches[sketch_index]._kmers[index][0:k_range[k_size_loc]]  # get the first few characters of the kmer
-	#			if kmer not in uniqe_kmers:
-	#				uniqe_kmers.add(kmer)
-	#				#uniqe_kmer_indicies.add(index)
-	#		# get the total counts for these unique k-mer indices
-	#		count = counter.value(sketch_index, k_size_loc)
-	#		# update the containment index
-	#		containment_indices[sketch_index, k_size_loc] = count / float(len(uniqe_kmers))  # this is the containment index estimate
 
 	results = dict()
 	for k_size_loc in range(len(k_range)):
