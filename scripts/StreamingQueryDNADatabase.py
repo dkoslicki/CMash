@@ -136,23 +136,16 @@ if __name__ == '__main__':
 	if not hydra_file:  # create one
 		try:
 			all_kmers_bf = WritingBloomFilter(len(sketches)*len(k_range)*num_hashes, 0.0001)
-			print("Start BF create")
 			for sketch in sketches:
 				for kmer in sketch._kmers:
 					for ksize in k_range:
 						all_kmers_bf.add(kmer[0:ksize])  # put all the k-mers and the appropriate suffixes in
-			print("End BF create")
 		except IOError:
 			print("No such file or directory/error opening file: %s" % hydra_file)
 			sys.exit(1)
 	else:  # otherwise read it in
 		try:
-			print("Start reading BF")
-			t0 = timeit.default_timer()
 			all_kmers_bf = ReadingBloomFilter(hydra_file)
-			t1 = timeit.default_timer()
-			print(t1-t0)
-			print("End reading BF")
 		except IOError:
 			print("No such file or directory/error opening file: %s" % hydra_file)
 			sys.exit(1)
@@ -262,15 +255,21 @@ if __name__ == '__main__':
 			print("Sequences left to process: %d" % queue.qsize())
 			time.sleep(1)
 
-	time.sleep(5)
+	time.sleep(1)
 	queue.close()
 	queue.join_thread()
 
 	match_tuples = set()
-	while not out_queue.empty():
-		hash_loc, k_size_loc, kmer_loc = out_queue.get()
-		match_tuples.add((hash_loc, k_size_loc, kmer_loc))
+	#while not out_queue.empty():
+	while True:
+		try:
+			tup = out_queue.get(True, 1)
+			hash_loc, k_size_loc, kmer_loc = tup
+			match_tuples.add((hash_loc, k_size_loc, kmer_loc))
+		except:
+			break
 
+	#print("Len matches: %d" % len(match_tuples))
 	row_ind_dict = dict()
 	col_ind_dict = dict()
 	value_dict = dict()
