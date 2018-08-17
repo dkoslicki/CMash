@@ -237,10 +237,12 @@ if __name__ == '__main__':
 			print("Sequences left to process: %d" % queue.qsize())
 			time.sleep(1)
 
+	print("1")
 	time.sleep(1)
 	queue.close()
 	queue.join_thread()
 
+	print("2")
 	match_tuples = set()
 	#while not out_queue.empty():
 	while True:
@@ -250,6 +252,7 @@ if __name__ == '__main__':
 		except:
 			break
 
+	print("3")
 	#print("Len matches: %d" % len(match_tuples))
 	# create k_range spare matrices. Rows index by genomes (sketch/hash index), columns index by k_mer_loc
 	row_ind_dict = dict()
@@ -262,6 +265,7 @@ if __name__ == '__main__':
 		value_dict[k_size] = []
 		unique_kmers[k_size] = set()
 
+	print("4")
 	for hash_loc, k_size_loc, kmer_loc in match_tuples:
 		k_size = k_range[k_size_loc]
 		kmer = sketches[hash_loc]._kmers[kmer_loc][:k_size]
@@ -271,15 +275,18 @@ if __name__ == '__main__':
 			value_dict[k_size].append(1)
 			unique_kmers[k_size].add(kmer)
 
+	print("5")
 	hit_matrices = []
 	for k_size in k_range:
 		mat = csr_matrix((value_dict[k_size], (row_ind_dict[k_size], col_ind_dict[k_size])), shape=(len(sketches), num_hashes))
 		hit_matrices.append(mat)
 
+	print("6")
 	containment_indices = np.zeros((len(sketches), len(k_range)))  # TODO: could make this thing sparse, or do the filtering for above threshold here
 	for k_size_loc in range(len(k_range)):
 		containment_indices[:, k_size_loc] = (hit_matrices[k_size_loc].sum(axis=1).ravel()) #/float(num_hashes))
 
+	print("7")
 	for k_size_loc in range(len(k_range)):
 		k_size = k_range[k_size_loc]
 		for hash_loc in np.where(containment_indices[:, k_size_loc])[0]:  # find the genomes with non-zero containment
@@ -288,6 +295,7 @@ if __name__ == '__main__':
 				unique_kmers.add(kmer[:k_size])  # find the unique k-mers
 			containment_indices[hash_loc, k_size_loc] /= float(len(unique_kmers))  # divide by the unique num of k-mers
 
+	print("8")
 	results = dict()
 	for k_size_loc in range(len(k_range)):
 		ksize = k_range[k_size_loc]
