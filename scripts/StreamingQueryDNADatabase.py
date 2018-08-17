@@ -289,6 +289,7 @@ if __name__ == '__main__':
 	#print("queue length after dump: %d" % out_queue.qsize())
 	#print("num matches: %d" % len(match_tuples))
 	match_tuples.update([i for i in iter(get, 'STOP')])
+	time.sleep(1)
 	print("queue length after dump: %d" % out_queue.qsize())
 	t1 = timeit.default_timer()
 	print(t1-t0)
