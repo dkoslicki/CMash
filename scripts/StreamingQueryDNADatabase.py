@@ -51,6 +51,9 @@ if __name__ == '__main__':
 	parser.add_argument('-f', '--filter_file',
 						help="Location of pre-filter bloom filter. Use only if you absolutely know what you're doing "
 							"(hard to error check bloom filters).")
+	parser.add_argument('-l', '--location_of_thresh', type=int,
+						help="Location in range to apply the threshold passed by the -c flag. -l 2 -c 5-50-10 means the"
+							" threshold will be applied at k-size 25. Default is largest size.", default=-1)
 	parser.add_argument('in_file', help="Input file: FASTA/Q file to be processes")
 	parser.add_argument('reference_file', help='Training database/reference file (in HDF5 format). Created with MakeStreamingDNADatabase.py')
 	parser.add_argument('out_file', help='Output csv file with the containment indices.')
@@ -67,6 +70,7 @@ if __name__ == '__main__':
 	query_file = args.in_file
 	results_file = args.out_file
 	num_threads = args.threads
+	location_of_thresh = args.location_of_thresh
 	coverage_threshold = args.containment_threshold
 	streaming_database_file = os.path.splitext(training_data)[0] + ".tst"  # name of the tst training file
 	streaming_database_file = os.path.abspath(streaming_database_file)
@@ -93,6 +97,12 @@ if __name__ == '__main__':
 
 	# adjust the k-range if necessary
 	k_range = [val for val in k_range if val <= max_ksize]
+
+	# adjust location of thresh if necessary
+	if location_of_thresh:
+		if location_of_thresh >= len(k_range):
+			print("Warning, k_range is of length %d, reducing location of threshold from %d to %d" % (len(k_range), location_of_thresh, len(k_range)))
+			location_of_thresh = len(k_range) - 1
 
 	# Get names of training files for use as rows in returned tabular data
 	training_file_names = []
@@ -285,7 +295,7 @@ if __name__ == '__main__':
 		results[key] = containment_indices[:, k_size_loc]
 	df = pd.DataFrame(results, map(os.path.basename, training_file_names))
 	df = df.reindex(labels=['k=' + str(k_size) for k_size in k_range], axis=1)  # sort columns in ascending order
-	max_key = 'k=%d' % k_range[-1]
+	max_key = 'k=%d' % k_range[location_of_thresh]
 	filtered_results = df[df[max_key] > coverage_threshold].sort_values(max_key, ascending=False)  # only select those where the highest k-mer size's count is above the threshold
 	filtered_results.to_csv(results_file, index=True, encoding='utf-8')
 
