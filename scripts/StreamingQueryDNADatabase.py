@@ -211,7 +211,7 @@ if __name__ == '__main__':
 	counter = Counters()
 	# Start the q
 	queue = multiprocessing.Queue()
-	out_queue = multiprocessing.queues.Queue()  # TODO: consider using a pipe
+	out_queue = multiprocessing.Queue()  # TODO: consider using a pipe
 	ps = list()
 	for i in range(num_threads):
 		p = multiprocessing.Process(target=q_func, args=(queue, counter, out_queue))
