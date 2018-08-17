@@ -247,10 +247,10 @@ if __name__ == '__main__':
 	#while not out_queue.empty():
 	while True:
 		try:
-			tup = out_queue.get(True, 1)
+			tup = out_queue.get(True, 0.1)
 			match_tuples.add(tup)
 		except:
-			break
+			break  #TODO: here
 
 	print("3")
 	#print("Len matches: %d" % len(match_tuples))
