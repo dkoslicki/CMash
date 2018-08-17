@@ -22,6 +22,7 @@ import re
 import matplotlib.pyplot as plt
 from hydra import WritingBloomFilter, ReadingBloomFilter
 from scipy.sparse import csr_matrix
+import timeit
 
 
 def parseNumList(input):
@@ -243,6 +244,7 @@ if __name__ == '__main__':
 	queue.join_thread()
 
 	print("2")
+	t0 = timeit.default_timer()
 	match_tuples = set()
 	#while not out_queue.empty():
 	while True:
@@ -251,8 +253,11 @@ if __name__ == '__main__':
 			match_tuples.add(tup)
 		except:
 			break  #TODO: here
+	t1 = timeit.default_timer()
+	print(t1-t0)
 
 	print("3")
+	t0 = timeit.default_timer()
 	#print("Len matches: %d" % len(match_tuples))
 	# create k_range spare matrices. Rows index by genomes (sketch/hash index), columns index by k_mer_loc
 	row_ind_dict = dict()
@@ -264,8 +269,11 @@ if __name__ == '__main__':
 		col_ind_dict[k_size] = []
 		value_dict[k_size] = []
 		unique_kmers[k_size] = set()
+	t1 = timeit.default_timer()
+	print(t1-t0)
 
 	print("4")
+	t0 = timeit.default_timer()
 	for hash_loc, k_size_loc, kmer_loc in match_tuples:
 		k_size = k_range[k_size_loc]
 		kmer = sketches[hash_loc]._kmers[kmer_loc][:k_size]
@@ -274,19 +282,28 @@ if __name__ == '__main__':
 			col_ind_dict[k_size].append(kmer_loc)
 			value_dict[k_size].append(1)
 			unique_kmers[k_size].add(kmer)
+	t1 = timeit.default_timer()
+	print(t1- t0)
 
 	print("5")
+	t0 = timeit.default_timer()
 	hit_matrices = []
 	for k_size in k_range:
 		mat = csr_matrix((value_dict[k_size], (row_ind_dict[k_size], col_ind_dict[k_size])), shape=(len(sketches), num_hashes))
 		hit_matrices.append(mat)
+	t1 = timeit.default_timer()
+	print(t1 - t0)
 
 	print("6")
+	t0 = timeit.default_timer()
 	containment_indices = np.zeros((len(sketches), len(k_range)))  # TODO: could make this thing sparse, or do the filtering for above threshold here
 	for k_size_loc in range(len(k_range)):
 		containment_indices[:, k_size_loc] = (hit_matrices[k_size_loc].sum(axis=1).ravel()) #/float(num_hashes))
+	t1 = timeit.default_timer()
+	print(t1 - t0)
 
 	print("7")
+	t0 = timeit.default_timer()
 	for k_size_loc in range(len(k_range)):
 		k_size = k_range[k_size_loc]
 		for hash_loc in np.where(containment_indices[:, k_size_loc])[0]:  # find the genomes with non-zero containment
@@ -294,8 +311,11 @@ if __name__ == '__main__':
 			for kmer in sketches[hash_loc]._kmers:
 				unique_kmers.add(kmer[:k_size])  # find the unique k-mers
 			containment_indices[hash_loc, k_size_loc] /= float(len(unique_kmers))  # divide by the unique num of k-mers
+	t1 = timeit.default_timer()
+	print(t1 - t0)
 
 	print("8")
+	t0 = timeit.default_timer()
 	results = dict()
 	for k_size_loc in range(len(k_range)):
 		ksize = k_range[k_size_loc]
@@ -307,6 +327,8 @@ if __name__ == '__main__':
 	max_key = 'k=%d' % k_range[-1]
 	filtered_results = df[df[sort_key] > coverage_threshold].sort_values(max_key, ascending=False)  # only select those where the highest k-mer size's count is above the threshold
 	filtered_results.to_csv(results_file, index=True, encoding='utf-8')
+	t1 = timeit.default_timer()
+	print(t1 - t0)
 
 	# If requested, plot the results
 	if args.plot_file:
