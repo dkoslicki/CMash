@@ -243,16 +243,52 @@ if __name__ == '__main__':
 	queue.close()
 	queue.join_thread()
 
+	#for _ in range(10):
+	#	print("Current out queue size: %d" % out_queue.qsize())
+	#	time.sleep(1)
+	#print("queue size before put poison %d" % out_queue.qsize())
+	#out_queue.put('this')
+	#for _ in range(20):
+	#	out_queue.put('STOP')
+
+	def get():
+		out_val = None
+		while out_val is None:
+			try:
+				#out_val = out_queue.get(True, .1)
+				out_val = out_queue.get(False)
+			except:
+				if out_queue.qsize() > 0:
+					continue
+				else:
+					out_val = 'STOP'
+		return out_val
+
 	print("2")
 	t0 = timeit.default_timer()
 	match_tuples = set()
 	#while not out_queue.empty():
-	while True:
-		try:
-			tup = out_queue.get(True, 0.1)
-			match_tuples.add(tup)
-		except:
-			break  #TODO: here
+	#to_populate = []
+	#i = 0
+	#while True:
+	#	try:
+	#		tup = out_queue.get(True, 0.1)
+	#		to_populate.append(tup)
+	#		if i%10000 == 0:
+	#			print("out queue size: %d" % out_queue.qsize())
+	#		i += 1
+	#	except:
+	#		break  #TODO: here
+	#time.sleep(1)
+
+	print("queue length before dump: %d" % out_queue.qsize())
+	#to_populate = [i for i in iter(get, 'STOP')]
+	#print(to_populate[-1])
+	#print("length of dumped items: %d" % len(to_populate))
+	#match_tuples.update(to_populate)
+	print("queue length after dump: %d" % out_queue.qsize())
+	#print("num matches: %d" % len(match_tuples))
+	match_tuples.update([i for i in iter(get, 'STOP')])
 	t1 = timeit.default_timer()
 	print(t1-t0)
 
