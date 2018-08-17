@@ -211,7 +211,7 @@ if __name__ == '__main__':
 	counter = Counters()
 	# Start the q
 	queue = multiprocessing.Queue()
-	out_queue = multiprocessing.Queue()  # TODO: consider using a pipe
+	out_queue = multiprocessing.queues.Queue()  # TODO: consider using a pipe
 	ps = list()
 	for i in range(num_threads):
 		p = multiprocessing.Process(target=q_func, args=(queue, counter, out_queue))
@@ -286,9 +286,10 @@ if __name__ == '__main__':
 	#print(to_populate[-1])
 	#print("length of dumped items: %d" % len(to_populate))
 	#match_tuples.update(to_populate)
-	print("queue length after dump: %d" % out_queue.qsize())
+	#print("queue length after dump: %d" % out_queue.qsize())
 	#print("num matches: %d" % len(match_tuples))
 	match_tuples.update([i for i in iter(get, 'STOP')])
+	print("queue length after dump: %d" % out_queue.qsize())
 	t1 = timeit.default_timer()
 	print(t1-t0)
 
