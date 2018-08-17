@@ -295,8 +295,9 @@ if __name__ == '__main__':
 		results[key] = containment_indices[:, k_size_loc]
 	df = pd.DataFrame(results, map(os.path.basename, training_file_names))
 	df = df.reindex(labels=['k=' + str(k_size) for k_size in k_range], axis=1)  # sort columns in ascending order
-	max_key = 'k=%d' % k_range[location_of_thresh]
-	filtered_results = df[df[max_key] > coverage_threshold].sort_values(max_key, ascending=False)  # only select those where the highest k-mer size's count is above the threshold
+	sort_key = 'k=%d' % k_range[location_of_thresh]
+	max_key = 'k=%d' % k_range[-1]
+	filtered_results = df[df[sort_key] > coverage_threshold].sort_values(max_key, ascending=False)  # only select those where the highest k-mer size's count is above the threshold
 	filtered_results.to_csv(results_file, index=True, encoding='utf-8')
 
 	# If requested, plot the results
