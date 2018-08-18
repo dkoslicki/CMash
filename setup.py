@@ -39,7 +39,8 @@ setup(
 		'six',
 		'scipy',
 		'matplotlib',
-		'marisa-trie'
+		'marisa-trie',
+		'hydra'
 	],
 	zip_safe=False,
 	package_data={'CMash': ['data/*.fna']},
