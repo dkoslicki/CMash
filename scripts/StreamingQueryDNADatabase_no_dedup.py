@@ -257,6 +257,8 @@ if __name__ == '__main__':
 			try:
 				#out_val = out_queue.get(True, .1)
 				out_val = out_queue.get(False)
+				if out_queue.qsize() % 100000 == 0:
+					print(out_queue.qsize())
 			except:
 				if out_queue.qsize() > 0:
 					continue
