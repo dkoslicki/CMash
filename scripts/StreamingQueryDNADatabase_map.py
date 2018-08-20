@@ -166,23 +166,27 @@ if __name__ == '__main__':
 				hash_loc = int(split_string[1])
 				kmer_loc = int(split_string[2])
 				match_info.add((hash_loc, k_size_loc, kmer_loc))
+			to_return = []
+			saw_match = False
 			if match_info:
+				saw_match = True
 				for tup in match_info:
-					return tup
-				return True
+					to_return.append(tup)
+			return to_return, saw_match
 
 		def process_seq(self, seq):
 			#  start with small kmer size, if see match, then continue looking for longer k-mer sizes, otherwise move on
 			small_k_size = k_range[0]  # start with the small k-size
+			to_return = []
 			for i in range(len(seq) - small_k_size + 1):  # look at all k-mers
 				kmer = seq[i:i + small_k_size]
 				possible_match = False
 				if kmer not in seen_kmers:  # if we should process it
 					if kmer in all_kmers_bf:  # if we should process it
-						saw_match = self.return_matches(kmer, 0)
+						match_list, saw_match = self.return_matches(kmer, 0)
 						if saw_match:  #  TODO: note, I *could* add all the trie matches and their sub-kmers to the seen_kmers
 							seen_kmers.add(kmer)
-							return saw_match
+							to_return.extend(match_list)
 						possible_match = True
 					# TODO: note: I could (since it'd only be for a single kmer size, keep a set of *all* small_kmers I've tried and use this as another pre-filter
 				else:
@@ -193,17 +197,19 @@ if __name__ == '__main__':
 						kmer = seq[i:i + other_k_size]
 						if kmer in all_kmers_bf:
 							k_size_loc = k_range.index(other_k_size)
-							return self.return_matches(kmer, k_size_loc)
+							match_list, saw_match = self.return_matches(kmer, k_size_loc)
+							if saw_match:
+								to_return.extend(match_list)
 						else:
-							return None
 							break
+			return to_return
 
-	counters = Counters()
-
-	def map_func(seq):
-		return counters.process_seq(seq)
 
 	# Initialize the counters
+	counter = Counters()
+	def map_func(sequence):
+		return counter.process_seq(sequence)
+
 	pool = multiprocessing.Pool(processes=num_threads)
 
 	# populate the queue
@@ -218,10 +224,9 @@ if __name__ == '__main__':
 		if i % 100000 == 0:
 			print("Read in %d sequences" % i)
 			res = pool.map(map_func, to_proc)
-			match_tuples.extend([ii for ii in res if ii is not None])
+			match_tuples.extend([item for sublist in res if sublist for item in sublist])
 			to_proc = []
-	print(match_tuples)
-
+	#print(match_tuples)
 
 	print("3")
 	t0 = timeit.default_timer()
