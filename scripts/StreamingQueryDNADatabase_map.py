@@ -206,6 +206,7 @@ if __name__ == '__main__':
 
 
 	# Initialize the counters
+	# TODO: note, I could be doing a partial dedup here, just to reduce the memory usage...
 	counter = Counters()
 	def map_func(sequence):
 		return counter.process_seq(sequence)
@@ -221,10 +222,12 @@ if __name__ == '__main__':
 		seq = record.sequence
 		to_proc.append(seq)
 		i += 1
-		if i % 100000 == 0:
+		if i % 1000000 == 0:
 			print("Read in %d sequences" % i)
-			res = pool.map(map_func, to_proc)
-			match_tuples.extend([item for sublist in res if sublist for item in sublist])
+			res = pool.map(map_func, to_proc, chunksize=100000)
+			flattened_res = [item for sublist in res if sublist for item in sublist]
+			flattened_res = list(set(flattened_res))  # dedup it
+			match_tuples.extend(flattened_res)
 			to_proc = []
 	#print(match_tuples)
 
