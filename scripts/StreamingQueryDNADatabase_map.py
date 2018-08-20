@@ -224,7 +224,7 @@ if __name__ == '__main__':
 		i += 1
 		if i % 1000000 == 0:
 			print("Read in %d sequences" % i)
-			res = pool.map(map_func, to_proc, chunksize=10000)  # TODO: this is not optimal
+			res = pool.map(map_func, to_proc)  # TODO: this is not optimal
 			flattened_res = [item for sublist in res if sublist for item in sublist]
 			flattened_res = list(set(flattened_res))  # dedup it
 			match_tuples.extend(flattened_res)
