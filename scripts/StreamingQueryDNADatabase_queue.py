@@ -257,8 +257,6 @@ if __name__ == '__main__':
 			try:
 				#out_val = out_queue.get(True, .1)
 				out_val = out_queue.get(False)
-				if out_queue.qsize() % 100000 == 0:
-					print(out_queue.qsize())
 			except:
 				if out_queue.qsize() > 0:
 					continue
@@ -268,6 +266,7 @@ if __name__ == '__main__':
 
 	print("2")
 	t0 = timeit.default_timer()
+	match_tuples = set()
 	#while not out_queue.empty():
 	#to_populate = []
 	#i = 0
@@ -289,7 +288,7 @@ if __name__ == '__main__':
 	#match_tuples.update(to_populate)
 	#print("queue length after dump: %d" % out_queue.qsize())
 	#print("num matches: %d" % len(match_tuples))
-	match_tuples = [i for i in iter(get, 'STOP')]
+	match_tuples.update([i for i in iter(get, 'STOP')])
 	time.sleep(1)
 	print("queue length after dump: %d" % out_queue.qsize())
 	t1 = timeit.default_timer()
@@ -322,7 +321,7 @@ if __name__ == '__main__':
 			value_dict[k_size].append(1)
 			unique_kmers[k_size].add(kmer)
 	t1 = timeit.default_timer()
-	print(t1 - t0)
+	print(t1- t0)
 
 	print("5")
 	t0 = timeit.default_timer()
