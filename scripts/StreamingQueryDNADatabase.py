@@ -13,7 +13,6 @@ except ImportError:
 	except ImportError:
 		sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 		from CMash import MinHash as MH
-import time
 import multiprocessing
 import pandas as pd
 import argparse
@@ -23,6 +22,8 @@ import matplotlib.pyplot as plt
 from hydra import WritingBloomFilter, ReadingBloomFilter
 from scipy.sparse import csr_matrix
 import timeit
+from itertools import islice
+
 
 
 def parseNumList(input):
@@ -216,19 +217,19 @@ if __name__ == '__main__':
 	# populate the queue
 	fid = khmer.ReadParser(query_file)  # This is faster than screed
 	match_tuples = []
-	to_proc = []
+	num_reads_per_core = 100000
+	num_reads_per_chunk = num_reads_per_core * num_threads
+	to_proc = [record.sequence for record in islice(fid, num_reads_per_chunk)]
 	i = 0
-	for record in fid:
-		seq = record.sequence
-		to_proc.append(seq)
-		i += 1
-		if i % 1000000 == 0:
+	while to_proc:
+			i += len(to_proc)
 			print("Read in %d sequences" % i)
-			res = pool.map(map_func, to_proc)  # TODO: this is not optimal
+			res = pool.map(map_func, to_proc, chunksize=min(num_reads_per_core, len(to_proc)/num_threads))
 			flattened_res = [item for sublist in res if sublist for item in sublist]
 			flattened_res = list(set(flattened_res))  # dedup it
 			match_tuples.extend(flattened_res)
-			to_proc = []
+			to_proc = [record.sequence for record in islice(fid, num_reads_per_chunk)]
+	fid.close()
 	#print(match_tuples)
 
 	print("3")
