@@ -56,6 +56,7 @@ if __name__ == '__main__':
 	parser.add_argument('-l', '--location_of_thresh', type=int,
 						help="Location in range to apply the threshold passed by the -c flag. -l 2 -c 5-50-10 means the"
 							" threshold will be applied at k-size 25. Default is largest size.", default=-1)
+	parser.add_argument('-v', '--verbose', action="store_true", help="Print out progress report/timing information")
 	parser.add_argument('in_file', help="Input file: FASTA/Q file to be processes")
 	parser.add_argument('reference_file', help='Training database/reference file (in HDF5 format). Created with MakeStreamingDNADatabase.py')
 	parser.add_argument('out_file', help='Output csv file with the containment indices.')
@@ -77,6 +78,7 @@ if __name__ == '__main__':
 	streaming_database_file = os.path.splitext(training_data)[0] + ".tst"  # name of the tst training file
 	streaming_database_file = os.path.abspath(streaming_database_file)
 	hydra_file = args.filter_file
+	verbose = args.verbose
 	if not os.path.exists(streaming_database_file):
 		streaming_database_file = None
 	if args.plot_file:
@@ -90,6 +92,9 @@ if __name__ == '__main__':
 		raise Exception("Training/reference file %s does not exist." % training_data)
 
 	# Training data
+	if verbose:
+		print("Reading in sketches")
+		t0 = timeit.default_timer()
 	sketches = MH.import_multiple_from_single_hdf5(training_data)
 	if sketches[0]._kmers is None:
 		raise Exception(
@@ -111,6 +116,14 @@ if __name__ == '__main__':
 	for i in range(len(sketches)):
 		training_file_names.append(sketches[i].input_file_name)
 
+	if verbose:
+		print("Finished reading in sketches")
+		t1 = timeit.default_timer()
+		print("Time: %f" % (t1 - t0))
+
+	if verbose:
+		print("Reading in/creating ternary search tree")
+		t0 = timeit.default_timer()
 	# Make the Marissa tree
 	if streaming_database_file is None:
 		streaming_database_file = os.path.splitext(training_data)[0] + ".tst"
@@ -146,7 +159,10 @@ if __name__ == '__main__':
 		except IOError:
 			print("No such file or directory/error opening file: %s" % hydra_file)
 			sys.exit(1)
-
+	if verbose:
+		print("Finished reading in/creating ternary search tree")
+		t1 = timeit.default_timer()
+		print("Time: %f" % (t1 - t0))
 	# Seen k-mers (set of k-mers that already hit the trie, so don't need to check again)
 	seen_kmers = set()
 
@@ -214,6 +230,9 @@ if __name__ == '__main__':
 
 	pool = multiprocessing.Pool(processes=num_threads)
 
+	if verbose:
+		print("Start streaming")
+		t0 = timeit.default_timer()
 	# populate the queue
 	fid = khmer.ReadParser(query_file)  # This is faster than screed
 	match_tuples = []
@@ -223,7 +242,8 @@ if __name__ == '__main__':
 	i = 0
 	while to_proc:
 			i += len(to_proc)
-			print("Read in %d sequences" % i)
+			if verbose:
+				print("Read in %d sequences" % i)
 			res = pool.map(map_func, to_proc, chunksize=min(num_reads_per_core, len(to_proc)/num_threads))
 			flattened_res = [item for sublist in res if sublist for item in sublist]
 			flattened_res = list(set(flattened_res))  # dedup it
@@ -231,9 +251,14 @@ if __name__ == '__main__':
 			to_proc = [record.sequence for record in islice(fid, num_reads_per_chunk)]
 	fid.close()
 	#print(match_tuples)
+	if verbose:
+		print("Finished streaming")
+		t1 = timeit.default_timer()
+		print("Time: %f" % (t1 - t0))
 
-	print("3")
-	t0 = timeit.default_timer()
+	if verbose:
+		print("Forming hit matrix")
+		t0 = timeit.default_timer()
 	#print("Len matches: %d" % len(match_tuples))
 	# create k_range spare matrices. Rows index by genomes (sketch/hash index), columns index by k_mer_loc
 	row_ind_dict = dict()
@@ -245,11 +270,7 @@ if __name__ == '__main__':
 		col_ind_dict[k_size] = []
 		value_dict[k_size] = []
 		unique_kmers[k_size] = set()
-	t1 = timeit.default_timer()
-	print(t1-t0)
 
-	print("4")
-	t0 = timeit.default_timer()
 	for hash_loc, k_size_loc, kmer_loc in match_tuples:
 		k_size = k_range[k_size_loc]
 		kmer = sketches[hash_loc]._kmers[kmer_loc][:k_size]
@@ -258,28 +279,23 @@ if __name__ == '__main__':
 			col_ind_dict[k_size].append(kmer_loc)
 			value_dict[k_size].append(1)
 			unique_kmers[k_size].add(kmer)
-	t1 = timeit.default_timer()
-	print(t1- t0)
 
-	print("5")
-	t0 = timeit.default_timer()
 	hit_matrices = []
 	for k_size in k_range:
 		mat = csr_matrix((value_dict[k_size], (row_ind_dict[k_size], col_ind_dict[k_size])), shape=(len(sketches), num_hashes))
 		hit_matrices.append(mat)
-	t1 = timeit.default_timer()
-	print(t1 - t0)
+	if verbose:
+		print("Finished forming hit matrix")
+		t1 = timeit.default_timer()
+		print("Time: %f" % (t1 - t0))
 
-	print("6")
-	t0 = timeit.default_timer()
+	if verbose:
+		print("Computing containment indicies")
+		t0 = timeit.default_timer()
 	containment_indices = np.zeros((len(sketches), len(k_range)))  # TODO: could make this thing sparse, or do the filtering for above threshold here
 	for k_size_loc in range(len(k_range)):
 		containment_indices[:, k_size_loc] = (hit_matrices[k_size_loc].sum(axis=1).ravel()) #/float(num_hashes))
-	t1 = timeit.default_timer()
-	print(t1 - t0)
 
-	print("7")
-	t0 = timeit.default_timer()
 	for k_size_loc in range(len(k_range)):
 		k_size = k_range[k_size_loc]
 		for hash_loc in np.where(containment_indices[:, k_size_loc])[0]:  # find the genomes with non-zero containment
@@ -287,11 +303,14 @@ if __name__ == '__main__':
 			for kmer in sketches[hash_loc]._kmers:
 				unique_kmers.add(kmer[:k_size])  # find the unique k-mers
 			containment_indices[hash_loc, k_size_loc] /= float(len(unique_kmers))  # divide by the unique num of k-mers
-	t1 = timeit.default_timer()
-	print(t1 - t0)
+	if verbose:
+		print("Finished computing containment indicies")
+		t1 = timeit.default_timer()
+		print("Time: %f" % (t1 - t0))
 
-	print("8")
-	t0 = timeit.default_timer()
+	if verbose:
+		print("Exporting results")
+		t0 = timeit.default_timer()
 	results = dict()
 	for k_size_loc in range(len(k_range)):
 		ksize = k_range[k_size_loc]
@@ -303,8 +322,6 @@ if __name__ == '__main__':
 	max_key = 'k=%d' % k_range[-1]
 	filtered_results = df[df[sort_key] > coverage_threshold].sort_values(max_key, ascending=False)  # only select those where the highest k-mer size's count is above the threshold
 	filtered_results.to_csv(results_file, index=True, encoding='utf-8')
-	t1 = timeit.default_timer()
-	print(t1 - t0)
 
 	# If requested, plot the results
 	if args.plot_file:
@@ -317,3 +334,8 @@ if __name__ == '__main__':
 		plt.xlabel('K-mer size')
 		plt.ylabel('Containment Index')
 		fig.savefig(plot_file)
+
+	if verbose:
+		print("Finished exporting results")
+		t1 = timeit.default_timer()
+		print("Time: %f" % (t1 - t0))
