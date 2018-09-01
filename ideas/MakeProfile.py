@@ -64,15 +64,29 @@ if __name__ == '__main__':
 
 @@TAXID\tRANK\tTAXPATH\tTAXPATHSN\tPERCENTAGE\n""" % sample_id)
 
+	tax_id_to_abund = dict()
 	for name in names_passed_thresh:
 		if name in name_to_taxpath:
 			tax_info = name_to_taxpath[name]
-			tax_id = tax_info[1]
-			rank = abbrv_to_rank[tax_info[2].split('|')[-1].split('_')[0]]
-			tax_path = '|'.join([i.split('_')[2] for i in name_to_taxpath[name][2].split('|')])
-			tax_path_sn = '|'.join([' '.join(i.split('_')[3:]) for i in name_to_taxpath[name][2].split('|')])
-			percentage = 1
-			fid.write("%s\t%s\t%s\t%s\t%f\n" % (tax_id, rank, tax_path, tax_path_sn, percentage))
+			# add all higher ranks as well
+			for rank_ind in range(1, len(tax_info[2].split('|')) + 1):
+				tax_info_to_rank = tax_info[2].split('|')[:rank_ind]  # tax info up to the rank under consideration
+				tax_id = [i.split('_')[2] for i in tax_info_to_rank][-1]  # get the last guy's tax id
+				rank = abbrv_to_rank[tax_info_to_rank[-1].split('_')[0]]  # get the last guy's rank
+				tax_path = '|'.join([i.split('_')[2] for i in tax_info_to_rank])  # join up the tax path
+				tax_path_sn = '|'.join([' '.join(i.split('_')[3:]) for i in tax_info_to_rank])  # join up the tax path names
+				if tax_id in tax_id_to_abund:  # properly account for abundances
+					tax_id_to_abund[tax_id] += 1
+				else:
+					tax_id_to_abund[tax_id] = 1
+				percentage = tax_id_to_abund[tax_id]
+			# this was the old way when I was just adding species
+			#tax_id = tax_info[1]
+			#rank = abbrv_to_rank[tax_info[2].split('|')[-1].split('_')[0]]
+			#tax_path = '|'.join([i.split('_')[2] for i in name_to_taxpath[name][2].split('|')])
+			#tax_path_sn = '|'.join([' '.join(i.split('_')[3:]) for i in name_to_taxpath[name][2].split('|')])
+			#percentage = 1
+				fid.write("%s\t%s\t%s\t%s\t%f\n" % (tax_id, rank, tax_path, tax_path_sn, percentage))
 		else:
 			print("uh oh, this file isn't in the taxonomy: %s" % name)
 			sys.exit(1)
