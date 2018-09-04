@@ -5,7 +5,7 @@ import screed
 import multiprocessing
 from itertools import *
 
-def cluster_matrix(A_eps, A_indicies, taxonomy, cluster_eps=.01):
+def cluster_matrix(A_eps, A_indicies, cluster_eps=.01):
     """
     This function clusters the indicies of A_eps such that for a given cluster, there is another element in that cluster
     with similarity (based on A_eps) >= cluster_eps for another element in that same cluster. For two elements of

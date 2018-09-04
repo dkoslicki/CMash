@@ -50,6 +50,8 @@ if __name__ == '__main__':
 	parser.add_argument('-p', '--plot_file', action="store_true", help="Optional flag to specify that a plot of the "
 																	   "k-mer curves should also be saved (same basename"
 																	   "as the out_file).")
+	parser.add_argument('-r', '--reads_per_core', type=int, help="Number of reads per core in each chunk of parallelization."
+																 " Set as high as memory will allow (eg. 1M on 256GB, 48 core machine)", default=100000)
 	parser.add_argument('-f', '--filter_file',
 						help="Location of pre-filter bloom filter. Use only if you absolutely know what you're doing "
 							"(hard to error check bloom filters).")
@@ -79,6 +81,7 @@ if __name__ == '__main__':
 	streaming_database_file = os.path.abspath(streaming_database_file)
 	hydra_file = args.filter_file
 	verbose = args.verbose
+	num_reads_per_core = args.reads_per_core
 	if not os.path.exists(streaming_database_file):
 		streaming_database_file = None
 	if args.plot_file:
@@ -236,7 +239,7 @@ if __name__ == '__main__':
 	# populate the queue
 	fid = khmer.ReadParser(query_file)  # This is faster than screed
 	match_tuples = []
-	num_reads_per_core = 100000
+	#num_reads_per_core = 100000
 	num_reads_per_chunk = num_reads_per_core * num_threads
 	to_proc = [record.sequence for record in islice(fid, num_reads_per_chunk)]
 	i = 0
