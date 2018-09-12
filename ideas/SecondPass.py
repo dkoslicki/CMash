@@ -3,7 +3,8 @@
 # 2. Take a look at the hit_matrices to find informative k-mers (a-la Kraken, but in a much more intelligent way)
 # 3. Take a second pass: use the non-zero found guys to make new sketches (with many more k-mers, perhaps a larger k-mer size), and do it again
 
-# TODO: Note: this, oddly enough, INCREASES the number of FP's (note it needs a much higher cutoff
+# TODO: Note: this, oddly enough, INCREASES the number of FP's (note it needs a much higher cutoff)
+# TODO: conclusion: this is not a good idea. The FP's for some reason explode...
 import pandas as pd
 import os
 

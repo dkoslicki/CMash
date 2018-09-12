@@ -24,6 +24,7 @@ from scipy.sparse import csr_matrix
 import timeit
 from itertools import islice
 
+# TODO: export hit matrices
 
 
 def parseNumList(input):

@@ -10,19 +10,30 @@ name_and_taxpath_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/File_name_and_ta
 #truth_file = '/home/dkoslicki/Dropbox/Repositories/firstchallenge_evaluation_Backup/profiling/MyAnalysis/GroundTruth/all/CAMI:low:pool.profile'
 
 # medium
-#cmash_out_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RM_S001_classified.csv'
-#truth_file = '/home/dkoslicki/Dropbox/Repositories/firstchallenge_evaluation_Backup/profiling/MyAnalysis/GroundTruth/all/CAMI:medium:1.profile'
+cmash_out_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RM_S001_classified.csv'
+truth_file = '/home/dkoslicki/Dropbox/Repositories/firstchallenge_evaluation_Backup/profiling/MyAnalysis/GroundTruth/all/CAMI:medium:1.profile'
 
 # high
 #cmash_out_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RH_S001_classified.csv'
 #truth_file = '/home/dkoslicki/Dropbox/Repositories/firstchallenge_evaluation_Backup/profiling/MyAnalysis/GroundTruth/all/CAMI:high:1.profile'
 
 # reduced, low
-cmash_out_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RL_S001_reduced_classified.txt'
-truth_file = '/home/dkoslicki/Dropbox/Repositories/firstchallenge_evaluation_Backup/profiling/MyAnalysis/GroundTruth/all/CAMI:low:pool.profile'
+#cmash_out_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RL_S001_reduced_classified.csv'
+#truth_file = '/home/dkoslicki/Dropbox/Repositories/firstchallenge_evaluation_Backup/profiling/MyAnalysis/GroundTruth/all/CAMI:low:pool.profile'
+
+# reduced k=120
+#cmash_out_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RL_S001_reduced_k120_classified.csv'
+#truth_file = '/home/dkoslicki/Dropbox/Repositories/firstchallenge_evaluation_Backup/profiling/MyAnalysis/GroundTruth/all/CAMI:low:pool.profile'
+
+# reduced n500
+#cmash_out_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RL_S001_reduced_n500_classified.csv'
+#truth_file = '/home/dkoslicki/Dropbox/Repositories/firstchallenge_evaluation_Backup/profiling/MyAnalysis/GroundTruth/all/CAMI:low:pool.profile'
+
+# TODO: conclusion: using the reduced database is a bad idea (for some really weird reason)
 
 coverage_threshold = 0
-sort_key = 'k=60'  # 'k=30' barely adds any TP's with a huge hit of lots of FP's
+#sort_key = 'k=60'  # 'k=30' barely adds any TP's with a huge hit of lots of FP's
+sort_key = None
 
 abbrv_to_rank = dict()
 abbrv_to_rank['k'] = "superkingdom"
