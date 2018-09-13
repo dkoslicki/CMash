@@ -69,7 +69,7 @@ for k_size_loc in range(len(k_range)):
 		unique_kmers = set()
 		for kmer in CEs[hash_loc]._kmers:
 			unique_kmers.add(kmer[:k_size])  # find the unique k-mers
-		containment_indices[hash_loc, k_size_loc] /= float(len(unique_kmers))
+		containment_indices[hash_loc, k_size_loc] /= float(len(unique_kmers))  # TODO: this doesn't seem like the right way to normalize, but the below gives numbers > 1
 		#containment_indices[hash_loc, k_size_loc] /= float(num_unique[hash_loc, k_size_loc])  # divide by the unique num of k-mers
 
 results = dict()
