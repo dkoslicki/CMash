@@ -20,7 +20,7 @@ from argparse import ArgumentTypeError
 import re
 import matplotlib.pyplot as plt
 from hydra import WritingBloomFilter, ReadingBloomFilter
-from scipy.sparse import csr_matrix
+from scipy.sparse import csr_matrix, csc_matrix
 from scipy.sparse import save_npz
 from scipy.io import savemat
 import timeit
@@ -293,7 +293,7 @@ if __name__ == '__main__':
 	hit_matrices = []
 
 	for k_size in k_range:
-		mat = csr_matrix((value_dict[k_size], (row_ind_dict[k_size], col_ind_dict[k_size])), shape=(len(sketches), num_hashes))
+		mat = csc_matrix((value_dict[k_size], (row_ind_dict[k_size], col_ind_dict[k_size])), shape=(len(sketches), num_hashes))
 		hit_matrices.append(mat)
 	if verbose:
 		print("Finished forming hit matrix")
