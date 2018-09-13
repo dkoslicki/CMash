@@ -21,6 +21,8 @@ import re
 import matplotlib.pyplot as plt
 from hydra import WritingBloomFilter, ReadingBloomFilter
 from scipy.sparse import csr_matrix
+from scipy.sparse import save_npz
+from scipy.io import savemat
 import timeit
 from itertools import islice
 
@@ -75,6 +77,7 @@ if __name__ == '__main__':
 	training_data = args.reference_file
 	query_file = args.in_file
 	results_file = args.out_file
+	npz_file = os.path.splitext(results_file)[0] + "_hit_matrix.npz"
 	num_threads = args.threads
 	location_of_thresh = args.location_of_thresh
 	coverage_threshold = args.containment_threshold
@@ -268,23 +271,27 @@ if __name__ == '__main__':
 	row_ind_dict = dict()
 	col_ind_dict = dict()
 	value_dict = dict()
-	unique_kmers = dict()
+	unique_kmers = dict()  # this will keep track of the unique k-mers seen in each genome (sketch/hash loc)
 	for k_size in k_range:
 		row_ind_dict[k_size] = []
 		col_ind_dict[k_size] = []
 		value_dict[k_size] = []
-		unique_kmers[k_size] = set()
+
+	match_tuples = set(match_tuples)  # uniquify, so we don't make the row/col ind dicts too large
 
 	for hash_loc, k_size_loc, kmer_loc in match_tuples:
+		if hash_loc not in unique_kmers:
+			unique_kmers[hash_loc] = set()
 		k_size = k_range[k_size_loc]
 		kmer = sketches[hash_loc]._kmers[kmer_loc][:k_size]
-		if kmer not in unique_kmers[k_size]:  # if you've seen this k-mer before, don't add it
+		if kmer not in unique_kmers[hash_loc]:  # if you've seen this k-mer before, don't add it. NOTE: this makes sure we don't over count
 			row_ind_dict[k_size].append(hash_loc)
 			col_ind_dict[k_size].append(kmer_loc)
 			value_dict[k_size].append(1)
-			unique_kmers[k_size].add(kmer)
+			unique_kmers[hash_loc].add(kmer)
 
 	hit_matrices = []
+
 	for k_size in k_range:
 		mat = csr_matrix((value_dict[k_size], (row_ind_dict[k_size], col_ind_dict[k_size])), shape=(len(sketches), num_hashes))
 		hit_matrices.append(mat)
@@ -326,6 +333,22 @@ if __name__ == '__main__':
 	max_key = 'k=%d' % k_range[-1]
 	filtered_results = df[df[sort_key] > coverage_threshold].sort_values(max_key, ascending=False)  # only select those where the highest k-mer size's count is above the threshold
 	filtered_results.to_csv(results_file, index=True, encoding='utf-8')
+
+	# export the reduced hit matrices
+	# first, get the basis of the reduced data frame
+	to_select_names = list(filtered_results.index)
+	all_names = map(os.path.basename, training_file_names)
+	rows_to_select = []
+	for name in to_select_names:
+		rows_to_select.append(all_names.index(name))
+	hit_matrices_dict = dict()
+	# the reduce the hit matrix to this basis
+	for i in range(len(k_range)):
+		k_size = k_range[i]
+		hit_matrices_dict['k=%d' % k_size] = hit_matrices[i][rows_to_select, :]
+	# then export
+	savemat(npz_file, hit_matrices_dict, appendmat=False, do_compression=True)
+
 
 	# If requested, plot the results
 	if args.plot_file:
