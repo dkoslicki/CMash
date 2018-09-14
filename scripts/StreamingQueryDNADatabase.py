@@ -152,11 +152,12 @@ if __name__ == '__main__':
 	# all the k-mers of interest in a set (as a pre-filter)
 	if not hydra_file:  # create one
 		try:
-			all_kmers_bf = WritingBloomFilter(len(sketches)*len(k_range)*num_hashes, 0.01)
+			all_kmers_bf = WritingBloomFilter(len(sketches)*len(k_range)*num_hashes*2, 0.01)
 			for sketch in sketches:
 				for kmer in sketch._kmers:
 					for ksize in k_range:
 						all_kmers_bf.add(kmer[0:ksize])  # put all the k-mers and the appropriate suffixes in
+						all_kmers_bf.add(khmer.reverse_complement(kmer[0:ksize]))  # also add the reverse complement
 		except IOError:
 			print("No such file or directory/error opening file: %s" % hydra_file)
 			sys.exit(1)
@@ -180,22 +181,25 @@ if __name__ == '__main__':
 		def __init__(self):
 			pass
 
-		def return_matches(self, kmer, k_size_loc):
+		def return_matches(self, input_kmer, k_size_loc):
 			""" Get all the matches in the trie with the kmer prefix"""
-			prefix_matches = tree.keys(kmer)  # get all the k-mers whose prefix matches
 			match_info = set()
-			# get the location of the found kmers in the counters
-			for item in prefix_matches:
-				split_string = item.split('x')  # first is the hash location, second is which k-mer
-				hash_loc = int(split_string[1])
-				kmer_loc = int(split_string[2])
-				match_info.add((hash_loc, k_size_loc, kmer_loc))
 			to_return = []
-			saw_match = False
-			if match_info:
-				saw_match = True
-				for tup in match_info:
-					to_return.append(tup)
+			for kmer in [input_kmer, khmer.reverse_complement(input_kmer)]:
+				prefix_matches = tree.keys(kmer)  # get all the k-mers whose prefix matches
+				#match_info = set()
+				# get the location of the found kmers in the counters
+				for item in prefix_matches:
+					split_string = item.split('x')  # first is the hash location, second is which k-mer
+					hash_loc = int(split_string[1])
+					kmer_loc = int(split_string[2])
+					match_info.add((hash_loc, k_size_loc, kmer_loc))
+				#to_return = []
+				saw_match = False
+				if match_info:
+					saw_match = True
+					for tup in match_info:
+						to_return.append(tup)
 			return to_return, saw_match
 
 		def process_seq(self, seq):

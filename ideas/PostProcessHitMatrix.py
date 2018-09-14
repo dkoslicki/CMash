@@ -13,14 +13,20 @@ import os
 
 
 # First, read in the sketches of just the appropriate critters
-#cmash_out_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RL_S001__insert_270_classified.csv'
 cmash_out_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/test.csv'
 training_base_name = '/nfs1/Koslicki_Lab/koslickd/RepoPhlAn-7-24-18/out/microbes_24072018/fna/'
-#training_hdf_file = '/home/dkoslicki/Data/MiCOPMinHash/AllBacteria.hd5'
 training_hdf_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/Test.h5'
 hit_matrices_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/test_hit_matrix.npz'
+
+# Very small test
+#cmash_out_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RealSmallTest/Test.csv'
+#training_base_name = '/home/dkoslicki/Data/MiCOPMinHash/Test/RealSmallTest/'
+#training_hdf_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RealSmallTest/Test.h5'
+#hit_matrices_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RealSmallTest/Test_hit_matrix.npz'
+
+
 coverage_threshold = 0
-sort_key = 'k=5'
+sort_key = 'k=11'
 location_of_thresh = -1
 
 # read in the file and sort as needed
@@ -54,6 +60,7 @@ for i in range(len(CEs)):
 			if j != i:
 				other_kmers_set.update([k[:k_size] for k in CEs[j]._kmers])
 		non_unique = current_kmers_set.intersection(other_kmers_set)
+		print(non_unique)
 		to_zero_indicies = [current_kmers.index(kmer) for kmer in non_unique]
 		hit_matrices_dict['k=%d' % k_size][i, to_zero_indicies] = 0  # set these to zero since they show up in other sketches (so not informative)
 		num_unique[i, k_range.index(k_size)] = len(current_kmers_set) - len(non_unique)  # keep track of the size of the unique k-mers
@@ -69,8 +76,8 @@ for k_size_loc in range(len(k_range)):
 		unique_kmers = set()
 		for kmer in CEs[hash_loc]._kmers:
 			unique_kmers.add(kmer[:k_size])  # find the unique k-mers
-		containment_indices[hash_loc, k_size_loc] /= float(len(unique_kmers))  # TODO: this doesn't seem like the right way to normalize, but the below gives numbers > 1
-		#containment_indices[hash_loc, k_size_loc] /= float(num_unique[hash_loc, k_size_loc])  # divide by the unique num of k-mers
+		#containment_indices[hash_loc, k_size_loc] /= float(len(unique_kmers))  # TODO: this doesn't seem like the right way to normalize, but the below gives numbers > 1
+		containment_indices[hash_loc, k_size_loc] /= float(num_unique[hash_loc, k_size_loc])  # divide by the unique num of k-mers
 
 results = dict()
 for k_size_loc in range(len(k_range)):
