@@ -251,13 +251,13 @@ if __name__ == '__main__':
 			i += len(to_proc)
 			if verbose:
 				print("Read in %d sequences" % i)
-			res = pool.map(map_func, to_proc, chunksize=min(num_reads_per_core, len(to_proc)/num_threads))
+			res = pool.map(map_func, to_proc)  # , chunksize=min(num_reads_per_core, len(to_proc)/num_threads))
 			flattened_res = [item for sublist in res if sublist for item in sublist]
 			flattened_res = list(set(flattened_res))  # dedup it
 			match_tuples.extend(flattened_res)
 			to_proc = [record.sequence for record in islice(fid, num_reads_per_chunk)]
 	fid.close()
-	#print(match_tuples)
+	print(match_tuples)
 	if verbose:
 		print("Finished streaming")
 		t1 = timeit.default_timer()
