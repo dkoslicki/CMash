@@ -30,7 +30,11 @@ name_and_taxpath_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/File_name_and_ta
 #truth_file = '/home/dkoslicki/Dropbox/Repositories/firstchallenge_evaluation_Backup/profiling/MyAnalysis/GroundTruth/all/CAMI:low:pool.profile'
 
 # after the fix
-cmash_out_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RL_S001__insert_270_classified_postprocess.csv'
+#cmash_out_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RL_S001__insert_270_classified_postprocess.csv'
+#truth_file = '/home/dkoslicki/Dropbox/Repositories/firstchallenge_evaluation_Backup/profiling/MyAnalysis/GroundTruth/all/CAMI:low:pool.profile'
+
+# after the pos-process
+cmash_out_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RL_S001__insert_270_classified_postprocess_finished.csv'
 truth_file = '/home/dkoslicki/Dropbox/Repositories/firstchallenge_evaluation_Backup/profiling/MyAnalysis/GroundTruth/all/CAMI:low:pool.profile'
 
 # TODO: conclusion: using the reduced database is a bad idea (for some really weird reason)
@@ -92,7 +96,8 @@ max_key = df.keys()[-1]
 
 # loop over coverages, get binary stats with that threshold
 cov_range = np.linspace(.6, 0, 50)
-#cov_range = [0.05]  # for the low complexity sample: TP=18, FP=101, FN=5. TODO: after fix, at cutoff of 0.06, TP=18, FP=163, FN=5
+#cov_range = [0.05]  # for the low complexity sample: TP=18, FP=101, FN=5. TODO: after fix, at cutoff of 0.06, TP=18, FP=78, FN=5.
+# TODO: After post-process complete, cutoff 0.06, TP=17, FP=11, FN=6 !!!!!!!!!!!!!!!!!!!!!!, gets to TP=18 at cutoff 0.03
 #cov_range = [0.004]  # good for the medium complexity sample: TP=54, FP=536, FN=18
 #cov_range = [0.008]  # good for the high complexity sample: TP=153, FP=1123, FN=90
 for coverage_threshold in cov_range:
@@ -114,8 +119,8 @@ for coverage_threshold in cov_range:
 				tax_id = [i.split('_')[2] for i in tax_info_to_rank][-1]  # get the last guy's tax id
 				rank_abbrv = tax_info_to_rank[-1].split('_')[0]
 				tax_path_list = [i.split('_')[2] for i in tax_info_to_rank]
-				pred_taxa[rank_abbrv].update(tax_path_list)
-
+				#pred_taxa[rank_abbrv].update(tax_path_list)  # TODO: this may not be right, getting more FP's then there are possible
+				pred_taxa[rank_abbrv].add(tax_id)
 	num_TPs = []
 	num_FPs = []
 	num_FNs = []
@@ -139,5 +144,6 @@ for coverage_threshold in cov_range:
 
 together = np.array([TP_vers_cov, FP_vers_cov]).transpose()
 plt.plot(cov_range, together)
-plt.ylim([0,100])
+plt.legend(['True Positive', 'False Positive'])
+#plt.ylim([0,100])
 plt.show()
