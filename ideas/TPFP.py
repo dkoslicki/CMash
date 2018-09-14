@@ -10,8 +10,8 @@ name_and_taxpath_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/File_name_and_ta
 #truth_file = '/home/dkoslicki/Dropbox/Repositories/firstchallenge_evaluation_Backup/profiling/MyAnalysis/GroundTruth/all/CAMI:low:pool.profile'
 
 # medium
-cmash_out_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RM_S001_classified.csv'
-truth_file = '/home/dkoslicki/Dropbox/Repositories/firstchallenge_evaluation_Backup/profiling/MyAnalysis/GroundTruth/all/CAMI:medium:1.profile'
+#cmash_out_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RM_S001_classified.csv'
+#truth_file = '/home/dkoslicki/Dropbox/Repositories/firstchallenge_evaluation_Backup/profiling/MyAnalysis/GroundTruth/all/CAMI:medium:1.profile'
 
 # high
 #cmash_out_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RH_S001_classified.csv'
@@ -28,6 +28,10 @@ truth_file = '/home/dkoslicki/Dropbox/Repositories/firstchallenge_evaluation_Bac
 # reduced n500
 #cmash_out_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RL_S001_reduced_n500_classified.csv'
 #truth_file = '/home/dkoslicki/Dropbox/Repositories/firstchallenge_evaluation_Backup/profiling/MyAnalysis/GroundTruth/all/CAMI:low:pool.profile'
+
+# after the fix
+cmash_out_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RL_S001__insert_270_classified_postprocess.csv'
+truth_file = '/home/dkoslicki/Dropbox/Repositories/firstchallenge_evaluation_Backup/profiling/MyAnalysis/GroundTruth/all/CAMI:low:pool.profile'
 
 # TODO: conclusion: using the reduced database is a bad idea (for some really weird reason)
 
@@ -88,7 +92,7 @@ max_key = df.keys()[-1]
 
 # loop over coverages, get binary stats with that threshold
 cov_range = np.linspace(.6, 0, 50)
-#cov_range = [0.05]  # for the low complexity sample: TP=18, FP=101, FN=5
+#cov_range = [0.05]  # for the low complexity sample: TP=18, FP=101, FN=5. TODO: after fix, at cutoff of 0.06, TP=18, FP=163, FN=5
 #cov_range = [0.004]  # good for the medium complexity sample: TP=54, FP=536, FN=18
 #cov_range = [0.008]  # good for the high complexity sample: TP=153, FP=1123, FN=90
 for coverage_threshold in cov_range:
@@ -135,4 +139,5 @@ for coverage_threshold in cov_range:
 
 together = np.array([TP_vers_cov, FP_vers_cov]).transpose()
 plt.plot(cov_range, together)
+plt.ylim([0,100])
 plt.show()

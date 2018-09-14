@@ -83,7 +83,7 @@ class CountEstimator(object):
 
         # initialize sketch to size n
         #self._mins = [float("inf")]*n
-        self._mins = blist([p]*n)
+        self._mins = blist([np.Inf]*n)
 
         # initialize the corresponding counts
         self._counts = blist([0]*n)
@@ -128,15 +128,15 @@ class CountEstimator(object):
         _kmers = self._kmers
 
         if rev_comp:
-            h1 = khmer.hash_murmur3(kmer)
-            h2 = khmer.hash_murmur3(khmer.reverse_complement(kmer))
+            h1 = khmer.hash_no_rc_murmur3(kmer)
+            h2 = khmer.hash_no_rc_murmur3(khmer.reverse_complement(kmer))
             #h1 = hash(kmer)
             #h2 = hash(khmer.reverse_complement(kmer))
             h = min(h1, h2)
             if h == h2:
                 kmer = khmer.reverse_complement(kmer)
         else:
-            h = khmer.hash_murmur3(kmer)
+            h = khmer.hash_no_rc_murmur3(kmer)
             #h = hash(kmer)
 
         h = h % self.p

@@ -20,7 +20,7 @@ import marisa_trie as mt
 
 # This function will make a single min hash sketch upon being given a file name, sketch size, prime, and k-mer size
 def make_minhash(genome, max_h, prime, ksize):
-	MHS = MH.CountEstimator(n=max_h, max_prime=prime, ksize=ksize, save_kmers='y', input_file_name=genome)
+	MHS = MH.CountEstimator(n=max_h, max_prime=prime, ksize=ksize, save_kmers='y', input_file_name=genome, rev_comp=True)
 	# Just use HLL to estimate the number of kmers, no need to get exact count
 	hll = khmer.HLLCounter(0.01, ksize)
 	hll.consume_seqfile(genome)
