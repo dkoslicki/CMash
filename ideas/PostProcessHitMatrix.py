@@ -26,12 +26,28 @@ from collections import Counter
 #hit_matrices_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RealSmallTest/Test_hit_matrix.npz'
 
 # real test
-cmash_out_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RL_S001__insert_270_classified_postprocess.csv'
+#cmash_out_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RL_S001__insert_270_classified_postprocess.csv'
+#training_base_name = '/nfs1/Koslicki_Lab/koslickd/RepoPhlAn-7-24-18/out/microbes_24072018/fna/'
+#training_hdf_file = '/home/dkoslicki/Data/MiCOPMinHash/AllBacteria.hd5'
+#hit_matrices_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RL_S001__insert_270_classified_postprocess_hit_matrix.npz'
+#results_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RL_S001__insert_270_classified_postprocess_finished.csv'
+
+# real medium
+#cmash_out_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RM_S001_classified_postprocess.csv'
+#training_base_name = '/nfs1/Koslicki_Lab/koslickd/RepoPhlAn-7-24-18/out/microbes_24072018/fna/'
+#training_hdf_file = '/home/dkoslicki/Data/MiCOPMinHash/AllBacteria.hd5'
+#hit_matrices_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RM_S001_classified_postprocess_hit_matrix.npz'
+#results_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RM_S001_classified_postprocess_finished.csv'
+
+# real high
+cmash_out_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RH_S001_classified_postprocess.csv'
 training_base_name = '/nfs1/Koslicki_Lab/koslickd/RepoPhlAn-7-24-18/out/microbes_24072018/fna/'
 training_hdf_file = '/home/dkoslicki/Data/MiCOPMinHash/AllBacteria.hd5'
-hit_matrices_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RL_S001__insert_270_classified_postprocess_hit_matrix.npz'
-results_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RL_S001__insert_270_classified_postprocess_finished.csv'
+hit_matrices_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RH_S001_classified_postprocess_hit_matrix.npz'
+results_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RH_S001_classified_postprocess_finished.csv'
+
 t0 = timeit.default_timer()
+
 
 coverage_threshold = 0.0062
 sort_key = 'k=60'
@@ -112,7 +128,8 @@ for k_size_loc in range(len(k_range)):
 			unique_kmers.add(kmer[:k_size])  # find the unique k-mers
 		containment_indices[hash_loc, k_size_loc] /= float(len(unique_kmers))  # TODO: this doesn't seem like the right way to normalize, but apparently it is!
 		#containment_indices[hash_loc, k_size_loc] /= float(num_unique[hash_loc, k_size_loc])  # divide by the unique num of k-mers
-
+t1 = timeit.default_timer()
+print("Time to reduce hit matrix: %f" % (t1 - t0))
 results = dict()
 for k_size_loc in range(len(k_range)):
 	ksize = k_range[k_size_loc]
