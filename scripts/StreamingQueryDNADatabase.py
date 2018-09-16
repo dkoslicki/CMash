@@ -61,6 +61,7 @@ if __name__ == '__main__':
 	parser.add_argument('-l', '--location_of_thresh', type=int,
 						help="Location in range to apply the threshold passed by the -c flag. -l 2 -c 5-50-10 means the"
 							" threshold will be applied at k-size 25. Default is largest size.", default=-1)
+	parser.add_argument('--sensitive', action="store_true", help="Operate in sensitive mode. Marginally more true positives with significantly more false positives. Use with caution.", default=False)
 	parser.add_argument('-v', '--verbose', action="store_true", help="Print out progress report/timing information")
 	parser.add_argument('in_file', help="Input file: FASTA/Q file to be processes")
 	parser.add_argument('reference_file', help='Training database/reference file (in HDF5 format). Created with MakeStreamingDNADatabase.py')
@@ -86,6 +87,7 @@ if __name__ == '__main__':
 	hydra_file = args.filter_file
 	verbose = args.verbose
 	num_reads_per_core = args.reads_per_core
+	sensitive = args.sensitive
 	if not os.path.exists(streaming_database_file):
 		streaming_database_file = None
 	if args.plot_file:
@@ -105,7 +107,7 @@ if __name__ == '__main__':
 	sketches = MH.import_multiple_from_single_hdf5(training_data)
 	if sketches[0]._kmers is None:
 		raise Exception(
-			"For some reason, the k-mers were not saved when the database was created. Try running MakeDNADatabase.py again.")
+			"For some reason, the k-mers were not saved when the database was created. Try running MakeStreamingDNADatabase.py again.")
 	num_hashes = len(sketches[0]._kmers)  # note: this is relying on the fact that the sketches were properly constructed
 	max_ksize = sketches[0].ksize
 
@@ -323,9 +325,7 @@ if __name__ == '__main__':
 		t1 = timeit.default_timer()
 		print("Time: %f" % (t1 - t0))
 
-	if verbose:
-		print("Exporting results")
-		t0 = timeit.default_timer()
+
 	results = dict()
 	for k_size_loc in range(len(k_range)):
 		ksize = k_range[k_size_loc]
@@ -336,8 +336,14 @@ if __name__ == '__main__':
 	sort_key = 'k=%d' % k_range[location_of_thresh]
 	max_key = 'k=%d' % k_range[-1]
 	filtered_results = df[df[sort_key] > coverage_threshold].sort_values(max_key, ascending=False)  # only select those where the highest k-mer size's count is above the threshold
-	filtered_results.to_csv(results_file, index=True, encoding='utf-8')
 
+	if sensitive:
+		if verbose:
+			print("Exporting results")
+			t0 = timeit.default_timer()
+		filtered_results.to_csv(results_file, index=True, encoding='utf-8')
+
+	# TODO: may not have to do this if I do the pos-processing directly in here
 	# export the reduced hit matrices
 	# first, get the basis of the reduced data frame
 	to_select_names = list(filtered_results.index)
@@ -350,8 +356,8 @@ if __name__ == '__main__':
 	for i in range(len(k_range)):
 		k_size = k_range[i]
 		hit_matrices_dict['k=%d' % k_size] = hit_matrices[i][rows_to_select, :]
-	# then export
-	savemat(npz_file, hit_matrices_dict, appendmat=False, do_compression=True)
+	# then export  # TODO: not necessary if I do the post-processing right here
+	#savemat(npz_file, hit_matrices_dict, appendmat=False, do_compression=True)
 
 
 	# If requested, plot the results
@@ -366,7 +372,94 @@ if __name__ == '__main__':
 		plt.ylabel('Containment Index')
 		fig.savefig(plot_file)
 
-	if verbose:
-		print("Finished exporting results")
-		t1 = timeit.default_timer()
-		print("Time: %f" % (t1 - t0))
+
+
+	###############################################################################
+	if verbose and not sensitive:
+		print("Starting the post-processing")
+		t0 = timeit.default_timer()
+
+	if not sensitive:
+		# Do the post-processing
+		# Make the hit matrices dense
+		hit_matrices_dense_dict = dict()
+		for k_size in k_range:
+			hit_matrices_dense_dict['k=%d' % k_size] = hit_matrices_dict['k=%d' % k_size].todense()
+
+		hit_matrices_dict = hit_matrices_dense_dict
+
+		# get the count estimators of just the organisms of interest
+		CEs = MH.import_multiple_from_single_hdf5(training_data, import_list=to_select_names)  # TODO: could make it a tad more memory efficient by sub-selecting the 'sketches'
+
+		all_kmers_with_counts = dict()
+		is_unique_kmer = set()
+		is_unique_kmer_per_ksize = dict()
+		for k_size in k_range:
+			is_unique_kmer_per_ksize[k_size] = set()
+			for i in range(len(CEs)):
+				for big_kmer in CEs[i]._kmers:
+					kmer = big_kmer[:k_size]
+					if kmer in all_kmers_with_counts:
+						all_kmers_with_counts[kmer] += 1
+					else:
+						all_kmers_with_counts[kmer] = 1
+
+		for kmer in all_kmers_with_counts.keys():
+			if all_kmers_with_counts[kmer] == 1:
+				k_size = len(kmer)
+				is_unique_kmer_per_ksize[k_size].add(kmer)
+				is_unique_kmer.add(kmer)
+
+		num_unique = dict()
+		for i in range(len(CEs)):
+			for k_size in k_range:
+				current_kmers = [k[:k_size] for k in CEs[i]._kmers]
+				current_kmers_set = set(current_kmers)
+				non_unique = set()
+
+				for kmer in current_kmers:
+					if kmer not in is_unique_kmer_per_ksize[k_size]:
+						non_unique.add(kmer)
+
+				to_zero_indicies = [ind for ind, kmer in enumerate(current_kmers) if kmer in non_unique]
+				hit_matrices_dict['k=%d' % k_size][i, to_zero_indicies] = 0  # set these to zero since they show up in other sketches (so not informative)
+				num_unique[i, k_range.index(k_size)] = len(current_kmers_set) - len(non_unique)  # keep track of the size of the unique k-mers
+
+		# sum the modified hit matrices to get the size of the intersection
+		containment_indices = np.zeros((len(to_select_names), len(k_range)))  # TODO: could make this thing sparse, or do the filtering for above threshold here
+		for k_size_loc in range(len(k_range)):
+			k_size = k_range[k_size_loc]
+			containment_indices[:, k_size_loc] = (
+				hit_matrices_dict['k=%d' % k_size].sum(axis=1).ravel())  # /float(num_hashes))
+
+		# then normalize by the number of unique k-mers (to get the containment index)
+		for k_size_loc in range(len(k_range)):
+			k_size = k_range[k_size_loc]
+			for hash_loc in np.where(containment_indices[:, k_size_loc])[0]:  # find the genomes with non-zero containment
+				unique_kmers = set()
+				for kmer in CEs[hash_loc]._kmers:
+					unique_kmers.add(kmer[:k_size])  # find the unique k-mers
+				containment_indices[hash_loc, k_size_loc] /= float(
+					len(unique_kmers))  # TODO: this doesn't seem like the right way to normalize, but apparently it is!
+		# containment_indices[hash_loc, k_size_loc] /= float(num_unique[hash_loc, k_size_loc])  # divide by the unique num of k-mers
+
+		results = dict()
+		for k_size_loc in range(len(k_range)):
+			ksize = k_range[k_size_loc]
+			key = 'k=%d' % ksize
+			results[key] = containment_indices[:, k_size_loc]
+		df = pd.DataFrame(results, map(os.path.basename, to_select_names))
+		df = df.reindex(labels=['k=' + str(k_size) for k_size in k_range], axis=1)  # sort columns in ascending order
+		sort_key = 'k=%d' % k_range[location_of_thresh]
+		max_key = 'k=%d' % k_range[-1]
+		filtered_results = df[df[sort_key] > coverage_threshold].sort_values(max_key, ascending=False)  # only select those where the highest k-mer size's count is above the threshold
+
+		filtered_results.to_csv(results_file, index=True, encoding='utf-8')
+		if verbose:
+			t1 = timeit.default_timer()
+			print("Finished thresholding. Time: %f" % (t1 - t0))
+
+#if verbose:
+	#	print("Finished exporting results")
+	#	t1 = timeit.default_timer()
+	#	print("Time: %f" % (t1 - t0))
