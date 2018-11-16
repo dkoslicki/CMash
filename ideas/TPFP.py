@@ -34,7 +34,14 @@ name_and_taxpath_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/File_name_and_ta
 #truth_file = '/home/dkoslicki/Dropbox/Repositories/firstchallenge_evaluation_Backup/profiling/MyAnalysis/GroundTruth/all/CAMI:low:pool.profile'
 
 # after the pos-process, low
-cmash_out_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RL_S001__insert_270_classified_postprocess_finished.csv'
+#cmash_out_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RL_S001__insert_270_classified_postprocess_finished.csv'
+#truth_file = '/home/dkoslicki/Dropbox/Repositories/firstchallenge_evaluation_Backup/profiling/MyAnalysis/GroundTruth/all/CAMI:low:pool.profile'
+
+
+# Nathan micop database, low
+name_and_taxpath_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/fnames_to_info_repophlan_format.tsv'
+#cmash_out_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RL_S001__insert_270_classified_micopdb-n1000-300-60_postprocess.csv'
+cmash_out_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RL_S001__insert_270_classified_micopdb-n1000-300-60.csv'
 truth_file = '/home/dkoslicki/Dropbox/Repositories/firstchallenge_evaluation_Backup/profiling/MyAnalysis/GroundTruth/all/CAMI:low:pool.profile'
 
 # after medium
@@ -124,12 +131,15 @@ for coverage_threshold in cov_range:
 			tax_info = name_to_taxpath[name]
 			# add all higher ranks as well
 			for rank_ind in range(1, len(tax_info[2].split('|')) + 1):
-				tax_info_to_rank = tax_info[2].split('|')[:rank_ind]  # tax info up to the rank under consideration
-				tax_id = [i.split('_')[2] for i in tax_info_to_rank][-1]  # get the last guy's tax id
-				rank_abbrv = tax_info_to_rank[-1].split('_')[0]
-				tax_path_list = [i.split('_')[2] for i in tax_info_to_rank]
-				#pred_taxa[rank_abbrv].update(tax_path_list)  # TODO: this may not be right, getting more FP's then there are possible
-				pred_taxa[rank_abbrv].add(tax_id)
+				try:
+					tax_info_to_rank = tax_info[2].split('|')[:rank_ind]  # tax info up to the rank under consideration
+					tax_id = [i.split('_')[2] for i in tax_info_to_rank][-1]  # get the last guy's tax id
+					rank_abbrv = tax_info_to_rank[-1].split('_')[0]
+					tax_path_list = [i.split('_')[2] for i in tax_info_to_rank]
+					#pred_taxa[rank_abbrv].update(tax_path_list)  # TODO: this may not be right, getting more FP's then there are possible
+					pred_taxa[rank_abbrv].add(tax_id)
+				except:
+					pass
 	num_TPs = []
 	num_FPs = []
 	num_FNs = []
