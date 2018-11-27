@@ -332,9 +332,9 @@ if __name__ == '__main__':
 		print("Finished computing containment indicies")
 		t1 = timeit.default_timer()
 		print("Time: %f" % (t1 - t0))
-		############################################################
-		savemat(os.path.splitext(results_file)[0] + "_first_containment_indices.mat", {'containment_indices':containment_indices})
-		############################################################
+	############################################################
+	savemat(os.path.splitext(results_file)[0] + "_first_containment_indices.mat", {'containment_indices':containment_indices})
+	############################################################
 
 
 	results = dict()
