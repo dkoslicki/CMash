@@ -27,7 +27,7 @@ from scipy.io import savemat
 import timeit
 from itertools import islice
 
-num_train = 10
+num_train = 100
 
 # Read in all the file names
 all_file_names = []
