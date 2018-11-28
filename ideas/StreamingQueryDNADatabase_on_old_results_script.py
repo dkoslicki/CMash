@@ -27,7 +27,7 @@ import timeit
 from itertools import islice
 
 data_dir = "/nfs1/Koslicki_Lab/koslickd/MiCOPCMash/TrainingData/NathanRefSeq/"
-output_dir = "/nfs1/Koslicki_Lab/koslickd/MiCOPCMash/TrainingData/NathanRefSeq/RunAgain/"
+output_dir = "/nfs1/Koslicki_Lab/koslickd/MiCOPCMash/TrainingData/NathanRefSeq/SaveIntermediateFiles/RunAgain/"
 
 # read in the arguments
 k_range = [30, 40, 50, 60]
@@ -298,16 +298,16 @@ if not sensitive:
 				len(unique_kmers))  # TODO: this doesn't seem like the right way to normalize, but apparently it is!
 	# containment_indices[hash_loc, k_size_loc] /= float(num_unique[hash_loc, k_size_loc])  # divide by the unique num of k-mers
 
-	results = dict()
+	results2 = dict()
 	for k_size_loc in range(len(k_range)):
 		ksize = k_range[k_size_loc]
 		key = 'k=%d' % ksize
-		results[key] = containment_indices[:, k_size_loc]
-	df = pd.DataFrame(results, map(os.path.basename, to_select_names))
-	df = df.reindex(labels=['k=' + str(k_size) for k_size in k_range], axis=1)  # sort columns in ascending order
+		results2[key] = containment_indices[:, k_size_loc]
+	df2 = pd.DataFrame(results2, map(os.path.basename, to_select_names))
+	df2 = df2.reindex(labels=['k=' + str(k_size) for k_size in k_range], axis=1)  # sort columns in ascending order
 	sort_key = 'k=%d' % k_range[location_of_thresh]
 	max_key = 'k=%d' % k_range[-1]
-	filtered_results = df[df[sort_key] > coverage_threshold].sort_values(max_key, ascending=False)  # only select those where the highest k-mer size's count is above the threshold
+	filtered_results = df2[df2[sort_key] > coverage_threshold].sort_values(max_key, ascending=False)  # only select those where the highest k-mer size's count is above the threshold
 
 	filtered_results.to_csv(results_file, index=True, encoding='utf-8')
 	if verbose:
