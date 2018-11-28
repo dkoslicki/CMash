@@ -66,6 +66,7 @@ def main():
 			raise Exception("Training genome %s does not exist." % line)
 		file_names.append(line)
 	fid.close()
+	file_names = sorted(file_names, key=os.path.basename)  # sort based off of base name
 
 	# Open the pool and make the sketches
 	pool = Pool(processes=num_threads)

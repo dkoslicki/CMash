@@ -391,6 +391,8 @@ def import_multiple_from_single_hdf5(file_name, import_list=None):
     else:
         iterator = grp.keys()
 
+    iterator = sorted(iterator, key=os.path.basename)  # sort so that we know the order of the input
+
     for key in iterator:
         if key not in grp:
             fid.close()

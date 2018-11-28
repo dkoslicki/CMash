@@ -111,6 +111,11 @@ if __name__ == '__main__':
 	num_hashes = len(sketches[0]._kmers)  # note: this is relying on the fact that the sketches were properly constructed
 	max_ksize = sketches[0].ksize
 
+	def keyfunction(item):
+		return os.path.basename(item.input_file_name)
+
+	sketches = sorted(sketches, key=keyfunction)  # sort the sketches by the basename of input file
+
 	# adjust the k-range if necessary
 	k_range = [val for val in k_range if val <= max_ksize]
 
@@ -124,6 +129,8 @@ if __name__ == '__main__':
 	training_file_names = []
 	for i in range(len(sketches)):
 		training_file_names.append(sketches[i].input_file_name)
+
+	training_file_names = sorted(training_file_names, key=os.path.basename)  # sort based on base name
 
 	if verbose:
 		print("Finished reading in sketches")
