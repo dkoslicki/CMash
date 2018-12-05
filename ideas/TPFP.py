@@ -36,10 +36,28 @@ name_and_taxpath_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/File_name_and_ta
 # after the pos-process, low
 #cmash_out_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RL_S001__insert_270_classified_postprocess_finished.csv'
 #truth_file = '/home/dkoslicki/Dropbox/Repositories/firstchallenge_evaluation_Backup/profiling/MyAnalysis/GroundTruth/all/CAMI:low:pool.profile'
+
+
+# after the filename order fix
+#cmash_out_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RL_S001__insert_270_classified_after_file_order_fix.csv'
+#truth_file = '/home/dkoslicki/Dropbox/Repositories/firstchallenge_evaluation_Backup/profiling/MyAnalysis/GroundTruth/all/CAMI:low:pool.profile'
+
+# after the filename order fix, sensitive
+#cmash_out_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RL_S001__insert_270_classified_after_file_order_fix.csv'
+#truth_file = '/home/dkoslicki/Dropbox/Repositories/firstchallenge_evaluation_Backup/profiling/MyAnalysis/GroundTruth/all/CAMI:low:pool.profile'
+
+
+
 # Nathan micop database, low
+#name_and_taxpath_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/fnames_to_info_repophlan_format.tsv'
+##cmash_out_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RL_S001__insert_270_classified_micopdb-n1000-300-60_postprocess.csv'
+#cmash_out_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RL_S001__insert_270_classified_micopdb-n1000-300-60.csv'
+#truth_file = '/home/dkoslicki/Dropbox/Repositories/firstchallenge_evaluation_Backup/profiling/MyAnalysis/GroundTruth/all/CAMI:low:pool.profile'
+
+# Nathan micop database, low, sensitive
 name_and_taxpath_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/fnames_to_info_repophlan_format.tsv'
 #cmash_out_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RL_S001__insert_270_classified_micopdb-n1000-300-60_postprocess.csv'
-cmash_out_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RL_S001__insert_270_classified_micopdb-n1000-300-60.csv'
+cmash_out_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RL_S001__insert_270_classified_micopdb-n1000-300-60_sensitive.csv'
 truth_file = '/home/dkoslicki/Dropbox/Repositories/firstchallenge_evaluation_Backup/profiling/MyAnalysis/GroundTruth/all/CAMI:low:pool.profile'
 
 
@@ -48,8 +66,8 @@ truth_file = '/home/dkoslicki/Dropbox/Repositories/firstchallenge_evaluation_Bac
 #truth_file = '/home/dkoslicki/Dropbox/Repositories/firstchallenge_evaluation_Backup/profiling/MyAnalysis/GroundTruth/all/CAMI:medium:pool.profile'
 
 # after high
-cmash_out_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RH_S001_classified_postprocess_finished.csv'
-truth_file = '/home/dkoslicki/Dropbox/Repositories/firstchallenge_evaluation_Backup/profiling/MyAnalysis/GroundTruth/all/CAMI:high:pool.profile'
+#cmash_out_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RH_S001_classified_postprocess_finished.csv'
+#truth_file = '/home/dkoslicki/Dropbox/Repositories/firstchallenge_evaluation_Backup/profiling/MyAnalysis/GroundTruth/all/CAMI:high:pool.profile'
 
 
 # TODO: conclusion: using the reduced database is a bad idea (for some really weird reason)
