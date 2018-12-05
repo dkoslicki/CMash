@@ -46,6 +46,15 @@ training_hdf_file = '/home/dkoslicki/Data/MiCOPMinHash/AllBacteria.hd5'
 hit_matrices_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RH_S001_classified_postprocess_hit_matrix.npz'
 results_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RH_S001_classified_postprocess_finished.csv'
 
+
+# Nathan's database
+cmash_out_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RL_S001__insert_270_classified_micopdb-n1000-300-60.csv'
+training_base_name = '/nfs1/Koslicki_Lab/koslickd/MiCOPCMash/TrainingData/NathanRefSeq/organism_files/'
+training_hdf_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/micopdb-n1000-30-60.h5'
+hit_matrices_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RL_S001__insert_270_classified_micopdb-n1000-300-60_hit_matrix.npz'
+results_file = '/home/dkoslicki/Data/MiCOPMinHash/Test/RL_S001__insert_270_classified_micopdb-n1000-300-60_postprocess.csv'
+
+
 t0 = timeit.default_timer()
 
 
@@ -55,6 +64,7 @@ location_of_thresh = -1
 
 # read in the file and sort as needed
 df = pd.read_csv(cmash_out_file, index_col=0)
+#df = df[df['k=60'] > 0.01].sort_values('k=60', ascending=False)  # for the ones that had -c 0, add a threshold for sanity sake
 
 
 names_passed_thresh = list(df.index)
