@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 import os
 import sys
+import khmer
 # The following is for ease of development (so I don't need to keep re-installing the tool)
 try:
 	from CMash import MinHash as MH
@@ -66,11 +67,12 @@ if __name__ == '__main__':
 
 	# all the k-mers of interest in a set (as a pre-filter)
 	try:
-		all_kmers_bf = WritingBloomFilter(len(sketches)*len(k_range)*num_hashes, 0.01, results_file)
+		all_kmers_bf = WritingBloomFilter(len(sketches)*len(k_range)*num_hashes*2, 0.01, results_file)
 		for sketch in sketches:
 			for kmer in sketch._kmers:
 				for ksize in k_range:
 					all_kmers_bf.add(kmer[0:ksize])  # put all the k-mers and the appropriate suffixes in
+					all_kmers_bf.add(khmer.reverse_complement(kmer[0:ksize]))  # also add the reverse complement
 	except IOError:
 		print("No such file or directory/error opening file: %s" % results_file)
 		sys.exit(1)
