@@ -55,14 +55,17 @@ with open(training_out_file, 'w') as fid:
 # Next, intersect them
 # in bash:
 # /usr/bin/time /home/pi/koslickd/KMC/./kmc_tools simple NathanRefSeq60mers CAMILow60mers intersect intersection
-#  seconds
+# 1 min 46 seconds
 
 ##############################################################################################
 # Dump them and turn into a fasta file
 # /usr/bin/time /home/pi/koslickd/KMC/./kmc_dump intersection intersection_dump
 # /usr/bin/time cat intersection_dump | cut -f1 | sed 's/^/>seq\n/g' > intersection_dump.fa
+# 1.6 seconds
 
 #############################################################################################
 # Then run CMash on intersection_dump.fa
 # /usr/bin/time /nfs1/Koslicki_Lab/koslickd/MiCOPCMash/CMashVE/bin/python /nfs1/Koslicki_Lab/koslickd/MiCOPCMash/CMash/scripts/StreamingQueryDNADatabase.py /nfs1/Koslicki_Lab/koslickd/KMC_test/intersection_dump.fa /nfs1/Koslicki_Lab/koslickd/MiCOPCMash/TrainingData/NathanRefSeq/micopdb_n_1000_k_60.h5 /nfs1/Koslicki_Lab/koslickd/KMC_test/RL_S001__insert_270_classified_kmc.csv 30-60-10 -c 0 -r 1000000 -v -f /nfs1/Koslicki_Lab/koslickd/MiCOPCMash/TrainingData/NathanRefSeq/micopdb_n_1000_k_60_prefilter_30_60_10.bf
 #
+
+# /usr/bin/time /nfs1/Koslicki_Lab/koslickd/MiCOPCMash/CMashVE/bin/python /nfs1/Koslicki_Lab/koslickd/MiCOPCMash/CMash/scripts/StreamingQueryDNADatabase.py /nfs1/Koslicki_Lab/koslickd/KMC_test/intersection_dump.fa /nfs1/Koslicki_Lab/koslickd/MiCOPCMash/TrainingData/NathanRefSeq/micopdb_n_1000_k_60.h5 /nfs1/Koslicki_Lab/koslickd/KMC_test/RL_S001__insert_270_classified_kmc_sensitive.csv 30-60-10 -c 0 -r 1000000 -v -f /nfs1/Koslicki_Lab/koslickd/MiCOPCMash/TrainingData/NathanRefSeq/micopdb_n_1000_k_60_prefilter_30_60_10.bf --sensitive
