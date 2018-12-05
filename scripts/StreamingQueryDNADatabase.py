@@ -382,6 +382,7 @@ if __name__ == '__main__':
 
 
 	###############################################################################
+	# Start the post-processing
 	if verbose and not sensitive:
 		print("Starting the post-processing")
 		t0 = timeit.default_timer()
@@ -398,6 +399,7 @@ if __name__ == '__main__':
 		# get the count estimators of just the organisms of interest
 		CEs = MH.import_multiple_from_single_hdf5(training_data, import_list=to_select_names)  # TODO: could make it a tad more memory efficient by sub-selecting the 'sketches'
 
+		# get all the kmers (for each kmer size) and form their counts in the subset of predicted sketches to be in the sample
 		all_kmers_with_counts = dict()
 		is_unique_kmer = set()
 		is_unique_kmer_per_ksize = dict()
@@ -411,12 +413,14 @@ if __name__ == '__main__':
 					else:
 						all_kmers_with_counts[kmer] = 1
 
+		# Use this to identify which k-mers are unique (i.e. show up in exactly one sketch)
 		for kmer in all_kmers_with_counts.keys():
 			if all_kmers_with_counts[kmer] == 1:
 				k_size = len(kmer)
 				is_unique_kmer_per_ksize[k_size].add(kmer)
 				is_unique_kmer.add(kmer)
 
+		# Also keep track of which kmers appear in more than one sketch (not unique)
 		num_unique = dict()
 		for i in range(len(CEs)):
 			for k_size in k_range:
@@ -427,7 +431,7 @@ if __name__ == '__main__':
 				for kmer in current_kmers:
 					if kmer not in is_unique_kmer_per_ksize[k_size]:
 						non_unique.add(kmer)
-
+				# reduce the hit matrices by removing the hits corresponding to non-unique k-mers
 				to_zero_indicies = [ind for ind, kmer in enumerate(current_kmers) if kmer in non_unique]
 				hit_matrices_dict['k=%d' % k_size][i, to_zero_indicies] = 0  # set these to zero since they show up in other sketches (so not informative)
 				num_unique[i, k_range.index(k_size)] = len(current_kmers_set) - len(non_unique)  # keep track of the size of the unique k-mers
@@ -440,6 +444,8 @@ if __name__ == '__main__':
 				hit_matrices_dict['k=%d' % k_size].sum(axis=1).ravel())  # /float(num_hashes))
 
 		# then normalize by the number of unique k-mers (to get the containment index)
+		# In essence, this is the containment index, restricted to unique k-mers. This effectively increases the specificity,
+		# but also increases the variance/confidence interval, since this decreases the size of the sketch.
 		for k_size_loc in range(len(k_range)):
 			k_size = k_range[k_size_loc]
 			for hash_loc in np.where(containment_indices[:, k_size_loc])[0]:  # find the genomes with non-zero containment
@@ -450,6 +456,7 @@ if __name__ == '__main__':
 					len(unique_kmers))  # TODO: this doesn't seem like the right way to normalize, but apparently it is!
 		# containment_indices[hash_loc, k_size_loc] /= float(num_unique[hash_loc, k_size_loc])  # divide by the unique num of k-mers
 
+		# spit out these results
 		results = dict()
 		for k_size_loc in range(len(k_range)):
 			ksize = k_range[k_size_loc]
