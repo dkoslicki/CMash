@@ -111,11 +111,6 @@ if __name__ == '__main__':
 	num_hashes = len(sketches[0]._kmers)  # note: this is relying on the fact that the sketches were properly constructed
 	max_ksize = sketches[0].ksize
 
-	def keyfunction(item):
-		return os.path.basename(item.input_file_name)
-
-	sketches = sorted(sketches, key=keyfunction)  # sort the sketches by the basename of input file
-
 	# adjust the k-range if necessary
 	k_range = [val for val in k_range if val <= max_ksize]
 
@@ -129,8 +124,6 @@ if __name__ == '__main__':
 	training_file_names = []
 	for i in range(len(sketches)):
 		training_file_names.append(sketches[i].input_file_name)
-
-	training_file_names = sorted(training_file_names, key=os.path.basename)  # sort based on base name
 
 	if verbose:
 		print("Finished reading in sketches")
@@ -291,7 +284,11 @@ if __name__ == '__main__':
 		value_dict[k_size] = []
 
 	match_tuples = set(match_tuples)  # uniquify, so we don't make the row/col ind dicts too large
-
+	###############################################################
+	with open(os.path.splitext(results_file)[0] + "_match_tuples.txt", "w") as fid:
+		for hash_loc, k_size_loc, kmer_loc in match_tuples:
+			fid.write("%d\t%d\t%d\n" % (hash_loc, k_size_loc, kmer_loc))
+	################################################################
 	for hash_loc, k_size_loc, kmer_loc in match_tuples:
 		if hash_loc not in unique_kmers:
 			unique_kmers[hash_loc] = set()
@@ -308,6 +305,10 @@ if __name__ == '__main__':
 	for k_size in k_range:
 		mat = csc_matrix((value_dict[k_size], (row_ind_dict[k_size], col_ind_dict[k_size])), shape=(len(sketches), num_hashes))
 		hit_matrices.append(mat)
+		############################################################
+		save_npz(os.path.splitext(results_file)[0] + "_first_hit_matrix_%d.npz" % k_size, mat)
+		############################################################
+
 	if verbose:
 		print("Finished forming hit matrix")
 		t1 = timeit.default_timer()
@@ -331,6 +332,9 @@ if __name__ == '__main__':
 		print("Finished computing containment indicies")
 		t1 = timeit.default_timer()
 		print("Time: %f" % (t1 - t0))
+	############################################################
+	savemat(os.path.splitext(results_file)[0] + "_first_containment_indices.mat", {'containment_indices':containment_indices})
+	############################################################
 
 
 	results = dict()
@@ -344,11 +348,11 @@ if __name__ == '__main__':
 	max_key = 'k=%d' % k_range[-1]
 	filtered_results = df[df[sort_key] > coverage_threshold].sort_values(max_key, ascending=False)  # only select those where the highest k-mer size's count is above the threshold
 
-	if sensitive:
+	if True:
 		if verbose:
 			print("Exporting results")
 			t0 = timeit.default_timer()
-		filtered_results.to_csv(results_file, index=True, encoding='utf-8')
+		filtered_results.to_csv(results_file+"non_filtered.csv", index=True, encoding='utf-8')
 
 	# TODO: may not have to do this if I do the pos-processing directly in here
 	# export the reduced hit matrices
@@ -364,7 +368,7 @@ if __name__ == '__main__':
 		k_size = k_range[i]
 		hit_matrices_dict['k=%d' % k_size] = hit_matrices[i][rows_to_select, :]
 	# then export  # TODO: not necessary if I do the post-processing right here
-	#savemat(npz_file, hit_matrices_dict, appendmat=False, do_compression=True)
+	savemat(npz_file+"reduced_hit_matrix.npz", hit_matrices_dict, appendmat=False, do_compression=True)
 
 
 	# If requested, plot the results
