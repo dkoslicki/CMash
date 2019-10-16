@@ -34,7 +34,7 @@ setup(
 		'numpy',
 		'blist',
 		'argparse',
-		'pandas',
+		'pandas>=0.21.1',
 		'setuptools>=24.2.0',
 		'six',
 		'scipy',
