@@ -128,7 +128,7 @@ if __name__ == '__main__':
 	# Get names of training files for use as rows in returned tabular data
 	training_file_names = []
 	for i in range(len(sketches)):
-		training_file_names.append(sketches[i].input_file_name)
+		training_file_names.append(str(sketches[i].input_file_name.decode('utf-8')))
 
 	training_file_names = sorted(training_file_names, key=os.path.basename)  # sort based on base name
 
@@ -264,7 +264,7 @@ if __name__ == '__main__':
 			i += len(to_proc)
 			if verbose:
 				print("Read in %d sequences" % i)
-			res = pool.map(map_func, to_proc, chunksize=max(1, min(num_reads_per_core, len(to_proc)/num_threads)))
+			res = pool.map(map_func, to_proc, chunksize=int(max(1, min(num_reads_per_core, len(to_proc)/num_threads))))
 			flattened_res = [item for sublist in res if sublist for item in sublist]
 			flattened_res = list(set(flattened_res))  # dedup it
 			match_tuples.extend(flattened_res)
@@ -354,7 +354,7 @@ if __name__ == '__main__':
 	# export the reduced hit matrices
 	# first, get the basis of the reduced data frame
 	to_select_names = list(filtered_results.index)
-	all_names = map(os.path.basename, training_file_names)
+	all_names = list(map(os.path.basename, training_file_names))
 	rows_to_select = []
 	for name in to_select_names:
 		rows_to_select.append(all_names.index(name))
