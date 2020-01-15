@@ -17,8 +17,8 @@ cd CMash
 pip install -r requirements.txt
 ```
 
-Note that the python code in this repository is python2 and python3 compatible, but the dependency ``khmer`` technically requires python3 (but ``khmer`` version ``2.1.1`` runs just fine in python2.)
-The external dependency ``pytst`` requires python2, so I'm making this a python2 repository.
+Note: if installing on Ubuntu and you get a ``no package 'cairo' found`` error, this can be fixed by running ``sudo apt install libcairo2-dev`` and installing again.
+
 ## Usage
 The basic paradigm is to create a reference/training database, form a sample bloom filter, and then query the database.
 
