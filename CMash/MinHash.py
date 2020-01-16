@@ -66,6 +66,7 @@ class CountEstimator(object):
 
     def __init__(self, n=None, max_prime=9999999999971., ksize=None, input_file_name=None, save_kmers='n', hash_list=None,
                  rev_comp=False):
+        print("Initialized")
         if n is None:
             raise Exception
         if ksize is None:
@@ -106,6 +107,7 @@ class CountEstimator(object):
         """
         opens a file and populates the CountEstimator with it
         """
+        print("parse file")
         for record in screed.open(self.input_file_name):
             self.add_sequence(record.sequence, rev_comp)
 
@@ -123,7 +125,7 @@ class CountEstimator(object):
         """
         Add kmer into sketch, keeping sketch sorted, update counts accordingly
         """
-        print("added")
+        print("add")
         _mins = self._mins
         _counts = self._counts
         _kmers = self._kmers
@@ -168,6 +170,7 @@ class CountEstimator(object):
         """
          Sanitize and add a sequence to the sketch.
         """
+        print("add_sequence")
         # seq = seq.upper().replace('N', 'G')
         seq = notACTG.sub('G', seq.upper())  # more intelligent sanatization?
         # seq = seq.upper()
