@@ -5,11 +5,23 @@
 # make the training database
 echo "Training on data"
 rm TrainingDatabase.h5 2> /dev/null
+rm TrainingDatabase.tst 2> /dev/null
 /usr/bin/time python ../scripts/MakeStreamingDNADatabase.py filenames.txt TrainingDatabase.h5
 if test -f TrainingDatabase.h5; then
-  echo "Training file successfully created"
+  if test -f TrainingDatabase.tst; then
+    echo "Training file successfully created"
+  fi
 fi
 
+echo "Training on data, verbose"
+rm TrainingDatabase.h5 2> /dev/null
+rm TrainingDatabase.tst 2> /dev/null
+/usr/bin/time python ../scripts/MakeStreamingDNADatabase.py filenames.txt TrainingDatabase.h5 --verbose
+if test -f TrainingDatabase.h5; then
+  if test -f TrainingDatabase.tst; then
+    echo "Training file verbose successfully created"
+  fi
+fi
 
 echo "Classifying sample, default settings"
 rm results.csv 2> /dev/null
