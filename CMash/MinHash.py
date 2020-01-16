@@ -63,7 +63,7 @@ class CountEstimator(object):
     n is the number of sketches to keep
     Still don't know what max_prime is...
     """
-
+    print("Class")
     def __init__(self, n=None, max_prime=9999999999971., ksize=None, input_file_name=None, save_kmers='n', hash_list=None,
                  rev_comp=False):
         print("Initialized")
