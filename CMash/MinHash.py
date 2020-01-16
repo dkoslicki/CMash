@@ -123,6 +123,7 @@ class CountEstimator(object):
         """
         Add kmer into sketch, keeping sketch sorted, update counts accordingly
         """
+        print("added")
         _mins = self._mins
         _counts = self._counts
         _kmers = self._kmers
