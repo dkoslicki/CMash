@@ -106,11 +106,8 @@ class CountEstimator(object):
         """
         opens a file and populates the CountEstimator with it
         """
-        i = 0
         for record in screed.open(self.input_file_name):
-            print(i)
             self.add_sequence(record.sequence, rev_comp)
-            i += 1
 
     def down_sample(self, h):
         """
