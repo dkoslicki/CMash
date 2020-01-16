@@ -71,7 +71,7 @@ def main():
 	# Open the pool and make the sketches
 	pool = Pool(processes=num_threads)
 	genome_sketches = pool.map(make_minhash_star, zip(file_names, repeat(max_h), repeat(prime), repeat(ksize)))
-
+	pool.close()
 	# Export all the sketches
 	MH.export_multiple_to_single_hdf5(genome_sketches, out_file)
 
