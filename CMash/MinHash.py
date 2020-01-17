@@ -63,10 +63,8 @@ class CountEstimator(object):
     n is the number of sketches to keep
     Still don't know what max_prime is...
     """
-    print("Class")
     def __init__(self, n=None, max_prime=9999999999971., ksize=None, input_file_name=None, save_kmers='n', hash_list=None,
                  rev_comp=False):
-        print("Initialized")
         if n is None:
             raise Exception
         if ksize is None:
@@ -83,15 +81,17 @@ class CountEstimator(object):
         self.p = p
 
         # initialize sketch to size n
-        #self._mins = [float("inf")]*n
-        self._mins = blist([np.Inf]*n)
+        self._mins = [float("inf")]*n
+        #self._mins = blist([np.Inf]*n)
 
         # initialize the corresponding counts
-        self._counts = blist([0]*n)
+        #self._counts = blist([0]*n)
+        self._counts = [0] * n
 
         # initialize the list of kmers used, if appropriate
         if save_kmers == 'y':
-            self._kmers = blist([b'']*n)
+            #self._kmers = blist([b'']*n)  # TODO: see if I can remove the b'' so I don't have to decode byte strings later, may conflict with HDF5
+            self._kmers = [b''] * n
         else:
             self._kmers = None
 
@@ -107,7 +107,6 @@ class CountEstimator(object):
         """
         opens a file and populates the CountEstimator with it
         """
-        print("parse file")
         for record in screed.open(self.input_file_name):
             self.add_sequence(record.sequence, rev_comp)
 
@@ -125,7 +124,6 @@ class CountEstimator(object):
         """
         Add kmer into sketch, keeping sketch sorted, update counts accordingly
         """
-        print("add")
         _mins = self._mins
         _counts = self._counts
         _kmers = self._kmers
@@ -170,7 +168,6 @@ class CountEstimator(object):
         """
          Sanitize and add a sequence to the sketch.
         """
-        print("add_sequence")
         # seq = seq.upper().replace('N', 'G')
         seq = notACTG.sub('G', seq.upper())  # more intelligent sanatization?
         # seq = seq.upper()
