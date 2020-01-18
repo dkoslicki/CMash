@@ -89,7 +89,8 @@ class CountEstimator(object):
         # initialize the list of kmers used, if appropriate
         if save_kmers == 'y':
             #self._kmers = blist([b'']*n)  # TODO: see if I can remove the b'' so I don't have to decode byte strings later, may conflict with HDF5
-            self._kmers = [b''] * n
+            #self._kmers = [b''] * n
+            self._kmers = [''] * n
         else:
             self._kmers = None
 
@@ -156,7 +157,7 @@ class CountEstimator(object):
             _counts.insert(i, 1)
             _counts.pop()
             if _kmers:
-                _kmers.insert(i, np.string_(kmer))
+                _kmers.insert(i, kmer)
                 _kmers.pop()
             return
 
@@ -250,7 +251,7 @@ class CountEstimator(object):
         mins_data = grp.create_dataset("mins", data=self._mins)
         counts_data = grp.create_dataset("counts", data=self._counts)
         if self._kmers:
-            kmer_data = grp.create_dataset("kmers", data=self._kmers)
+            kmer_data = grp.create_dataset("kmers", data=[np.string_(kmer) for kmer in self._kmers])
 
         grp.attrs['class'] = np.string_("CountEstimator")
         grp.attrs['filename'] = np.string_(self.input_file_name)
@@ -309,7 +310,8 @@ def import_single_hdf5(file_name):
     CE._true_num_kmers = true_num_kmers
     CE.input_file_name = file_name
     if "kmers" in grp:
-        CE._kmers = grp["kmers"][...]
+        temp_kmers = grp["kmers"][...]
+        CE._kmers = [kmer.decode('utf-8') for kmer in temp_kmers]
     else:
         CE._kmers = None
 
@@ -362,7 +364,7 @@ def export_multiple_to_single_hdf5(CEs, export_file_name):
             mins_data = subgrp.create_dataset("mins", data=CE._mins)
             counts_data = subgrp.create_dataset("counts", data=CE._counts)
             if CE._kmers is not None:
-                kmer_data = subgrp.create_dataset("kmers", data=CE._kmers)
+                kmer_data = subgrp.create_dataset("kmers", data=[np.string_(kmer) for kmer in CE._kmers])
 
             subgrp.attrs['class'] = np.string_("CountEstimator")
             subgrp.attrs['filename'] = np.string_(CE.input_file_name)  # But keep the full file name on hand
@@ -418,7 +420,8 @@ def import_multiple_from_single_hdf5(file_name, import_list=None):
         CE._true_num_kmers = true_num_kmers
         CE.input_file_name = file_name
         if "kmers" in subgrp:
-            CE._kmers = subgrp["kmers"][...]
+            temp_kmers = subgrp["kmers"][...]
+            CE._kmers = [kmer.decode('utf-8') for kmer in temp_kmers]
         else:
             CE._kmers = None
 
@@ -504,7 +507,7 @@ def insert_to_database(database_location, insert_list):
             mins_data = subgrp.create_dataset("mins", data=to_insert_CE._mins)
             counts_data = subgrp.create_dataset("counts", data=to_insert_CE._counts)
             if to_insert_CE._kmers:
-                kmer_data = subgrp.create_dataset("kmers", data=to_insert_CE._kmers)
+                kmer_data = subgrp.create_dataset("kmers", data=[np.string_(kmer) for kmer in to_insert_CE._kmers])
             subgrp.attrs['class'] = np.string_("CountEstimator")
             subgrp.attrs['filename'] = np.string_(to_insert_CE.input_file_name)  # But keep the full file name on hand
             subgrp.attrs['ksize'] = to_insert_CE.ksize

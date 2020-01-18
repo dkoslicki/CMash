@@ -71,7 +71,7 @@ if __name__ == '__main__':
 		for sketch in sketches:
 			for kmer in sketch._kmers:
 				for ksize in k_range:
-					kmer_str = kmer[0:ksize].decode('utf-8')
+					kmer_str = kmer[0:ksize]
 					all_kmers_bf.add(kmer_str)  # put all the k-mers and the appropriate suffixes in
 					all_kmers_bf.add(khmer.reverse_complement(kmer_str))  # also add the reverse complement
 	except IOError:

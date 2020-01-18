@@ -57,6 +57,7 @@ rm results.csv 2> /dev/null
 /usr/bin/time python ../scripts/StreamingQueryDNADatabase.py Organisms/taxid_1192839_4_genomic.fna.gz TrainingDatabase.h5 results.csv 5-21-2 --sensitive
 if test -f results.csv; then
   echo "sensitive classify successful"
+  cat results.csv
 else
   echo "SOMETHING WENT WRONG!!!!"
 fi
