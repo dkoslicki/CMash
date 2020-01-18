@@ -41,7 +41,7 @@ setup(
 		'matplotlib',
 		'marisa-trie',
 		'hydra',
-                'pycairo'
+		'pycairo'
 	],
 	zip_safe=False,
 	package_data={'CMash': ['data/*.fna']},
