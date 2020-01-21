@@ -2,6 +2,9 @@
 
 # For manual tests. Run this in the tests folder
 
+# In case you have multiple versions installed (eg. Metalign as well as CMash), make sure python is looking in the right place:
+export PYTHONPATH="$(dirname "`pwd`")":$PYTHONPATH
+
 # make the training database
 echo "Training on data"
 rm TrainingDatabase.h5 2> /dev/null
