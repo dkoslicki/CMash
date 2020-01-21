@@ -15,9 +15,11 @@ if test -f TrainingDatabase.h5; then
     echo "Training file successfully created"
   else
     echo "SOMETHING WENT WRONG!!!!"
+    exit 1
   fi
   else
     echo "SOMETHING WENT WRONG!!!!"
+    exit 1
 fi
 
 echo "Training on data, verbose"
@@ -29,9 +31,11 @@ if test -f TrainingDatabase.h5; then
     echo "Training file verbose successfully created"
   else
     echo "SOMETHING WENT WRONG!!!!"
+    exit 1
   fi
 else
   echo "SOMETHING WENT WRONG!!!!"
+  exit 1
 fi
 
 echo "Classifying sample, default settings"
@@ -42,6 +46,7 @@ if test -f results.csv; then
   echo "default classify successful"
 else
   echo "SOMETHING WENT WRONG!!!!"
+  exit 1
 fi
 
 echo "Classifying sample, verbose settings"
@@ -52,6 +57,7 @@ if test -f results.csv; then
   echo "verbose classify successful"
 else
   echo "SOMETHING WENT WRONG!!!!"
+  exit 1
 fi
 
 echo "Classifying sample, sensitive settings"
@@ -63,6 +69,7 @@ if test -f results.csv; then
   cat results.csv
 else
   echo "SOMETHING WENT WRONG!!!!"
+  exit 1
 fi
 
 echo "Create streaming prefilter"
@@ -73,6 +80,7 @@ if test -f prefilter.bf; then
   echo "streaming prefilter creation successful"
 else
   echo "SOMETHING WENT WRONG!!!!"
+  exit 1
 fi
 
 echo "Classifying sample, default settings with prefilter"
@@ -83,4 +91,7 @@ if test -f results.csv; then
   echo "default classify with prefilter successful"
 else
   echo "SOMETHING WENT WRONG!!!!"
+  exit 1
 fi
+
+echo "ALL TESTS SUCCESSFULLY COMPLETED!"
