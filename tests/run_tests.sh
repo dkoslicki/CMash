@@ -5,6 +5,18 @@
 # In case you have multiple versions installed (eg. Metalign as well as CMash), make sure python is looking in the right place:
 export PYTHONPATH="$(dirname "`pwd`")":$PYTHONPATH
 
+#Make sure the correct CMash is being pulled from
+testFile=$(python -c "from CMash import MinHash as MH; print(MH.__file__)")
+parentDir=`dirname $PWD`
+correctFile="${parentDir}/CMash/MinHash.py"
+if [ "$testFile" == "$correctFile" ];
+then
+  echo "Files are correct"
+else
+  echo "Files are not correct"
+  exit 1
+fi
+
 # make the training database
 echo "Training on data"
 rm TrainingDatabase.h5 2> /dev/null
