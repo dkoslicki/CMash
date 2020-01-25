@@ -1,0 +1,10 @@
+./Organisms/taxid_1759312_genomic.fna.gz
+./Organisms/taxid_2026799_87_genomic.fna.gz
+./Organisms/taxid_554168_genomic.fna.gz
+./Organisms/taxid_28901_877_genomic.fna.gz
+./Organisms/taxid_1311_236_genomic.fna.gz
+./Organisms/taxid_573_36_genomic.fna.gz
+./Organisms/taxid_2041488_genomic.fna.gz
+./Organisms/taxid_562_8705_genomic.fna.gz
+./Organisms/taxid_1192839_4_genomic.fna.gz
+./Organisms/taxid_1307_414_genomic.fna.gz

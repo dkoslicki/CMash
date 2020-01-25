@@ -1,0 +1,27 @@
+name: CMash-env
+channels:
+  - defaults
+dependencies:
+  - pip=19.3.1=py38_0
+  - python=3.8.1=h0371630_1
+  - pip:
+    - argparse==1.4.0
+    - blist==1.3.6
+    - bz2file==0.98
+    - cycler==0.10.0
+    - h5py==2.10.0
+    - hydra==2.5
+    - khmer==2.1.1
+    - kiwisolver==1.1.0
+    - marisa-trie==0.7.5
+    - matplotlib==3.1.2
+    - numpy==1.18.1
+    - pandas==0.25.3
+    - pycairo==1.18.2
+    - pyparsing==2.4.6
+    - python-dateutil==2.8.1
+    - pytz==2019.3
+    - scipy==1.4.1
+    - screed==1.0.1
+    - six==1.14.0
+

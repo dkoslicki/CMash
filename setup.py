@@ -18,7 +18,7 @@ with open(os.path.join(HERE, 'README.md'), 'r') as fid:
 
 setup(
 	name="CMash",
-	version="0.3.0",
+	version="0.4.0",
 	author="David Koslicki",
 	author_email="dmkoslicki@gmail.com",
 	description=("Fast and accurate set similarity estimation via containment min hash (for genomic datasets)."),
@@ -41,7 +41,7 @@ setup(
 		'matplotlib',
 		'marisa-trie',
 		'hydra',
-                'pycairo'
+		'pycairo'
 	],
 	zip_safe=False,
 	package_data={'CMash': ['data/*.fna']},

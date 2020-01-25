@@ -166,7 +166,7 @@ if __name__ == '__main__':
 				for kmer in sketch._kmers:
 					for ksize in k_range:
 						all_kmers_bf.add(kmer[0:ksize])  # put all the k-mers and the appropriate suffixes in
-						all_kmers_bf.add(khmer.reverse_complement(kmer[0:ksize].decode('utf-8')))  # also add the reverse complement
+						all_kmers_bf.add(khmer.reverse_complement(kmer[0:ksize]))  # also add the reverse complement
 		except IOError:
 			print("No such file or directory/error opening file: %s" % hydra_file)
 			sys.exit(1)
