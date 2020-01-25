@@ -430,6 +430,50 @@ def import_multiple_from_single_hdf5(file_name, import_list=None):
     fid.close()
     return(CEs)
 
+def get_info_from_single_hdf5(file_name):
+    """
+    This function will import the meta_data from multiple count estimators stored in a single HDF5 file.
+    :param file_name: file name for the single HDF5 file
+    :return: a class containing the metadata of the file (file_names, ksize, prime, sketch_size)
+    """
+    class metadata(object):
+        def __init__(self):
+            self.file_names = []
+            self.ksize = 0
+            self.prime = 0
+            self.sketch_size = 0
+    return_metadata = metadata()
+
+    fid = h5py.File(file_name, 'r')
+    if "CountEstimators" not in fid:
+        fid.close()
+        raise Exception("This function imports a single HDF5 file containing multiple sketches."
+                        " It appears you've used it on a file containing a single sketch."
+                        "Try using import_single_hdf5 instead")
+
+    grp = fid["CountEstimators"]
+    iterator = grp.keys()
+    iterator = sorted(iterator, key=os.path.basename)  # sort so that we know the order of the input
+    i = 0
+    for key in iterator:
+        if key not in grp:
+            fid.close()
+            raise Exception("The key " + key + " is not in " + file_name)
+
+        subgrp = grp[key]
+        file_name = subgrp.attrs['filename']
+        ksize = subgrp.attrs['ksize']
+        prime = subgrp.attrs['prime']
+
+        return_metadata.file_names.append(file_name.decode('utf-8'))
+        if i == 0:
+            return_metadata.ksize = ksize
+            return_metadata.prime = prime
+            mins = subgrp["mins"][...]
+            return_metadata.sketch_size = len(mins)
+        i += 1
+    fid.close()
+    return(return_metadata)
 
 def delete_from_database(database_location, delete_list):
     """
@@ -650,7 +694,7 @@ def form_jaccard_count_matrix(all_CEs):
     chunk_size = np.floor(len(indicies)/float(multiprocessing.cpu_count()))
     if chunk_size < 1:
         chunk_size = 1
-    res = pool.imap(jaccard_count, indicies, chunksize=chunk_size)
+    res = pool.imap(jaccard_count, indicies, chunksize=int(chunk_size))
     for (i, j), val in zip(indicies, res):
         A[i, j] = val[0]
         A[j, i] = val[1]
@@ -708,7 +752,7 @@ def form_jaccard_matrix(all_CEs):
     chunk_size = np.floor(len(indicies)/float(multiprocessing.cpu_count()))
     if chunk_size < 1:
         chunk_size = 1
-    res = pool.imap(jaccard, indicies, chunksize=chunk_size)
+    res = pool.imap(jaccard, indicies, chunksize=int(chunk_size))
     for (i, j), val in zip(indicies, res):
         A[i, j] = val
         A[j, i] = val
@@ -1172,6 +1216,28 @@ def test_make_tree():
     print(res)
     assert sorted(res) == true_res  # this should be [0, 2] since ATC shows up in CE1 and CE3
 
+def test_get_info():
+    try:
+        import CMash
+        file1 = CMash.get_data("PRJNA67111.fna")
+        file2 = CMash.get_data("PRJNA32727.fna")
+        file3 = CMash.get_data("PRJNA298068.fna")
+    except ImportError:
+        file1 = os.path.join(os.path.dirname(__file__), "data", "PRJNA67111.fna")
+        file2 = os.path.join(os.path.dirname(__file__), "data", "PRJNA32727.fna")
+        file3 = os.path.join(os.path.dirname(__file__), "data", "PRJNA298068.fna")
+    CE1 = CountEstimator(n=5, max_prime=9999999999971, ksize=3, save_kmers='y', input_file_name=file1)
+    CE2 = CountEstimator(n=5, max_prime=9999999999971, ksize=3, save_kmers='y', input_file_name=file2)
+    CE3 = CountEstimator(n=5, max_prime=9999999999971, ksize=3, save_kmers='y', input_file_name=file3)
+    temp_file = tempfile.mktemp()
+    export_multiple_to_single_hdf5([CE1, CE2, CE3], temp_file)
+    meta_data = get_info_from_single_hdf5(temp_file)
+    assert meta_data.ksize == 3
+    assert meta_data.sketch_size == 5
+    assert meta_data.prime == 9999999999971
+    assert len(meta_data.file_names) == 3
+    assert meta_data.file_names == sorted([file1, file2, file3], key=os.path.basename)
+
 def test_suite():
     """
     Runs all the test functions
@@ -1192,5 +1258,6 @@ def test_suite():
     test_insert_to_database()
     test_union_databases()
     test_make_tree()
+    test_get_info()
     print("All tests successful!")
 
