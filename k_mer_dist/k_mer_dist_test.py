@@ -8,6 +8,8 @@ import sys
 from collections import Counter
 import numpy as np
 import pandas as pd
+from scipy.stats import wasserstein_distance
+from scipy.spatial import distance
 # import KMC python API (compilied)
 sys.path.insert(1, '/storage/home/xbz5174/work/tools/KMC-3.1.1/')
 import py_kmc_api as kmc
@@ -40,7 +42,6 @@ def k_mer_sketch_histogram(n, k, genome, histogram_make=True, histogram_name=Non
 
 def k_mer_global_histogram(k, genome, histogram_make=True, histogram_name=None, rev_comp=False):
     k_mer_dict = {}
-    # TODO: use KMC instead to make it faster
     def add_k_mer_dict(self, kmer, rev_comp=False):
         try:
             k_mer_dict[kmer] += 1
@@ -56,6 +57,7 @@ def k_mer_global_histogram_KMC(k, genome, histogram_make=True, histogram_name=No
     kmc_file = genome
     outname = genome.split('/')[-1]+'.res'
     # creat KMC database
+    # TODO: not exactly sure but KMC seems doesn't accept sequences spanning more than 4 lines
     os.system('kmc -m24 -fa -ci0 -k%d %f %f ./kmc_global_count/' %(k, genome, outname))
     outname = './kmc_global_count/' + outname
     # read KMC data base to get count values
@@ -71,15 +73,19 @@ def k_mer_global_histogram_KMC(k, genome, histogram_make=True, histogram_name=No
 
 
 def total_variation_Metric(histo1, histo2):
-    pass
+    # histo1, histo2 are normalized distributions
+    return L1_metric(histo1, histo2)/2
 
 
 def wasserstein_metric(histo1, histo2):
-    pass
+    # histo1, histo2 are normalized distributions
+    return wasserstein_distance(histo1, histo2)
 
 
 def L1_metric (histo1, histo2):
-    pass
+    # histo1, histo2 are normalized distributions
+    return distance.cityblock(histo1, histo2)
+
 
 
 if __name__ == "__main__":
