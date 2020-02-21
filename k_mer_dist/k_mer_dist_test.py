@@ -8,7 +8,11 @@ import sys
 from collections import Counter
 import numpy as np
 import pandas as pd
-import screed
+# import KMC python API (compilied)
+sys.path.insert(1, '/storage/home/xbz5174/work/tools/KMC-3.1.1/')
+import py_kmc_api as kmc
+
+
 # import MinHash
 try:
     from CMash import MinHash as MH
@@ -48,14 +52,41 @@ def k_mer_global_histogram(k, genome, histogram_make=True, histogram_name=None, 
     dist = Counter(k_mer_dict.values())
     return dist  # np.array(list(dist))
 
+def k_mer_global_histogram_KMC(k, genome, histogram_make=True, histogram_name=None):
+    kmc_file = genome
+    outname = genome.split('/')[-1]+'.res'
+    # creat KMC database
+    os.system('kmc -m24 -fa -ci0 -k%d %f %f ./kmc_global_count/' %(k, genome, outname))
+    outname = './kmc_global_count/' + outname
+    # read KMC data base to get count values
+    kmer_data_base = kmc.KMCFile()
+    kmer_data_base.OpenForListing(outname)
+    kmer_object = kmc.KmerAPI(kmer_data_base.Info().kmer_length)
+    counter = kmc.Count()
+    counter_list = []
+    while kmer_data_base.ReadNextKmer(kmer_object, counter):
+        counter_list.append(int(counter.value))
+    dist = Counter(counter_list)
+    return dist
+
+
+def total_variation_Metric(histo1, histo2):
+    pass
+
+
+def wasserstein_metric(histo1, histo2):
+    pass
+
+
+def L1_metric (histo1, histo2):
+    pass
 
 
 if __name__ == "__main__":
     n_list = [10000]  # n = number of hash functions
-    k_list = [10]  # k = k-mer size
+    k_list = [18]  # k = k-mer size
     file = "/storage/home/xbz5174/scratch/short_term_work_Feb/tests/Organisms/taxid_1307_414_genomic.fna.gz"
     print('Current working dir:'); os.system('pwd')
-    # max_prime=9999999999971
     # get sketch k-mer distributions
     for k in k_list:
         # dist_global = k_mer_global_histogram(k=k, genome=file, histogram_make=True)
