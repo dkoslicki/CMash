@@ -109,22 +109,28 @@ def k_mer_global_histogram_KMC(k, genome, true_histogram=True, histogram_name=No
     return dist, dist_norm
 
 
-def histogram_draw(dist_norm, genome, histogram_name=None, k=0, n=0):
+def histogram_draw(dist_norm, genome, histogram_name=None, k=0, n=0, rm_occur_leq=0):
     if histogram_name:
         figure_name = histogram_name
     else:
         species_name = genome.split('/')[-1].split('.')[0]
         figure_name = species_name + '-k' + str(k) + '-n' + str(n)
-    y_pos = np.arange(len(dist_norm))
+    # remove counts if the occurrence is smaller than or equal to rm_occur_leq
+    dist_norm = dist_norm[rm_occur_leq:]
+    y_pos = np.arange(rm_occur_leq, len(dist_norm))
     plt.bar(y_pos, dist_norm, align='center', alpha=0.5)
     plt.xticks(y_pos, y_pos)
     plt.ylabel('# counts of k-mers occurring such times')
     plt.xlabel('# k-mer occur')
     plt.title('Dist k-mer %f ksize%d sketch%d' %(figure_name, k, n))
-    plt.savefig('Dist k-mer %f ksize%d sketch%d' %(figure_name, k, n))
+    plt.savefig(os.path.dirname(os.path.realpath(__file__)) + '/kmc_global_count/'+'Dist k-mer %f ksize%d sketch%d.png'
+                %(figure_name, k, n))
+    plt.clf()
+    plt.close()
     return 0
 
 def histogram_draw_two(dist_norm_1, dist_norm_2, genome, histogram_name=None, k=0, n=0):
+    # TODO: put two histo in one figure
     # bar chart with 2 bars
     pass
 
