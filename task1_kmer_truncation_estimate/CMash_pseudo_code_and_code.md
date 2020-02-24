@@ -38,14 +38,21 @@ run cluster_matrix(A_eps, A_indicies, cluster_eps=.01) on the TrainingDatabase_{
 
 ### Real script:
 
+- Env check
+
 ```bash
 ### Adjust env check: PYTHONPATH specified to absolute path
 export PYTHONPATH="/storage/home/sml6467/scratch/tools/CMash_github_master/CMash":$PYTHONPATH  #similar to $PATH, guide the dir where to look up executives
 testFile=$(python -c "from CMash import MinHash as MH; print(MH.__file__)")
 correctFile="/storage/home/sml6467/scratch/tools/CMash_github_master/CMash/CMash/MinHash.py"
 [ "$testFile" == "$correctFile" ] && echo "Files are correct" || exit 1
+```
 
 
+
+- Step1: k61
+
+```bash
 ### Step1: k61 true CI and all truncation records
 # ltime is aliased to '/usr/bin/time -av -o temp_runLog'
 # filenames.txt records all the absolute path of the 165 genome files
@@ -64,8 +71,11 @@ do
   mv temp_runLog truncation_${name}_results.log  2> /dev/null
   unset name file
 done
-  
+```
 
+- Step2: k= seq 1 3 61
+
+```bash
 ### Step2: true CI for all k<61
 all_files="/gpfs/group/dmk333/default/shaopeng/projects/202002_CMash_test/results/20200217_CMash_task1_trunction_kmer/step1_true_CI_k61_and_truncation_errors/filenames.txt"
 # loop through
@@ -83,10 +93,15 @@ do
   done
   unset k_size
 done 
+```
 
+- Step3: cluster for ref
 
+```bash
 ### Step3: (waiting for step1 output)
 ```
+
+
 
 
 
