@@ -54,20 +54,21 @@ correctFile="/storage/home/sml6467/scratch/tools/CMash_github_master/CMash/CMash
 
 ```bash
 ### Step1: k61 true CI and all truncation records
-# ltime is aliased to '/usr/bin/time -av -o temp_runLog'
 # filenames.txt records all the absolute path of the 165 genome files
-# python_exec="/opt/aci/sw/python/3.6.3_anaconda-5.0.1/bin/python"
-# CMash_scripts="/storage/home/sml6467/scratch/tools/CMash_github_master/CMash/scripts"
+python_exec="/opt/aci/sw/python/3.6.3_anaconda-5.0.1/bin/python"
+CMash_scripts="/storage/home/sml6467/scratch/tools/CMash_github_master/CMash/scripts"
+ltime="/usr/bin/time -av -o temp_runLog"
+ml python/3.6.3-anaconda5.0.1
 cd /storage/home/sml6467/shaopeng_Koslicki_group/projects/202002_CMash_test/results/20200217_CMash_task1_trunction_kmer/step1_true_CI_k61_and_truncation_errors
 # generate the TrainingDB for k=61
-ltime ${python_exec} ${CMash_scripts}/MakeStreamingDNADatabase.py  -k ${k_size} -v filenames.txt TrainingDB_k${k_size}.h5
+${ltime} ${python_exec} ${CMash_scripts}/MakeStreamingDNADatabase.py  -k ${k_size} -v filenames.txt TrainingDB_k${k_size}.h5
 mv temp_runLog  TrainingDB_k${k_size}.log
 # generate the trunction output with the TDB_k61.h5
 for file in `cat filenames.txt`
 do
   echo "processing $file"
   name=`echo ${file##*/}`
-  ltime ${python_exec} ${CMash_scripts}/StreamingQueryDNADatabase.py ${file} TrainingDB_k${k_size}.h5 truncation_${name}_results.csv 1-61-3 -v -c 0 -l 0 --sensitive
+  ${ltime} ${python_exec} ${CMash_scripts}/StreamingQueryDNADatabase.py ${file} TrainingDB_k${k_size}.h5 truncation_${name}_results.csv 1-61-3 -v -c 0 -l 0 --sensitive
   mv temp_runLog truncation_${name}_results.log  2> /dev/null
   unset name file
 done
@@ -79,15 +80,16 @@ done
 ### Step2: true CI for all k<61
 all_files="/gpfs/group/dmk333/default/shaopeng/projects/202002_CMash_test/results/20200217_CMash_task1_trunction_kmer/step1_true_CI_k61_and_truncation_errors/filenames.txt"
 # loop through
-for k_size in seq 1 3 61  
+cd /storage/home/sml6467/shaopeng_Koslicki_group/projects/202002_CMash_test/results/20200217_CMash_task1_trunction_kmer/step2_true_CI_for_all_short_k_mers
+for ((k_size=61; k_size>=1; k_size-=3))
 do
-  ltime ${python_exec} ${CMash_scripts}/MakeStreamingDNADatabase.py  -k ${k_size} -v ${all_files} TrainingDB_k${k_size}.h5
+  ${ltime} ${python_exec} ${CMash_scripts}/MakeStreamingDNADatabase.py  -k ${k_size} -v ${all_files} TrainingDB_k${k_size}.h5
   mv temp_runLog  TrainingDB_k${k_size}.log
   for file in `cat ${all_files}`
   do
     echo "processing $file"
     name=`echo ${file##*/}`
-    ltime ${python_exec} ${CMash_scripts}/StreamingQueryDNADatabase.py ${file} TrainingDB_k${k_size}.h5 true_CI_k${k_size}_${name}_results.csv ${k_size}-${k_size}-1 -v -c 0 -l 0 --sensitive
+    ${ltime} ${python_exec} ${CMash_scripts}/StreamingQueryDNADatabase.py ${file} TrainingDB_k${k_size}.h5 true_CI_k${k_size}_${name}_results.csv ${k_size}-${k_size}-1 -v -c 0 -l 0 --sensitive
     mv temp_runLog true_CI_k${k_size}_results.log 
     unset file name
   done
