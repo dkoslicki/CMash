@@ -2,19 +2,15 @@
     A function to output k-mer distribution histogram
     w.r.t different k (k-mer size) and n (sketch size)
 '''
-
 import os
 import sys
-from collections import Counter
 import numpy as np
-import pandas as pd
 from scipy.stats import wasserstein_distance
 from scipy.spatial import distance
-# import KMC python API (compilied)
+# import KMC python API (compiled)
 sys.path.insert(1, '/storage/home/xbz5174/work/tools/KMC-3.1.1/')
+sys.path.insert(1, '/storage/home/xbz5174/work/tools/KMC-3.1.1/bin/')
 import py_kmc_api as kmc
-
-
 # import MinHash
 try:
     from CMash import MinHash as MH
@@ -26,18 +22,19 @@ except ImportError:
         from CMash import MinHash as MH
 
 
-def k_mer_sketch_histogram(n, k, genome, histogram_make=True, histogram_name=None, rev_comp=False):
+def k_mer_sketch_histogram(n, k, genome, true_histogram=True, histogram_name=None, rev_comp=False):
+    # input: n - sketch size (# Hash function), k - k-mer size, genome - fasta(.gz)
+    # return np.array of distribution and histogram
     MHS = MH.CountEstimator(n=n, ksize=k, save_kmers='y', input_file_name=genome, rev_comp=rev_comp)
-    dist = Counter(MHS._counts)
-    # save histogram
-    if histogram_make:
-        if histogram_name:
-            figure_name = histogram_name
-        else:
-            species_name = MHS.input_file_name.split('/')[-1].split('.')[0]
-            figure_name = species_name + '-k' + str(k) + '-n' + str(n)
-        # TODO: histogram function not implemented yet
-    return dist  # np.array(list(dist))
+    # turn array of counts of k-mers into occurence of k-mers with the counts
+    counts = MHS._counts
+    dist = np.zeors(max(counts))
+    for _c in counts:
+        dist[_c] = dist[_c] + 1
+    dist_norm = dist / np.sum(dist)
+    if true_histogram:
+        histogram_draw(dist_norm, genome, histogram_name)
+    return dist, dist_norm  # np.array(list(dist))
 
 
 def k_mer_global_histogram(k, genome, histogram_make=True, histogram_name=None, rev_comp=False):
@@ -53,23 +50,40 @@ def k_mer_global_histogram(k, genome, histogram_make=True, histogram_name=None, 
     dist = Counter(k_mer_dict.values())
     return dist  # np.array(list(dist))
 
-def k_mer_global_histogram_KMC(k, genome, histogram_make=True, histogram_name=None):
-    kmc_file = genome
-    outname = genome.split('/')[-1]+'.res'
-    # creat KMC database
+
+def k_mer_global_histogram_KMC(k, genome, true_histogram=True, histogram_name=None, runKMC = False):
     # TODO: not exactly sure but KMC seems doesn't accept sequences spanning more than 4 lines
-    os.system('kmc -m24 -fa -ci0 -k%d %f %f ./kmc_global_count/' %(k, genome, outname))
-    outname = './kmc_global_count/' + outname
-    # read KMC data base to get count values
+    # create KMC database
+    KMC_outname = genome.split('/')[-1] + '.res'
+    outpath = os.path.dirname(os.path.realpath(__file__)) + '/kmc_global_count/'
+    if runKMC:
+        # -ci2 - exclude k-mers occurring less than 2 times
+        if '.fastq' in genome or '.fq' in genome:
+            os.system('/storage/home/xbz5174/work/tools/KMC-3.1.1/bin/kmc -fq -ci2 -k%d %s %s %s'
+                      %(k, genome, outpath + KMC_outname, outpath))
+        elif '.fasta' in genome or '.fa' in genome or '.fna' in genome:
+            os.system('/storage/home/xbz5174/work/tools/KMC-3.1.1/bin/kmc -fa -ci2 -k%d %s %s %s'
+                      %(k, genome, outpath + KMC_outname, outpath))
+        else:
+            print("Is file fa/fq? Check file and its name!", file=sys.stderr)
+            exit(2)
+    # read KMC database to get count values
     kmer_data_base = kmc.KMCFile()
-    kmer_data_base.OpenForListing(outname)
+    kmer_data_base.OpenForListing(outpath + KMC_outname)
     kmer_object = kmc.KmerAPI(kmer_data_base.Info().kmer_length)
     counter = kmc.Count()
-    counter_list = []
+    counter_dict = {}
     while kmer_data_base.ReadNextKmer(kmer_object, counter):
-        counter_list.append(int(counter.value))
-    dist = Counter(counter_list)
-    return dist
+        try:
+            counter_dict[int(counter.value)] = counter_dict[int(counter.value)] + 1
+        except KeyError:
+            counter_dict[int(counter.value)] = 1
+    # get distribution
+    dist = np.zeors(max(counter_dict.values()))
+    for _k, _v in counter_dict.items():
+        dist[_k] = _v
+    dist_norm = dist / np.sum(dist)
+    return dist, dist_norm
 
 
 def total_variation_Metric(histo1, histo2):
@@ -105,4 +119,5 @@ if __name__ == "__main__":
     for k in k_list:
         dist_global = k_mer_global_histogram(k=k, genome=file, histogram_make=True)
         print('k=%d k-mer global dist:' %k, dist_global)
-
+        dist_global = k_mer_global_histogram_KMC(k=k, genome=file, histogram_make=True, runKMC=True)
+        print('k=%d k-mer global dist:' % k, dist_global)
