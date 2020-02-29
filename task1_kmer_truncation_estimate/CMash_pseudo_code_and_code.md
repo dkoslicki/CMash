@@ -12,8 +12,8 @@
   - Step1 seems in trouble (overflow or due to lack of MEM or data is too big?)
   - Step2 should be ready soon (k61 results for demo)
 - Q:
-  - [ ] MakeStreamingDNADatabase.py will generate different database when repeat (md5 check dif)? The TST is same.
-  - [ ] Errors: step1 record in folder
+  - [x] MakeStreamingDNADatabase.py will generate different database when repeat (md5 check dif)? The TST is same.
+  - [x] Errors: step1 record in folder
     - Code was manually tested for smaller range on single filer (bingo)
     - For full data, it already run overnight (>5h on ICS) but no results generated
 
