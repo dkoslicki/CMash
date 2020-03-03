@@ -2,6 +2,7 @@ import numpy as np
 from CMash import MinHash as MH
 import seaborn
 import matplotlib.pyplot as plt
+from collections import Counter
 # Data prep
 
 # In bash:
@@ -69,9 +70,11 @@ def cluster_matrix(A_eps, A_indicies, cluster_eps=.01):
     return clusters_full_indicies#, cluster_LCAs(clusters_full_indicies, taxonomy)
 
 
-n = 1000
+n = 100
 cluster_eps = .01
-CEs = MH.import_multiple_from_single_hdf5(f"/home/dkoslicki/Desktop/CMash/dataForShaopeng/TrainingDatabase_{n}_k_60.h5")
+k = 20
+dir_base_name = "/home/dkoslicki/Data/Repos/CMash/dataForShaopeng/"
+CEs = MH.import_multiple_from_single_hdf5(f"{dir_base_name}TrainingDatabase_{n}_k_{k}.h5")
 mat = MH.form_jaccard_matrix(CEs)
 clusters_full_indicies = cluster_matrix(mat, range(n), cluster_eps=cluster_eps)
 cluster_sizes = [len(x) for x in clusters_full_indicies]
@@ -81,13 +84,33 @@ print(len(max_cluster_indicies))
 sub_mat = mat[max_cluster_indicies,:][:,max_cluster_indicies]
 sub_CEs = [CEs[x] for x in max_cluster_indicies]
 out_file_names = [x.input_file_name.decode('utf-8') for x in sub_CEs]
-fid = open('/home/dkoslicki/Desktop/CMash/dataForShaopeng/to_select.txt', 'w')
+fid = open(f"{dir_base_name}to_select.txt", 'w')
 for name in out_file_names:
     fid.write(f"{name}\n")
 fid.close()
-seaborn.heatmap(sub_mat)
-plt.show()
-seaborn.clustermap(sub_mat)
+#seaborn.heatmap(sub_mat)
+#plt.show()
+clustergrid = seaborn.clustermap(sub_mat)
 plt.show()
 # to check the kinds of organisms
 #cat to_select.txt  | xargs -I{} sh -c 'zcat {} | head -n 1'
+
+
+# Get all the k_mers in all these sketches
+all_kmers = set()
+for CE in sub_CEs:
+    all_kmers.update(CE._kmers)
+print(len(all_kmers))
+
+# also get a list of all their counts
+all_counts = list()
+for CE in sub_CEs:
+    all_counts.extend(CE._counts)
+
+print(Counter(all_counts))
+
+# reordered indicies
+re_ordered_indicies = clustergrid.dendrogram_row.reordered_ind
+sub_mat_reordered = sub_mat[re_ordered_indicies, :][:, re_ordered_indicies]
+seaborn.heatmap(sub_mat_reordered)
+plt.show()
