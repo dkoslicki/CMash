@@ -21,6 +21,13 @@ from collections import Counter
 #python MakeStreamingDNADatabase.py ../dataForShaopeng/file_names_100.txt ../dataForShaopeng/TrainingDatabase_100_k_60.h5 -n 1000 -k 60 -v
 #python MakeStreamingDNADatabase.py ../dataForShaopeng/file_names_1000.txt ../dataForShaopeng/TrainingDatabase_1000_k_60.h5 -n 1000 -k 60 -v
 
+# cd /home/dkoslicki/Data/Repos/CMash/dataForShaopeng
+# rm file_names_100.txt
+# cd /home/dkoslicki/Data/Repos/CMash/dataForShaopeng/organism_files/organism_files
+# ls -U | head -n 100 | xargs -I{} sh -c 'readlink -f {} >> ../../file_names_100.txt'
+# cd ../../../scripts/
+# python MakeStreamingDNADatabase.py ../dataForShaopeng/file_names_100.txt ../dataForShaopeng/TrainingDatabase_100_k_20.h5 -n 1000 -k 20 -v
+
 
 def cluster_matrix(A_eps, A_indicies, cluster_eps=.01):
     """
@@ -114,3 +121,12 @@ re_ordered_indicies = clustergrid.dendrogram_row.reordered_ind
 sub_mat_reordered = sub_mat[re_ordered_indicies, :][:, re_ordered_indicies]
 seaborn.heatmap(sub_mat_reordered)
 plt.show()
+
+# then print out these file names
+sub_CEs_reordered = [sub_CEs[i] for i in re_ordered_indicies]
+out_file_names = [x.input_file_name.decode('utf-8') for x in sub_CEs_reordered]
+fid = open(f"{dir_base_name}to_select.txt", 'w')
+for name in out_file_names:
+    fid.write(f"{name}\n")
+fid.close()
+
