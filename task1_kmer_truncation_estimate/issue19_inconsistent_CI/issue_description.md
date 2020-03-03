@@ -22,14 +22,34 @@ Bloom filter size depends on the number of ks in the parameter, this may cause t
 
 ### Progress:
 
-1. auto-test pipe is done ready
+1. auto-test pipe is done ready, [click here](https://github.com/dkoslicki/CMash/blob/shaopeng/task1_kmer_truncation_estimate/issue19_inconsistent_CI/autotest_pipe.md) for more details
+
+2. test multiple ranges with max_k=20, results:
+
+   - [corrplot of 20-20-1 vs 12-20-4 / 16-20-2 / 14-20-3 / 10-20-5 vs 8-20-2](https://drive.google.com/open?id=1cM3X06e9OEHySM3SEBRD7QoQq1quQb0W)
+
+   - with md5sum check, all results except **20-20-1** are same
+
+   ```bash
+   61cc414ab45330d610eaeb9c6702ff07  merged_10-20-5_true_CI_results.csv
+   61cc414ab45330d610eaeb9c6702ff07  merged_12-20-4_true_CI_results.csv
+   61cc414ab45330d610eaeb9c6702ff07  merged_14-20-3_true_CI_results.csv
+   61cc414ab45330d610eaeb9c6702ff07  merged_16-20-2_true_CI_results.csv
+   0af72845361fa00a6786c7ace9a51f7b  merged_20-20-1_results.csv
+   61cc414ab45330d610eaeb9c6702ff07  merged_8-20-2_true_CI_results.csv
+   ```
+
+   - conclusion:
 
    ```bash
    #1: k-k-1 results are different with other start-end-gap results
    #2: ALL other start-end-gap results are identical
+   #3: possible reason does make sense, but when the size get high it won't influence the results, we may need more details for the affect of size.
    ```
 
    
+
+3. repeat multiple range test with max_k=40 (running):
 
 
 
@@ -49,14 +69,12 @@ Bloom filter size depends on the number of ks in the parameter, this may cause t
 
 ### Data location
 
-Note: 
+###### Note: 
 
 1. col and row of all tables are pre-sorted in same order, so each table is in symmatric design.
 2. each column is one output file from "StreamingQueryDNADatabase.py", so $f_{*j}$ means the CI calculated for file j vs all other files.
 
-
-
-Data:
+###### Data:
 
 1. range= 61-61-1 vs 4-61-1 (CMash manual processing data)
 
