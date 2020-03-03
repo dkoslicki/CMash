@@ -107,7 +107,7 @@ mv temp_runLog  TrainingDB_k${k_size}.log
 
 ###### get CI from k-k-1 input
 mkdir CI_from_${k_size}-${k_size}-1
-cd CI_from_kk1
+cd CI_from_${k_size}-${k_size}-1
 for file in `cat ${genome_files}`; do
   echo "processing $file"
   name=`echo ${file##*/}`
