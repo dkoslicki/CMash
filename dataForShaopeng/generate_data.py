@@ -21,13 +21,15 @@ from collections import Counter
 #python MakeStreamingDNADatabase.py ../dataForShaopeng/file_names_100.txt ../dataForShaopeng/TrainingDatabase_100_k_60.h5 -n 1000 -k 60 -v
 #python MakeStreamingDNADatabase.py ../dataForShaopeng/file_names_1000.txt ../dataForShaopeng/TrainingDatabase_1000_k_60.h5 -n 1000 -k 60 -v
 
+################################################
+# Simon stuff
 # cd /home/dkoslicki/Data/Repos/CMash/dataForShaopeng
 # rm file_names_100.txt
 # cd /home/dkoslicki/Data/Repos/CMash/dataForShaopeng/organism_files/organism_files
-# ls -U | head -n 100 | xargs -I{} sh -c 'readlink -f {} >> ../../file_names_100.txt'
+# ls | head -n 100 | xargs -I{} sh -c 'readlink -f {} >> ../../file_names_100.txt'
 # cd ../../../scripts/
 # python MakeStreamingDNADatabase.py ../dataForShaopeng/file_names_100.txt ../dataForShaopeng/TrainingDatabase_100_k_20.h5 -n 1000 -k 20 -v
-
+#################################################
 
 def cluster_matrix(A_eps, A_indicies, cluster_eps=.01):
     """
@@ -83,7 +85,7 @@ k = 20
 dir_base_name = "/home/dkoslicki/Data/Repos/CMash/dataForShaopeng/"
 CEs = MH.import_multiple_from_single_hdf5(f"{dir_base_name}TrainingDatabase_{n}_k_{k}.h5")
 mat = MH.form_jaccard_matrix(CEs)
-clusters_full_indicies = cluster_matrix(mat, range(n), cluster_eps=cluster_eps)
+clusters_full_indicies = cluster_matrix(mat, range(len(CEs)), cluster_eps=cluster_eps)
 cluster_sizes = [len(x) for x in clusters_full_indicies]
 max_cluster_loc = np.argmax(cluster_sizes)
 max_cluster_indicies = list(clusters_full_indicies[max_cluster_loc])
@@ -102,7 +104,8 @@ plt.show()
 # to check the kinds of organisms
 #cat to_select.txt  | xargs -I{} sh -c 'zcat {} | head -n 1'
 
-
+####################################################################
+# Simon stuff
 # Get all the k_mers in all these sketches
 all_kmers = set()
 for CE in sub_CEs:
@@ -129,4 +132,48 @@ fid = open(f"{dir_base_name}to_select.txt", 'w')
 for name in out_file_names:
     fid.write(f"{name}\n")
 fid.close()
+
+# Then print these out into something readable by matlab
+# Basically, with the 100, find a good cluster, write the to to_select.txt
+# python MakeStreamingDNADatabase.py ../dataForShaopeng/to_select.txt ../dataForShaopeng/TrainingDatabase_100_k_20.h5 -n 1000 -k 20 -v
+# Then read them in and make the A matrices
+# TODO: Fix the CEs ordering as I think they are being ordered alphabetically and not in the way they were given in the to_select.txt file
+n = 100
+k = 20
+dir_base_name = "/home/dkoslicki/Data/Repos/CMash/dataForShaopeng/"
+import_list = []
+with open(f"{dir_base_name}to_select.txt", 'r') as fid:
+    for line in fid.readlines():
+        import_list.append(line.strip())
+
+CEs = MH.import_multiple_from_single_hdf5(f"{dir_base_name}TrainingDatabase_{n}_k_{k}.h5")
+# reorder them since they are auto-imported alphabetically, not in the order of the to_select.txt input for training
+CEs_reordered = []
+for file_name in import_list:
+    for CE in CEs:
+        if CE.input_file_name.decode('utf-8') == file_name:
+            CEs_reordered.append(CE)
+CEs = CEs_reordered
+mat = MH.form_jaccard_matrix(CEs)
+seaborn.heatmap(mat)  # sanity check
+
+# get the basis (all kmers in all CEs)
+all_kmers = set()
+for CE in CEs:
+    all_kmers.update(CE._kmers)
+
+basis_kmers = list(all_kmers)
+A_mat = np.zeros((len(basis_kmers), len(CEs)))
+for j in range(len(CEs)):
+    CE = CEs[j]
+    CE_kmers = set(CE._kmers)
+    CE_kmers_to_counts = dict()
+    for (kmer, count) in zip(CE._kmers, CE._counts):
+        CE_kmers_to_counts[kmer] = count
+    for i in range(len(basis_kmers)):
+        kmer = basis_kmers[i]
+        if kmer in CE_kmers:
+            A_mat[i, j] = CE_kmers_to_counts[kmer]
+
+
 
