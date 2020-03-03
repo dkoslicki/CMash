@@ -137,9 +137,8 @@ fid.close()
 # Basically, with the 100, find a good cluster, write the to to_select.txt
 # python MakeStreamingDNADatabase.py ../dataForShaopeng/to_select.txt ../dataForShaopeng/TrainingDatabase_100_k_20.h5 -n 1000 -k 20 -v
 # Then read them in and make the A matrices
-# TODO: Fix the CEs ordering as I think they are being ordered alphabetically and not in the way they were given in the to_select.txt file
 n = 100
-k = 20
+k = 50
 dir_base_name = "/home/dkoslicki/Data/Repos/CMash/dataForShaopeng/"
 import_list = []
 with open(f"{dir_base_name}to_select.txt", 'r') as fid:
@@ -175,5 +174,8 @@ for j in range(len(CEs)):
         if kmer in CE_kmers:
             A_mat[i, j] = CE_kmers_to_counts[kmer]
 
-
+seaborn.heatmap(A_mat)
+# dump it
+write_file = f"/home/dkoslicki/Dropbox/SimonFoucart/March 3 2020 Visit/TestDataForUnknownSpecies/A_{k}.csv"
+np.savetxt(write_file, A_mat, delimiter=",", fmt="%d")
 
