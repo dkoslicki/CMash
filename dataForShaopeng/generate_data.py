@@ -138,7 +138,7 @@ fid.close()
 # python MakeStreamingDNADatabase.py ../dataForShaopeng/to_select.txt ../dataForShaopeng/TrainingDatabase_100_k_20.h5 -n 1000 -k 20 -v
 # Then read them in and make the A matrices
 n = 100
-k = 50
+k = 250
 dir_base_name = "/home/dkoslicki/Data/Repos/CMash/dataForShaopeng/"
 import_list = []
 with open(f"{dir_base_name}to_select.txt", 'r') as fid:
@@ -155,6 +155,8 @@ for file_name in import_list:
 CEs = CEs_reordered
 mat = MH.form_jaccard_matrix(CEs)
 seaborn.heatmap(mat)  # sanity check
+plt.show()
+print(f"Eta: {np.max(np.sum(mat[19:,:19],1))}")
 
 # get the basis (all kmers in all CEs)
 all_kmers = set()
@@ -175,6 +177,8 @@ for j in range(len(CEs)):
             A_mat[i, j] = CE_kmers_to_counts[kmer]
 
 seaborn.heatmap(A_mat)
+seaborn.clustermap(A_mat)
+
 # dump it
 write_file = f"/home/dkoslicki/Dropbox/SimonFoucart/March 3 2020 Visit/TestDataForUnknownSpecies/A_{k}.csv"
 np.savetxt(write_file, A_mat, delimiter=",", fmt="%d")
