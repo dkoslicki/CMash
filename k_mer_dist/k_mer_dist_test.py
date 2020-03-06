@@ -152,16 +152,19 @@ def histogram_draw_multi(dist_norm_1, dist_norm_2, genome, histogram_name=None, 
     pass
 
 
-def total_variation_Metric(histo1, histo2, occur_at_least=1):
+def total_variation_Metric(histo1, histo2, occur_at_least=1, to_normalize=True):
     # histo1, histo2 are normalized distributions
-    return L1_metric(histo1, histo2, occur_at_least)/2
+    return L1_metric(histo1, histo2, occur_at_least, to_normalize)/2
 
 
-def wasserstein_metric(histo1, histo2, occur_at_least=1):
+def wasserstein_metric(histo1, histo2, occur_at_least=1, to_normalize=True):
     # histo1, histo2 are normalized distributions
     # make two distribution have the same dim
     histo1[:occur_at_least] = np.zeros(occur_at_least)
     histo2[:occur_at_least] = np.zeros(occur_at_least)
+    if to_normalize:
+        histo1 = histo1/sum(histo1)
+        histo2 = histo2/sum(histo2)
     if len(histo1) > len(histo2):
         _padding = np.zeros(len(histo1)-len(histo2))
         histo2 = np.concatenate((histo2, _padding))
@@ -171,11 +174,14 @@ def wasserstein_metric(histo1, histo2, occur_at_least=1):
     return wasserstein_distance(histo1, histo2)
 
 
-def L1_metric (histo1, histo2, occur_at_least=1):
+def L1_metric (histo1, histo2, occur_at_least=1, to_normalize=True):
     # histo1, histo2 are normalized distributions
     # make two distribution have the same dim
     histo1[:occur_at_least] = np.zeros(occur_at_least)
     histo2[:occur_at_least] = np.zeros(occur_at_least)
+    if to_normalize:
+        histo1 = histo1/sum(histo1)
+        histo2 = histo2/sum(histo2)
     if len(histo1) > len(histo2):
         _padding = np.zeros(len(histo1)-len(histo2))
         histo2 = np.concatenate((histo2, _padding))
