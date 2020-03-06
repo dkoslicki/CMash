@@ -26,7 +26,8 @@ except ImportError:
         from CMash import MinHash as MH
 
 
-def k_mer_sketch_histogram(n, k, genome, true_histogram=True, histogram_name=None, rev_comp=False):
+def k_mer_sketch_histogram(n, k, genome, rev_comp=False):
+    n = int(n); k = int(k)
     # input: n - sketch size (# Hash function), k - k-mer size, genome - fasta(.gz)
     # return np.array of distribution and histogram
     KMC_outname = genome.split('/')[-1] + '.ksize' + str(k) + '.res'
@@ -68,12 +69,10 @@ def k_mer_sketch_histogram(n, k, genome, true_histogram=True, histogram_name=Non
     else:
         with open(outpath + KMC_outname + '.sketch' + str(n) + '.pickle', 'rb') as config_sketch_file:
             dist, dist_norm = pickle.load(config_sketch_file)
-    if true_histogram:
-        histogram_draw(dist_norm, genome, histogram_name, k, n)
     return dist, dist_norm  # np.array(list(dist))
 
 
-def k_mer_global_histogram_KMC(k, genome, true_histogram=True, histogram_name=None, runKMC = False):
+def k_mer_global_histogram_KMC(k, genome, runKMC=False):
     # create KMC database
     KMC_outname = genome.split('/')[-1] + '.ksize' + str(k) + '.res'
     outpath = os.path.dirname(os.path.realpath(__file__)) + '/kmc_global_count/'
@@ -113,8 +112,6 @@ def k_mer_global_histogram_KMC(k, genome, true_histogram=True, histogram_name=No
     else:
         with open(outpath + KMC_outname + '.global.pickle', 'rb') as config_global_file:
             dist, dist_norm = pickle.load(config_global_file)
-    if true_histogram:
-        histogram_draw(dist_norm, genome, histogram_name, k)
     return dist, dist_norm
 
 
@@ -123,7 +120,7 @@ def histogram_draw(dist, genome, histogram_name=None, k=0, n=0, rm_occur_leq=0, 
         figure_name = histogram_name
     else:
         species_name = genome.split('/')[-1].split('.')[0]
-        figure_name = species_name + '-k' + str(k) + '-n' + str(n)
+        figure_name = 'Dist_k-mer_%s_ksize%d_sketch%d.png' % (species_name, k, n)
 
     dist = np.array(dist)
     # remove counts if the occurrence is smaller than or equal to rm_occur_leq
@@ -131,7 +128,8 @@ def histogram_draw(dist, genome, histogram_name=None, k=0, n=0, rm_occur_leq=0, 
     if to_normalize:
         dist = dist/sum(dist)
     if to_log:
-        dist = np.nan_to_num(np.log(dist), nan=0.0, neginf=0)
+        # dist = np.nan_to_num(np.log(dist), nan=0.0, neginf=0)
+        dist = np.log(dist)
     # index + 1 is the occurrence of k-mer
 
     plt.clf()
@@ -143,13 +141,12 @@ def histogram_draw(dist, genome, histogram_name=None, k=0, n=0, rm_occur_leq=0, 
     else:
         plt.ylabel('# such k-mers')
     plt.xlabel('# occurrences of k-mer')
+    plt.title(figure_name)
     ax = sns.scatterplot(x=y_pos, y=dist, marker='+', s=1)
-    plt.savefig(os.path.dirname(os.path.realpath(__file__)) + '/kmc_global_count/' +
-               'Dist_k-mer_%s_ksize%d_sketch%d.test.png' %(figure_name, k, n))
-    return 0
+    plt.savefig(os.path.dirname(os.path.realpath(__file__)) + '/kmc_global_count/' + figure_name)
 
 
-def histogram_draw_two(dist_norm_1, dist_norm_2, genome, histogram_name=None, k=0, n=0):
+def histogram_draw_multi(dist_norm_1, dist_norm_2, genome, histogram_name=None, k=0, n=0):
     # TODO: put two histo in one figure
     # bar chart with 2 bars
     pass
