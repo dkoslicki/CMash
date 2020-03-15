@@ -10,12 +10,14 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))) +
 import MinHash as MH
 import itertools
 
-__location__ = "/Users/isaacthomas/miniconda3/envs/CMashenv/bin/"
+__location__ = "your KMC location here"
 numThreads=8
 #cmashBaseName="cmash_db_n1000_k60"
 cmashBaseName="TrainingDatabase"
 cmashDatabase=cmashBaseName + ".h5"
 cmashDump=cmashBaseName + "_dump.fa"
+db_21mers_loc = 'TrainingDatabase_dump'
+
 
 kmc_loc = __location__ + 'kmc'
 kmc_dump_loc = __location__ + 'kmc_dump'
@@ -70,18 +72,14 @@ def count_training_kmers():
     subprocess.Popen([kmc_loc, '-v', '-k21', '-fa', '-ci1', \
             '-t'+str(numThreads), '-jlogsample', cmashDump,\
             cmashBaseName+'_dump', '.']).wait()
+
+
 """
-This source is from the Metalign repository.
-Opens a new KMC subprocess to do the following:
-    1. Count the kmers in the input metagenomic sample.
-    2. Intersect the dumped training db kmers with the 
-       kmers in the metagenomic sample.
-The kmers in the intersection are written to a file as-is. Then,
-the contents of the file are read and rewritten in FASTA format. 
+Opens a KMC process to count the dumped kmers from the input sample.
+-ci1 excludes all kmers which appear less than one time (excludes no kmers).
 """
-def count_and_intersect(args):
+def count_input_kmers(args):
     #db_21mers_loc = args.data + 'cmash_db_n1000_k60_dump'
-    db_21mers_loc = 'TrainingDatabase_dump'
     if args.input_type == 'fastq':
             type_arg = '-fq'
     else:
@@ -92,6 +90,14 @@ def count_and_intersect(args):
             '-t' + str(args.threads), '-jlog_sample', args.reads,
             args.temp_dir + 'reads_21mers', args.temp_dir]).wait()
 
+"""
+This source is from the Metalign repository.
+Opens a new KMC process to intersect the kmers
+from the input sample and the training database.
+The kmers in the intersection are written to a file as-is. Then,
+the contents of the file are read and rewritten in FASTA format. 
+"""
+def intersect(args):
     #intersect kmers
     print("Intersecting input sample & training sample...")
     subprocess.Popen([kmc_tools_loc, 'simple', db_21mers_loc,
@@ -99,7 +105,7 @@ def count_and_intersect(args):
             args.temp_dir + '21mers_intersection']).wait()
 
     #dump intersection
-    print ("dumping intersection")
+    print ("dumping intersection to FASTA file")
     subprocess.Popen([kmc_dump_loc, args.temp_dir + '21mers_intersection',
             args.temp_dir + '21mers_intersection_dump']).wait()
 
@@ -116,4 +122,5 @@ if __name__ == "__main__":
     args = parse_args()
     dump_training_kmers()
     count_training_kmers()
-    count_and_intersect(args)
+    count_input_kmers(args)
+    intersect(args)
