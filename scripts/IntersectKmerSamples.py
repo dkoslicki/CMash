@@ -9,6 +9,7 @@ import argparse, math, os, subprocess, sys, tempfile
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + "/CMash")
 import MinHash as MH
 import itertools
+from h5py import File
 
 __location__ = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + "/KMC/bin/"
 numThreads=8
@@ -16,9 +17,18 @@ numThreads=8
 cmashBaseName="TrainingDatabase"
 cmashDatabase=cmashBaseName + ".h5"
 cmashDump=cmashBaseName + "_dump.fa"
-db_21mers_loc = 'TrainingDatabase_dump'
+db_kmers_loc = 'TrainingDatabase_dump'
 
+"""Reads the training database (in HDF5 format) 
+   and returns the uniform size of the k-mers.
+"""   
+def get_kmer_size():
+    with File(cmashDatabase, 'r') as db:
+        ce = db["CountEstimators"]
+        ts = ce["training_set.fa"]
+        return ts.attrs["ksize"]
 
+ksize = get_kmer_size()
 kmc_loc = __location__ + 'kmc'
 kmc_dump_loc = __location__ + 'kmc_dump'
 kmc_tools_loc = __location__ + 'kmc_tools'
@@ -69,7 +79,7 @@ def count_training_kmers():
         subprocess.Popen(['rm', cmashBaseName+".kmc_pre"], stderr=f).wait() 
         subprocess.Popen(['rm', cmashBaseName+".kmc_suf"], stderr=f).wait() 
 
-    subprocess.Popen([kmc_loc, '-v', '-k21', '-fa', '-ci1', \
+    subprocess.Popen([kmc_loc, '-v', '-k'+str(ksize), '-fa', '-ci1', \
             '-t'+str(numThreads), '-jlogsample', cmashDump,\
             cmashBaseName+'_dump', '.']).wait()
 
@@ -79,16 +89,16 @@ Opens a KMC process to count the dumped kmers from the input sample.
 -ci1 excludes all kmers which appear less than one time (excludes no kmers).
 """
 def count_input_kmers(args):
-    #db_21mers_loc = args.data + 'cmash_db_n1000_k60_dump'
+    #db_kmers_loc = args.data + 'cmash_db_n1000_k60_dump'
     if args.input_type == 'fastq':
             type_arg = '-fq'
     else:
             type_arg = '-fa'
 
     #count kmers in the input sample (not the training db)
-    subprocess.Popen([kmc_loc, '-v', '-k21', type_arg, '-ci1',
+    subprocess.Popen([kmc_loc, '-v', '-k'+str(ksize), type_arg, '-ci1',
             '-t' + str(args.threads), '-jlog_sample', args.reads,
-            args.temp_dir + 'reads_21mers', args.temp_dir]).wait()
+            args.temp_dir + 'reads_'+str(ksize)+'mers', args.temp_dir]).wait()
 
 """
 This source is from the Metalign repository.
@@ -100,18 +110,18 @@ the contents of the file are read and rewritten in FASTA format.
 def intersect(args):
     #intersect kmers
     print("Intersecting input sample & training sample...")
-    subprocess.Popen([kmc_tools_loc, 'simple', db_21mers_loc,
-            args.temp_dir + 'reads_21mers', 'intersect',
-            args.temp_dir + '21mers_intersection']).wait()
+    subprocess.Popen([kmc_tools_loc, 'simple', db_kmers_loc,
+            args.temp_dir + 'reads_'+str(ksize)+'mers', 'intersect',
+            args.temp_dir + str(ksize)+'mers_intersection']).wait()
 
     #dump intersection
     print ("dumping intersection to FASTA file")
-    subprocess.Popen([kmc_dump_loc, args.temp_dir + '21mers_intersection',
-            args.temp_dir + '21mers_intersection_dump']).wait()
+    subprocess.Popen([kmc_dump_loc, args.temp_dir + str(ksize)+'mers_intersection',
+            args.temp_dir + str(ksize)+'mers_intersection_dump']).wait()
 
     #read intersection & rewrite in fasta format
-    with(open(args.temp_dir + '21mers_intersection_dump', 'r')) as infile:
-            with(open(args.temp_dir + '21mers_intersection_dump.fa', 'w')) as fasta:
+    with(open(args.temp_dir + str(ksize)+'mers_intersection_dump', 'r')) as infile:
+            with(open(args.temp_dir + str(ksize)+'mers_intersection_dump.fa', 'w')) as fasta:
                     for line in infile:
                             seq = line.split()[0]
                             fasta.write('>seq' + '\n' + seq + '\n')
@@ -119,6 +129,7 @@ def intersect(args):
 
 
 if __name__ == "__main__":
+    get_kmer_size()
     args = parse_args()
     dump_training_kmers()
     count_training_kmers()
