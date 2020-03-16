@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))) +
 import MinHash as MH
 import itertools
 
-__location__ = "../KMC/bin/"
+__location__ = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + "/KMC/bin/"
 numThreads=8
 #cmashBaseName="cmash_db_n1000_k60"
 cmashBaseName="TrainingDatabase"
