@@ -120,6 +120,8 @@ Auto test pipe for "modified" CMash:
    - what I've tried,
      - a3: times another 10 in WriteBF function to make sure the BF size is large enough & larger than all previous running
      - a4: manually fix len(range_k) to 10 for BF size so that all BF are large enough & same & larger than previous running
+   - output files:
+     - https://drive.google.com/open?id=1KcIiWhull92j7yEPS-91p40rEIP8dYyt
    - results:
      - Increasing BF size does NOT influence the results
      - Fix BF size does NOT influence the results
