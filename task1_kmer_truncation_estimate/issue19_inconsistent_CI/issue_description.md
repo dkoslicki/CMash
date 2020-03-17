@@ -27,6 +27,25 @@ Current update:
 
 
 
+Test pipe:
+
+```bash
+# usage:
+bash <pipe> -h #for help information
+bash <pipe> -r range1,range2,...  #it will automatically run max-max-1, so don't need to include it in the ranges
+
+Auto test pipe with original CMash:
+/gpfs/group/dmk333/default/shaopeng/projects/202002_CMash_test/src/a4.0_CMash_auto_test_pipe.sh
+
+Auto test pipe for "modified" CMash:
+# this's a local copy of CMash/shaopeng branch
+# I edited the "StreamingQueryDNADatabase.py" file directly
+/gpfs/group/dmk333/default/shaopeng/projects/202002_CMash_test/src/a5.1_auto_test_pipe_for_edited_CMash_script.sh
+
+```
+
+
+
 ---
 
 ### Follow up:
