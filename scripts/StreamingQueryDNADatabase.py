@@ -222,7 +222,8 @@ if __name__ == '__main__':
 			for i in range(len(seq) - small_k_size + 1):  # look at all k-mers
 				kmer = seq[i:i + small_k_size]
 				possible_match = False
-				if kmer not in seen_kmers:  # if we should process it
+				#if kmer not in seen_kmers:  # if we should process it
+				if True:
 					#if kmer in all_kmers_bf:  # if we should process it
 					if True:
 						match_list, saw_match = self.return_matches(kmer, 0)

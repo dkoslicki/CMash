@@ -67,7 +67,7 @@ print(f"True containment 104 containment at {max_k}: {len(kmer_sets[0].intersect
 print(f"True containment 109 containment at {max_k}: {len(kmer_sets[0].intersection(kmer_sets[1])) / float(len(kmer_sets[1]))}")
 
 # and check the containments with rev-comps
-max_k = 60
+max_k = 51
 kmer_sets_rev = []
 for i, input_file in enumerate(import_list):
     kmer_sets_rev.append(set())

@@ -48,12 +48,13 @@ def parseNumList(input):
 
 
 # read in the arguments
-k_range = parseNumList("60-61-1")
+my_range = "50-61-1"
+k_range = parseNumList(my_range)
 if k_range is None:
     raise Exception("The --range argument is required, no matter what the help menu says.")
 training_data = "/home/dkoslicki/Desktop/CMash/dataForShaopeng/test_issue/TrainingDatabase_k_61.h5"
 query_file = "/home/dkoslicki/Desktop/CMash/dataForShaopeng/small_data/taxid_1909294_104_genomic.fna.gz"
-results_file = "/home/dkoslicki/Desktop/CMash/dataForShaopeng/test_issue/out_61_61_1.csv"
+results_file = f"/home/dkoslicki/Desktop/CMash/dataForShaopeng/test_issue/out_{my_range.replace('-','_')})"
 npz_file = os.path.splitext(results_file)[0] + "_hit_matrix.npz"
 num_threads = 12
 location_of_thresh = -1
@@ -203,7 +204,8 @@ class Counters(object):
         for i in range(len(seq) - small_k_size + 1):  # look at all k-mers
             kmer = seq[i:i + small_k_size]
             possible_match = False
-            if kmer not in seen_kmers:  # if we should process it
+            #if kmer not in seen_kmers:  # if we should process it
+            if True:
                 #if kmer in all_kmers_bf:  # if we should process it  # FIXME: problem might be here since if I remove the bloom filter, everything appears to work just fine....
                 if True:
                     match_list, saw_match = self.return_matches(kmer, 0)
@@ -219,7 +221,8 @@ class Counters(object):
             if possible_match:
                 for other_k_size in [x for x in k_range[1:] if i + x <= len(seq)]:
                     kmer = seq[i:i + other_k_size]
-                    if kmer in all_kmers_bf:
+                    #if kmer in all_kmers_bf:
+                    if True:
                         k_size_loc = k_range.index(other_k_size)
                         match_list, saw_match = self.return_matches(kmer, k_size_loc)
                         if saw_match:
