@@ -54,7 +54,7 @@ print(f"With revcomp, normalize without contain 109 @ {k_size}: {len(set(reduce_
 # FIXME: problem remains in the very first column of the output
 
 # Let's check what the actual containments are so we have a ground truth to check against
-max_k = 61
+max_k = 60
 kmer_sets = []
 for i, input_file in enumerate(import_list):
     kmer_sets.append(set())
@@ -67,7 +67,7 @@ print(f"True containment 104 containment at {max_k}: {len(kmer_sets[0].intersect
 print(f"True containment 109 containment at {max_k}: {len(kmer_sets[0].intersection(kmer_sets[1])) / float(len(kmer_sets[1]))}")
 
 # and check the containments with rev-comps
-max_k = 61
+max_k = 60
 kmer_sets_rev = []
 for i, input_file in enumerate(import_list):
     kmer_sets_rev.append(set())
@@ -82,4 +82,5 @@ print(f"True containment 104 at {max_k} with rev-comp: {len(kmer_sets_rev[0].int
 print(f"True containment 109 at {max_k} with rev-comp: {len(kmer_sets_rev[0].intersection(kmer_sets_rev[1])) / float(len(kmer_sets_rev[1]))}")
 
 
+# FIXME: problem is with the bloom filter. See StreamingQueryScript.py lines 207 ish, don't use the bloom filter and things go fine
 

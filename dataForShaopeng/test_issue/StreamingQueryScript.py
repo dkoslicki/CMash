@@ -48,7 +48,7 @@ def parseNumList(input):
 
 
 # read in the arguments
-k_range = parseNumList("61-61-1")
+k_range = parseNumList("60-61-1")
 if k_range is None:
     raise Exception("The --range argument is required, no matter what the help menu says.")
 training_data = "/home/dkoslicki/Desktop/CMash/dataForShaopeng/test_issue/TrainingDatabase_k_61.h5"
@@ -176,8 +176,7 @@ class Counters(object):
         """ Get all the matches in the trie with the kmer prefix"""
         match_info = set()
         to_return = []
-        for kmer in [input_kmer,
-                     khmer.reverse_complement(input_kmer)]:  # FIXME: might need to break if one of them matches
+        for kmer in [input_kmer, khmer.reverse_complement(input_kmer)]:  # FIXME: might need to break if one of them matches
             # for kmer in [input_kmer]:
             prefix_matches = tree.keys(kmer)  # get all the k-mers whose prefix matches
             # match_info = set()
@@ -205,11 +204,11 @@ class Counters(object):
             kmer = seq[i:i + small_k_size]
             possible_match = False
             if kmer not in seen_kmers:  # if we should process it
-                if kmer in all_kmers_bf:  # if we should process it
+                #if kmer in all_kmers_bf:  # if we should process it  # FIXME: problem might be here since if I remove the bloom filter, everything appears to work just fine....
+                if True:
                     match_list, saw_match = self.return_matches(kmer, 0)
                     if saw_match:  # TODO: note, I *could* add all the trie matches and their sub-kmers to the seen_kmers
-                        seen_kmers.add(
-                            kmer)  # FIXME: might also be able to add the reverse complements in here, instead of adjusting the division down near line 332
+                        seen_kmers.add(kmer)  # FIXME: might also be able to add the reverse complements in here, instead of adjusting the division down near line 332
                         seen_kmers.add(khmer.reverse_complement(kmer))
                         to_return.extend(match_list)
                     possible_match = True
@@ -289,8 +288,7 @@ for hash_loc, k_size_loc, kmer_loc in match_tuples:
         unique_kmers[hash_loc] = set()
     k_size = k_range[k_size_loc]
     kmer = sketches[hash_loc]._kmers[kmer_loc][:k_size]
-    if kmer not in unique_kmers[
-        hash_loc]:  # if you've seen this k-mer before, don't add it. NOTE: this makes sure we don't over count
+    if kmer not in unique_kmers[hash_loc]:  # if you've seen this k-mer before, don't add it. NOTE: this makes sure we don't over count
         row_ind_dict[k_size].append(hash_loc)
         col_ind_dict[k_size].append(kmer_loc)
         value_dict[k_size].append(1)
@@ -310,8 +308,7 @@ if verbose:
 if verbose:
     print("Computing containment indicies")
     t0 = timeit.default_timer()
-containment_indices = np.zeros((len(sketches), len(
-    k_range)))  # TODO: could make this thing sparse, or do the filtering for above threshold here
+containment_indices = np.zeros((len(sketches), len(k_range)))  # TODO: could make this thing sparse, or do the filtering for above threshold here
 for k_size_loc in range(len(k_range)):
     containment_indices[:, k_size_loc] = (hit_matrices[k_size_loc].sum(axis=1).ravel())  # /float(num_hashes))
 
@@ -319,8 +316,7 @@ for k_size_loc in range(len(k_range)):
     k_size = k_range[k_size_loc]
     for hash_loc in np.where(containment_indices[:, k_size_loc])[0]:  # find the genomes with non-zero containment
         unique_kmers = set()
-        for kmer in sketches[
-            hash_loc]._kmers:  # FIXME: problem is right here since I am not counting the revcomps, though the Counters() *do* use revcomps
+        for kmer in sketches[hash_loc]._kmers:  # FIXME: problem is right here since I am not counting the revcomps, though the Counters() *do* use revcomps
             unique_kmers.add(kmer[:k_size])  # find the unique k-mers
         # unique_kmers.add(khmer.reverse_complement(kmer[:k_size]))  # also add the rev-comps since I streaming queried them
         containment_indices[hash_loc, k_size_loc] /= float(len(unique_kmers))  # divide by the unique num of k-mers

@@ -1,6 +1,6 @@
 #!/bin/bash
 # make the training database
-#/home/dkoslicki/anaconda3/envs/CMash/bin/python ../../scripts/MakeStreamingDNADatabase.py file_names.txt TrainingDatabase_k_61.h5 -n 1000 -k 61 -v
+/home/dkoslicki/anaconda3/envs/CMash/bin/python ../../scripts/MakeStreamingDNADatabase.py file_names.txt TrainingDatabase_k_61.h5 -n 1000 -k 61 -v
 
 # remove all output files
 rm out*
