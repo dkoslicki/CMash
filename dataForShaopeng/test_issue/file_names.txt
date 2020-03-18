@@ -1,2 +1,0 @@
-/home/dkoslicki/Desktop/CMash/dataForShaopeng/small_data/taxid_1909294_104_genomic.fna.gz
-/home/dkoslicki/Desktop/CMash/dataForShaopeng/small_data/taxid_1909294_109_genomic.fna.gz
