@@ -224,6 +224,7 @@ if __name__ == '__main__':
 				possible_match = False
 				if kmer not in seen_kmers:  # if we should process it (hasn't been seen before)
 					if kmer in all_kmers_bf:  # if we should process it (in time O(1) check if it could be in the TST)
+					#if True:
 						match_list, saw_match = self.return_matches(kmer, 0)
 						if saw_match:
 							seen_kmers.add(kmer)
@@ -237,12 +238,13 @@ if __name__ == '__main__':
 					for other_k_size in [x for x in k_range[1:] if i+x <= len(seq)]:
 						kmer = seq[i:i + other_k_size]
 						if kmer in all_kmers_bf:
+						#if True:
 							k_size_loc = k_range.index(other_k_size)
 							match_list, saw_match = self.return_matches(kmer, k_size_loc)
 							if saw_match:
 								to_return.extend(match_list)
 						else:
-							break  # if you didn't see a match at a smaller k-length, you won't at a larger one
+							pass  # if you didn't see a match at a smaller k-length, you won't at a larger one
 			return to_return
 
 
@@ -469,8 +471,8 @@ if __name__ == '__main__':
 				unique_kmers = set()
 				for kmer in CEs[hash_loc]._kmers:
 					unique_kmers.add(kmer[:k_size])  # find the unique k-mers
-				#containment_indices[hash_loc, k_size_loc] /= float(len(unique_kmers))  # FIXME: this doesn't seem like the right way to normalize, but apparently it is!
-				containment_indices[hash_loc, k_size_loc] /= float(num_unique[hash_loc, k_size_loc])  # FIXME: in small tests, this seems to give better results. To be revisted.
+				containment_indices[hash_loc, k_size_loc] /= float(len(unique_kmers))  # FIXME: this doesn't seem like the right way to normalize, but apparently it is!
+				#containment_indices[hash_loc, k_size_loc] /= float(num_unique[hash_loc, k_size_loc])  # FIXME: in small tests, this seems to give better results. To be revisted.
 
 		# spit out these results
 		results = dict()
