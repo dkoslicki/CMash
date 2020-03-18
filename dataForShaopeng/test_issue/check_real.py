@@ -1,5 +1,6 @@
 import sys
 import khmer
+import screed
 sys.path.append("/home/dkoslicki/Desktop/CMash/")
 from CMash import MinHash as MH
 database = "/home/dkoslicki/Desktop/CMash/dataForShaopeng/test_issue/TrainingDatabase_k_61.h5"
@@ -38,10 +39,10 @@ print(f"Contain 104 @ {k_size}: {len(reduce_to(CEs[0]._kmers,k_size).intersectio
 print(f"Contain 109 @ {k_size}: {len(reduce_to(CEs[0]._kmers,k_size).intersection(reduce_to(CEs[1]._kmers,k_size))) / float(len(reduce_to(CEs[1]._kmers,k_size)))}")
 
 print(f"With revcomp contain 104 @ {k_size}: {len(set(reduce_to_with_revcomp(CEs[0]._kmers,k_size)).intersection(set(reduce_to_with_revcomp(CEs[1]._kmers,k_size)))) / float(len(set(reduce_to_with_revcomp(CEs[0]._kmers,k_size))))}")
-print(f"With revcomp contain 104 @ {k_size}: {len(set(reduce_to_with_revcomp(CEs[0]._kmers,k_size)).intersection(set(reduce_to_with_revcomp(CEs[1]._kmers,k_size)))) / float(len(set(reduce_to_with_revcomp(CEs[1]._kmers,k_size))))}")
+print(f"With revcomp contain 109 @ {k_size}: {len(set(reduce_to_with_revcomp(CEs[0]._kmers,k_size)).intersection(set(reduce_to_with_revcomp(CEs[1]._kmers,k_size)))) / float(len(set(reduce_to_with_revcomp(CEs[1]._kmers,k_size))))}")
 
 print(f"With revcomp, normalize without contain 104 @ {k_size}: {len(set(reduce_to_with_revcomp(CEs[0]._kmers,k_size)).intersection(set(reduce_to_with_revcomp(CEs[1]._kmers,k_size)))) / float(len(set(reduce_to(CEs[0]._kmers,k_size))))}")
-print(f"With revcomp, normalize without contain 104 @ {k_size}: {len(set(reduce_to_with_revcomp(CEs[0]._kmers,k_size)).intersection(set(reduce_to_with_revcomp(CEs[1]._kmers,k_size)))) / float(len(set(reduce_to(CEs[1]._kmers,k_size))))}")
+print(f"With revcomp, normalize without contain 109 @ {k_size}: {len(set(reduce_to_with_revcomp(CEs[0]._kmers,k_size)).intersection(set(reduce_to_with_revcomp(CEs[1]._kmers,k_size)))) / float(len(set(reduce_to(CEs[1]._kmers,k_size))))}")
 
 # FIXME: need to check what the containment looks like when I allow either revcomp or non-revcomp matches
 
@@ -53,5 +54,32 @@ print(f"With revcomp, normalize without contain 104 @ {k_size}: {len(set(reduce_
 # FIXME: problem remains in the very first column of the output
 
 # Let's check what the actual containments are so we have a ground truth to check against
+max_k = 61
+kmer_sets = []
+for i, input_file in enumerate(import_list):
+    kmer_sets.append(set())
+    for record in screed.open(input_file):
+        seq = record.sequence
+        for j in range(len(seq) - max_k + 1):
+            kmer_sets[i].add(seq[j:j + max_k])
+
+print(f"True containment 104 containment at {max_k}: {len(kmer_sets[0].intersection(kmer_sets[1])) / float(len(kmer_sets[0]))}")
+print(f"True containment 109 containment at {max_k}: {len(kmer_sets[0].intersection(kmer_sets[1])) / float(len(kmer_sets[1]))}")
+
+# and check the containments with rev-comps
+max_k = 61
+kmer_sets_rev = []
+for i, input_file in enumerate(import_list):
+    kmer_sets_rev.append(set())
+    for record in screed.open(input_file):
+        seq = record.sequence
+        for j in range(len(seq) - max_k + 1):
+            kmer_sets_rev[i].add(seq[j:j + max_k])
+            kmer_sets_rev[i].add(khmer.reverse_complement(seq[j:j + max_k]))
+
+
+print(f"True containment 104 at {max_k} with rev-comp: {len(kmer_sets_rev[0].intersection(kmer_sets_rev[1])) / float(len(kmer_sets_rev[0]))}")
+print(f"True containment 109 at {max_k} with rev-comp: {len(kmer_sets_rev[0].intersection(kmer_sets_rev[1])) / float(len(kmer_sets_rev[1]))}")
+
 
 
