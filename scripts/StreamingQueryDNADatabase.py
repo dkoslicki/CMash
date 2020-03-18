@@ -239,7 +239,8 @@ if __name__ == '__main__':
 				if possible_match:
 					for other_k_size in [x for x in k_range[1:] if i+x <= len(seq)]:
 						kmer = seq[i:i + other_k_size]
-						if kmer in all_kmers_bf:
+						#if kmer in all_kmers_bf:
+						if True:
 							k_size_loc = k_range.index(other_k_size)
 							match_list, saw_match = self.return_matches(kmer, k_size_loc)
 							if saw_match:
