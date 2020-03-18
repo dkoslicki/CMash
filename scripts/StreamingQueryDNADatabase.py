@@ -163,7 +163,7 @@ if __name__ == '__main__':
 		try:
 			all_kmers_bf = WritingBloomFilter(len(sketches)*len(k_range)*num_hashes*10, 0.01)
 			for sketch in sketches:
-				for kmer in sketch._kmers:
+				for kmer in sketch._kmers:  # FIXME: think about what all actually needs to be added
 					for ksize in k_range:
 						all_kmers_bf.add(kmer[0:ksize])  # put all the k-mers and the appropriate suffixes in
 						all_kmers_bf.add(kmer[0:ksize][::-1])
