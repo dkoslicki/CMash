@@ -1,6 +1,6 @@
 #!/bin/bash
 # make the training database
-/home/dkoslicki/anaconda3/envs/CMash/bin/python ../../scripts/MakeStreamingDNADatabase.py file_names.txt TrainingDatabase_k_61.h5 -n 1000 -k 61 -v
+/home/dkoslicki/anaconda3/envs/CMash/bin/python ../../scripts/MakeStreamingDNADatabase.py file_names.txt TrainingDatabase_k_61.h5 -n 1000 -k 61
 
 # remove all output files
 rm out*
@@ -12,20 +12,20 @@ max=61
 # problem one
 min=61
 step=1
-/home/dkoslicki/anaconda3/envs/CMash/bin/python ../../scripts/StreamingQueryDNADatabase.py ${inputFile} TrainingDatabase_k_61.h5 out_${min}_${max}_${step}.csv ${min}-${max}-${step} -c 0 -l 0 --sensitive -v
+/home/dkoslicki/anaconda3/envs/CMash/bin/python ../../scripts/StreamingQueryDNADatabase.py ${inputFile} TrainingDatabase_k_61.h5 out_${min}_${max}_${step}.csv ${min}-${max}-${step} -c 0 -l 0 --sensitive
 
 
 min=60
 max=61
-/home/dkoslicki/anaconda3/envs/CMash/bin/python ../../scripts/StreamingQueryDNADatabase.py ${inputFile} TrainingDatabase_k_61.h5 out_${min}_${max}_${step}.csv ${min}-${max}-${step} -c 0 -l 0 --sensitive -v
+/home/dkoslicki/anaconda3/envs/CMash/bin/python ../../scripts/StreamingQueryDNADatabase.py ${inputFile} TrainingDatabase_k_61.h5 out_${min}_${max}_${step}.csv ${min}-${max}-${step} -c 0 -l 0 --sensitive
 
 min=50
 max=61
-/home/dkoslicki/anaconda3/envs/CMash/bin/python ../../scripts/StreamingQueryDNADatabase.py ${inputFile} TrainingDatabase_k_61.h5 out_${min}_${max}_${step}.csv ${min}-${max}-${step} -c 0 -l 0 --sensitive -v
+/home/dkoslicki/anaconda3/envs/CMash/bin/python ../../scripts/StreamingQueryDNADatabase.py ${inputFile} TrainingDatabase_k_61.h5 out_${min}_${max}_${step}.csv ${min}-${max}-${step} -c 0 -l 0 --sensitive
 
 min=40
 max=61
-/home/dkoslicki/anaconda3/envs/CMash/bin/python ../../scripts/StreamingQueryDNADatabase.py ${inputFile} TrainingDatabase_k_61.h5 out_${min}_${max}_${step}.csv ${min}-${max}-${step} -c 0 -l 0 --sensitive -v
+/home/dkoslicki/anaconda3/envs/CMash/bin/python ../../scripts/StreamingQueryDNADatabase.py ${inputFile} TrainingDatabase_k_61.h5 out_${min}_${max}_${step}.csv ${min}-${max}-${step} -c 0 -l 0 --sensitive
 
 
 # sort them all for easy comparison

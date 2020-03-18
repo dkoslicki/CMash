@@ -53,89 +53,90 @@ print(f"With revcomp, normalize without contain 109 @ {k_size}: {len(set(reduce_
 
 # FIXME: problem remains in the very first column of the output
 
-# Let's check what the actual containments are so we have a ground truth to check against
-max_k = 60
-kmer_sets = []
-for i, input_file in enumerate(import_list):
-    kmer_sets.append(set())
-    for record in screed.open(input_file):
-        seq = record.sequence
-        for j in range(len(seq) - max_k + 1):
-            kmer_sets[i].add(seq[j:j + max_k])
+if False:
+    # Let's check what the actual containments are so we have a ground truth to check against
+    max_k = 60
+    kmer_sets = []
+    for i, input_file in enumerate(import_list):
+        kmer_sets.append(set())
+        for record in screed.open(input_file):
+            seq = record.sequence
+            for j in range(len(seq) - max_k + 1):
+                kmer_sets[i].add(seq[j:j + max_k])
 
-print(f"True containment 104 containment at, plain kmers {max_k}: {len(kmer_sets[0].intersection(kmer_sets[1])) / float(len(kmer_sets[0]))}")
-print(f"True containment 109 containment at, plain kmers {max_k}: {len(kmer_sets[0].intersection(kmer_sets[1])) / float(len(kmer_sets[1]))}")
+    print(f"True containment 104 containment at, plain kmers {max_k}: {len(kmer_sets[0].intersection(kmer_sets[1])) / float(len(kmer_sets[0]))}")
+    print(f"True containment 109 containment at, plain kmers {max_k}: {len(kmer_sets[0].intersection(kmer_sets[1])) / float(len(kmer_sets[1]))}")
 
-# and check the containments with rev-comps
-max_k = 40
-kmer_sets_rev = []
-for i, input_file in enumerate(import_list):
-    kmer_sets_rev.append(set())
-    for record in screed.open(input_file):
-        seq = record.sequence
-        for j in range(len(seq) - max_k + 1):
-            kmer_sets_rev[i].add(seq[j:j + max_k])
-            kmer_sets_rev[i].add(khmer.reverse_complement(seq[j:j + max_k]))
-
-
-print(f"True containment 104 at {max_k} with rev-comp: {len(kmer_sets_rev[0].intersection(kmer_sets_rev[1])) / float(len(kmer_sets_rev[0]))}")
-print(f"True containment 109 at {max_k} with rev-comp: {len(kmer_sets_rev[0].intersection(kmer_sets_rev[1])) / float(len(kmer_sets_rev[1]))}")
+    # and check the containments with rev-comps
+    max_k = 40
+    kmer_sets_rev = []
+    for i, input_file in enumerate(import_list):
+        kmer_sets_rev.append(set())
+        for record in screed.open(input_file):
+            seq = record.sequence
+            for j in range(len(seq) - max_k + 1):
+                kmer_sets_rev[i].add(seq[j:j + max_k])
+                kmer_sets_rev[i].add(khmer.reverse_complement(seq[j:j + max_k]))
 
 
-
-# check containment with canonical k-mers
-max_k = 40
-kmer_sets_can = []
-for i, input_file in enumerate(import_list):
-    kmer_sets_can.append(set())
-    for record in screed.open(input_file):
-        seq = record.sequence
-        for j in range(len(seq) - max_k + 1):
-            kmer = seq[j:j + max_k]
-            kmer_rc = khmer.reverse_complement(kmer)
-            if kmer_rc < kmer:
-                kmer = kmer_rc
-            kmer_sets_can[i].add(kmer)
+    print(f"True containment 104 at {max_k} with rev-comp: {len(kmer_sets_rev[0].intersection(kmer_sets_rev[1])) / float(len(kmer_sets_rev[0]))}")
+    print(f"True containment 109 at {max_k} with rev-comp: {len(kmer_sets_rev[0].intersection(kmer_sets_rev[1])) / float(len(kmer_sets_rev[1]))}")
 
 
-print(f"True containment 104 at {max_k}, canonical: {len(kmer_sets_can[0].intersection(kmer_sets_can[1])) / float(len(kmer_sets_can[0]))}")
-print(f"True containment 109 at {max_k}, canonical: {len(kmer_sets_can[0].intersection(kmer_sets_can[1])) / float(len(kmer_sets_can[1]))}")
+
+    # check containment with canonical k-mers
+    max_k = 40
+    kmer_sets_can = []
+    for i, input_file in enumerate(import_list):
+        kmer_sets_can.append(set())
+        for record in screed.open(input_file):
+            seq = record.sequence
+            for j in range(len(seq) - max_k + 1):
+                kmer = seq[j:j + max_k]
+                kmer_rc = khmer.reverse_complement(kmer)
+                if kmer_rc < kmer:
+                    kmer = kmer_rc
+                kmer_sets_can[i].add(kmer)
+
+
+    print(f"True containment 104 at {max_k}, canonical: {len(kmer_sets_can[0].intersection(kmer_sets_can[1])) / float(len(kmer_sets_can[0]))}")
+    print(f"True containment 109 at {max_k}, canonical: {len(kmer_sets_can[0].intersection(kmer_sets_can[1])) / float(len(kmer_sets_can[1]))}")
 
 
 ######
 # also check the largest size
 # and check the containments with rev-comps
-max_k = 61
-kmer_sets_rev = []
-for i, input_file in enumerate(import_list):
-    kmer_sets_rev.append(set())
-    for record in screed.open(input_file):
-        seq = record.sequence
-        for j in range(len(seq) - max_k + 1):
-            kmer_sets_rev[i].add(seq[j:j + max_k])
-            kmer_sets_rev[i].add(khmer.reverse_complement(seq[j:j + max_k]))
+for max_k in [61, 60, 51, 55, 50, 41, 40]:
+    kmer_sets_rev = []
+    for i, input_file in enumerate(import_list):
+        kmer_sets_rev.append(set())
+        for record in screed.open(input_file):
+            seq = record.sequence
+            for j in range(len(seq) - max_k + 1):
+                kmer_sets_rev[i].add(seq[j:j + max_k])
+                kmer_sets_rev[i].add(khmer.reverse_complement(seq[j:j + max_k]))
 
 
-print(f"True containment 104 at {max_k} with rev-comp: {len(kmer_sets_rev[0].intersection(kmer_sets_rev[1])) / float(len(kmer_sets_rev[0]))}")
-print(f"True containment 109 at {max_k} with rev-comp: {len(kmer_sets_rev[0].intersection(kmer_sets_rev[1])) / float(len(kmer_sets_rev[1]))}")
+    #print(f"True containment 104 at {max_k} with rev-comp: {len(kmer_sets_rev[0].intersection(kmer_sets_rev[1])) / float(len(kmer_sets_rev[0]))}")
+    print(f"True containment 109 at {max_k} with rev-comp: {len(kmer_sets_rev[0].intersection(kmer_sets_rev[1])) / float(len(kmer_sets_rev[1]))}")
 
-# check containment with canonical k-mers
-max_k = 61
-kmer_sets_can = []
-for i, input_file in enumerate(import_list):
-    kmer_sets_can.append(set())
-    for record in screed.open(input_file):
-        seq = record.sequence
-        for j in range(len(seq) - max_k + 1):
-            kmer = seq[j:j + max_k]
-            kmer_rc = khmer.reverse_complement(kmer)
-            if kmer_rc < kmer:
-                kmer = kmer_rc
-            kmer_sets_can[i].add(kmer)
+    # check containment with canonical k-mers
+
+    kmer_sets_can = []
+    for i, input_file in enumerate(import_list):
+        kmer_sets_can.append(set())
+        for record in screed.open(input_file):
+            seq = record.sequence
+            for j in range(len(seq) - max_k + 1):
+                kmer = seq[j:j + max_k]
+                kmer_rc = khmer.reverse_complement(kmer)
+                if kmer_rc < kmer:
+                    kmer = kmer_rc
+                kmer_sets_can[i].add(kmer)
 
 
-print(f"True containment 104 at {max_k}, canonical: {len(kmer_sets_can[0].intersection(kmer_sets_can[1])) / float(len(kmer_sets_can[0]))}")
-print(f"True containment 109 at {max_k}, canonical: {len(kmer_sets_can[0].intersection(kmer_sets_can[1])) / float(len(kmer_sets_can[1]))}")
+    #print(f"True containment 104 at {max_k}, canonical: {len(kmer_sets_can[0].intersection(kmer_sets_can[1])) / float(len(kmer_sets_can[0]))}")
+    print(f"True containment 109 at {max_k}, canonical: {len(kmer_sets_can[0].intersection(kmer_sets_can[1])) / float(len(kmer_sets_can[1]))}")
 
 
 # FIXME: problem is with the bloom filter. See StreamingQueryScript.py lines 207 ish, don't use the bloom filter and things go fine
