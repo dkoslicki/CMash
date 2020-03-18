@@ -166,6 +166,7 @@ if __name__ == '__main__':
 				for kmer in sketch._kmers:
 					for ksize in k_range:
 						all_kmers_bf.add(kmer[0:ksize])  # put all the k-mers and the appropriate suffixes in
+						#all_kmers_bf.add(khmer.reverse_complement(kmer[0:ksize]))  # also add the reverse complement
 						all_kmers_bf.add(khmer.reverse_complement(kmer[0:ksize]))  # also add the reverse complement
 		except IOError:
 			print("No such file or directory/error opening file: %s" % hydra_file)
@@ -194,7 +195,8 @@ if __name__ == '__main__':
 			""" Get all the matches in the trie with the kmer prefix"""
 			match_info = set()
 			to_return = []
-			for kmer in [input_kmer, khmer.reverse_complement(input_kmer)]:
+			for kmer in [input_kmer, khmer.reverse_complement(input_kmer)]:  # FIXME: might need to break if one of them matches
+			#for kmer in [input_kmer]:
 				prefix_matches = tree.keys(kmer)  # get all the k-mers whose prefix matches
 				#match_info = set()
 				# get the location of the found kmers in the counters
@@ -209,6 +211,8 @@ if __name__ == '__main__':
 					saw_match = True
 					for tup in match_info:
 						to_return.append(tup)
+				if saw_match:  # Only need to see a match to the original kmer or the reverse complement, don't return both otherwise you over-count
+					break
 			return to_return, saw_match
 
 		def process_seq(self, seq):
@@ -222,7 +226,8 @@ if __name__ == '__main__':
 					if kmer in all_kmers_bf:  # if we should process it
 						match_list, saw_match = self.return_matches(kmer, 0)
 						if saw_match:  #  TODO: note, I *could* add all the trie matches and their sub-kmers to the seen_kmers
-							seen_kmers.add(kmer)
+							seen_kmers.add(kmer)  # FIXME: might also be able to add the reverse complements in here, instead of adjusting the division down near line 332
+							seen_kmers.add(khmer.reverse_complement(kmer))
 							to_return.extend(match_list)
 						possible_match = True
 					# TODO: note: I could (since it'd only be for a single kmer size, keep a set of *all* small_kmers I've tried and use this as another pre-filter
@@ -325,8 +330,9 @@ if __name__ == '__main__':
 		k_size = k_range[k_size_loc]
 		for hash_loc in np.where(containment_indices[:, k_size_loc])[0]:  # find the genomes with non-zero containment
 			unique_kmers = set()
-			for kmer in sketches[hash_loc]._kmers:
+			for kmer in sketches[hash_loc]._kmers:  # FIXME: problem is right here since I am not counting the revcomps, though the Counters() *do* use revcomps
 				unique_kmers.add(kmer[:k_size])  # find the unique k-mers
+				#unique_kmers.add(khmer.reverse_complement(kmer[:k_size]))  # also add the rev-comps since I streaming queried them
 			containment_indices[hash_loc, k_size_loc] /= float(len(unique_kmers))  # divide by the unique num of k-mers
 	if verbose:
 		print("Finished computing containment indicies")
