@@ -447,11 +447,10 @@ if __name__ == '__main__':
 						non_unique.add(kmer)
 				# reduce the hit matrices by removing the hits corresponding to non-unique k-mers
 				to_zero_indicies = [ind for ind, kmer in enumerate(current_kmers) if kmer in non_unique]
-				print(f"hit_matrix: {hit_matrices_dict['k=%d' % k_size]}")
-				print(f"k_size: {k_size}")
-				print(f"i: {i}")
-				print(f"to zero indicies: {to_zero_indicies}")
-				hit_matrices_dict['k=%d' % k_size][i, to_zero_indicies] = 0  # set these to zero since they show up in other sketches (so not informative)
+				# if you use a really small initial kmer size, some of the hit matrices may be empty
+				# due to all k-mers being shared in common
+				if hit_matrices_dict['k=%d' % k_size].size > 0:
+					hit_matrices_dict['k=%d' % k_size][i, to_zero_indicies] = 0  # set these to zero since they show up in other sketches (so not informative)
 				num_unique[i, k_range.index(k_size)] = len(current_kmers_set) - len(non_unique)  # keep track of the size of the unique k-mers
 
 		# sum the modified hit matrices to get the size of the intersection
