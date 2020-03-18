@@ -258,8 +258,8 @@ if __name__ == '__main__':
 							if saw_match:
 								to_return.extend(match_list)
 						else:
-							break
-							#pass
+							#break
+							pass
 			return to_return
 
 
