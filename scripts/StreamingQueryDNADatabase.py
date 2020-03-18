@@ -161,7 +161,7 @@ if __name__ == '__main__':
 	# all the k-mers of interest in a set (as a pre-filter)
 	if not hydra_file:  # create one
 		try:
-			all_kmers_bf = WritingBloomFilter(len(sketches)*len(k_range)*num_hashes*5, 0.01)
+			all_kmers_bf = WritingBloomFilter(len(sketches)*len(k_range)*num_hashes*10, 0.01)
 			for sketch in sketches:
 				for kmer in sketch._kmers:
 					for ksize in k_range:
