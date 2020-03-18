@@ -27,6 +27,7 @@ from scipy.io import savemat
 import timeit
 from itertools import islice
 
+t00 = timeit.default_timer()
 
 # TODO: export hit matrices
 
@@ -54,7 +55,7 @@ if k_range is None:
     raise Exception("The --range argument is required, no matter what the help menu says.")
 training_data = "/home/dkoslicki/Desktop/CMash/dataForShaopeng/test_issue/TrainingDatabase_k_61.h5"
 query_file = "/home/dkoslicki/Desktop/CMash/dataForShaopeng/small_data/taxid_1909294_104_genomic.fna.gz"
-results_file = f"/home/dkoslicki/Desktop/CMash/dataForShaopeng/test_issue/out_{my_range.replace('-','_')})"
+results_file = f"/home/dkoslicki/Desktop/CMash/dataForShaopeng/test_issue/out_{my_range.replace('-','_')}.csv"
 npz_file = os.path.splitext(results_file)[0] + "_hit_matrix.npz"
 num_threads = 12
 location_of_thresh = -1
@@ -179,7 +180,13 @@ class Counters(object):
         to_return = []
         for kmer in [input_kmer, khmer.reverse_complement(input_kmer)]:  # FIXME: might need to break if one of them matches
             # for kmer in [input_kmer]:
+            #if kmer not in all_kmers_bf:  # TODO: but for some reason it works here
+            #    return [], False
             prefix_matches = tree.keys(kmer)  # get all the k-mers whose prefix matches
+            #if not kmer in all_kmers_bf:
+            #    return [], False
+            #if prefix_matches and not kmer in all_kmers_bf:
+            #    print(f"prefix: {prefix_matches}, is in BF: {kmer in all_kmers_bf}")
             # match_info = set()
             # get the location of the found kmers in the counters
             for item in prefix_matches:
@@ -219,16 +226,37 @@ class Counters(object):
                 possible_match = True
             # start looking at the other k_sizes, don't overhang len(seq)
             if possible_match:
+                #prev_match = True
                 for other_k_size in [x for x in k_range[1:] if i + x <= len(seq)]:
                     kmer = seq[i:i + other_k_size]
                     #if kmer in all_kmers_bf:
+                    #print("True")
+                    #if kmer not in all_kmers_bf and tree.keys(kmer):
+                    #    print(f"{kmer}\n")
                     if True:
                         k_size_loc = k_range.index(other_k_size)
                         match_list, saw_match = self.return_matches(kmer, k_size_loc)
                         if saw_match:
                             to_return.extend(match_list)
+                        #if saw_match and kmer not in all_kmers_bf:  # TODO: this doesn't return a single "bad thing happened", yet I can't use `if kmer in all_kmers_bf` at the top
+                        #    print("bad things happened")
+                        #else:
+                        #    break  # TODO: Interesting! If you break after not seeing a match, it goes back to the bad results. So something is wrong with the logic of the for loop
+                        # TODO: What I would like to do is see what the kmers look like when you don't see a match for a smaller k-mer size, but somehow do see a match for the larger kmer size
+                        #if saw_match and not prev_match:
+                            #print(f"{kmer}\n")
+                        #else:
+                        #    prev_match = saw_match
+                        # FIXME: ok, so here's the problem: longer kmer matches while shorter does not: for kmer='CATGTCTTTCAGGCTGGAACCGGAGGCGACCAATGCCGACCGGCTGCTTTAT', tree.keys(kmer)==[] and tree.keys(khmer.reverse_complement(kmer))==match, yet tree.keys(khmer.reverse_complement(kmer[0:-1]))==[] and tree.keys(kmer[0:-1])==[]
+                        # FIXME: but curiously, tree.keys(khmer.reverse_complement(kmer)[0:-1])==match, so it depends on when the reverse complement is being applied!!!! <<<<<-------------!!!!!!!!!!!!!
+                        # FIXME: Additionally, kmer in all_kmers_bf == TRUE yet, kmer[0:-1] in all_kmers_bf == FALSE
+                        # FIXME: so the problem is, that reverse complement is REVERSE complement, you need to FLIP THE KMER AROUND if you are doing prefix lookups in the tree. MAYBE?!
+                        # MAYBE: instead of just passing the kmer, and then returning_matches using the kmer and it's reverse complement, I should pass the kmer,
+
+                        # FIXME: I *might* be able to circumvent all of this just by using canonical k-mers....
                     else:
                         break
+
         return to_return
 
 
@@ -258,6 +286,7 @@ while to_proc:
     if verbose:
         print("Read in %d sequences" % i)
     res = pool.map(map_func, to_proc, chunksize=int(max(1, min(num_reads_per_core, len(to_proc) / num_threads))))
+    #res = map(map_func, to_proc)
     flattened_res = [item for sublist in res if sublist for item in sublist]
     flattened_res = list(set(flattened_res))  # dedup it
     match_tuples.extend(flattened_res)
@@ -345,3 +374,6 @@ if sensitive:
         print("Exporting results")
         t0 = timeit.default_timer()
     filtered_results.to_csv(results_file, index=True, encoding='utf-8')
+
+t11 = timeit.default_timer()
+print(f"Total time: {t11 - t00}")

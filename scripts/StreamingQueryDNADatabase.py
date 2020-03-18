@@ -195,8 +195,11 @@ if __name__ == '__main__':
 			""" Get all the matches in the trie with the kmer prefix"""
 			match_info = set()
 			to_return = []
-			for kmer in [input_kmer, khmer.reverse_complement(input_kmer)]:  # FIXME: might need to break if one of them matches
+			saw_match = False
+			for kmer in [input_kmer, khmer.reverse_complement(input_kmer)]:
 			#for kmer in [input_kmer]:
+				if kmer not in all_kmers_bf:  # TODO: this is fine
+					continue
 				prefix_matches = tree.keys(kmer)  # get all the k-mers whose prefix matches
 				#match_info = set()
 				# get the location of the found kmers in the counters
@@ -222,12 +225,12 @@ if __name__ == '__main__':
 			for i in range(len(seq) - small_k_size + 1):  # look at all k-mers
 				kmer = seq[i:i + small_k_size]
 				possible_match = False
-				#if kmer not in seen_kmers:  # if we should process it
-				if True:
-					#if kmer in all_kmers_bf:  # if we should process it
+				if kmer not in seen_kmers:  # if we should process it
+				#if True:
+					#if kmer in all_kmers_bf or kmer[::-1] in all_kmers_bf:  # if we should process it
 					if True:
 						match_list, saw_match = self.return_matches(kmer, 0)
-						if saw_match:  #  TODO: note, I *could* add all the trie matches and their sub-kmers to the seen_kmers
+						if saw_match:
 							seen_kmers.add(kmer)  # FIXME: might also be able to add the reverse complements in here, instead of adjusting the division down near line 332
 							seen_kmers.add(khmer.reverse_complement(kmer))
 							to_return.extend(match_list)
