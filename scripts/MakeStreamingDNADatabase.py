@@ -89,14 +89,18 @@ def main():
 	to_insert = set()
 	for i in range(len(genome_sketches)):
 		for kmer_index in range(len(genome_sketches[i]._kmers)):  # FIXME: think about which suffix/prefixes to add here
+			# normal kmer
 			kmer = genome_sketches[i]._kmers[kmer_index]
 			to_insert.add(kmer + 'x' + str(i) + 'x' + str(kmer_index))  # format here is kmer+x+hash_index+kmer_index
+			# rev-comp kmer
 			kmer = khmer.reverse_complement(genome_sketches[i]._kmers[kmer_index])
 			to_insert.add(kmer + 'x' + str(i) + 'x' + str(kmer_index))  # format here is kmer+x+hash_index+kmer_index
-			kmer = khmer.reverse_complement(genome_sketches[i]._kmers[kmer_index])[::-1]
-			to_insert.add(kmer + 'x' + str(i) + 'x' + str(kmer_index))  # format here is kmer+x+hash_index+kmer_index
-			kmer = khmer.reverse_complement(genome_sketches[i]._kmers[kmer_index][::-1])
-			to_insert.add(kmer + 'x' + str(i) + 'x' + str(kmer_index))  # format here is kmer+x+hash_index+kmer_index
+			# rev-comp then reverse
+			#kmer = khmer.reverse_complement(genome_sketches[i]._kmers[kmer_index])[::-1]
+			#to_insert.add(kmer + 'x' + str(i) + 'x' + str(kmer_index))  # format here is kmer+x+hash_index+kmer_index
+			# reverse then rev-comp
+			#kmer = khmer.reverse_complement(genome_sketches[i]._kmers[kmer_index][::-1])
+			#to_insert.add(kmer + 'x' + str(i) + 'x' + str(kmer_index))  # format here is kmer+x+hash_index+kmer_index
 	tree = mt.Trie(to_insert)
 	if verbose:
 		print("Saving Ternary search tree")

@@ -254,6 +254,7 @@ class Counters(object):
                         # MAYBE: instead of just passing the kmer, and then returning_matches using the kmer and it's reverse complement, I should pass the kmer,
 
                         # FIXME: I *might* be able to circumvent all of this just by using canonical k-mers....
+                        # TODO: may think the right idea is: rev-comp, then shorten
                     else:
                         break
 

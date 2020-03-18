@@ -165,17 +165,30 @@ if __name__ == '__main__':
 			for sketch in sketches:
 				for kmer in sketch._kmers:  # FIXME: think about what all actually needs to be added
 					for ksize in k_range:
+						# truncated kmer
 						all_kmers_bf.add(kmer[0:ksize])  # put all the k-mers and the appropriate suffixes in
+						# truncate, reverse
 						all_kmers_bf.add(kmer[0:ksize][::-1])
+
+						# truncate, rev-comp
 						all_kmers_bf.add(khmer.reverse_complement(kmer[0:ksize]))  # also add the reverse complement
+						# truncate, reverse, rev-comp
 						all_kmers_bf.add(khmer.reverse_complement(kmer[0:ksize][::-1]))
+						# truncate, rev-comp, reverse
 						all_kmers_bf.add(khmer.reverse_complement(kmer[0:ksize])[::-1])
 
+						# tail
 						all_kmers_bf.add(kmer[-ksize:])  # put all the k-mers and the appropriate suffixes in
+						# reversed tail
 						all_kmers_bf.add(kmer[-ksize:][::-1])
+						# tail, rev-comp
 						all_kmers_bf.add(khmer.reverse_complement(kmer[-ksize:]))  # also add the reverse complement
+						# tail, reverse, rev-comp
 						all_kmers_bf.add(khmer.reverse_complement(kmer[-ksize:][::-1]))
+						# tail, revcomp, reverse
 						all_kmers_bf.add(khmer.reverse_complement(kmer[-ksize:])[::-1])
+						# rev-comp, tail
+						all_kmers_bf.add(khmer.reverse_complement(kmer)[-ksize:])
 
 		except IOError:
 			print("No such file or directory/error opening file: %s" % hydra_file)
@@ -236,8 +249,8 @@ if __name__ == '__main__':
 				possible_match = False
 				if kmer not in seen_kmers:  # if we should process it
 				#if True:
-					if kmer in all_kmers_bf:  # if we should process it
-					#if True:
+					#if kmer in all_kmers_bf:  # if we should process it
+					if True:
 						match_list, saw_match = self.return_matches(kmer, 0)
 						if saw_match:
 							seen_kmers.add(kmer)  # FIXME: might also be able to add the reverse complements in here, instead of adjusting the division down near line 332
@@ -251,8 +264,8 @@ if __name__ == '__main__':
 				if possible_match:
 					for other_k_size in [x for x in k_range[1:] if i+x <= len(seq)]:
 						kmer = seq[i:i + other_k_size]
-						if kmer in all_kmers_bf:
-						#if True:
+						#if kmer in all_kmers_bf:
+						if True:
 							k_size_loc = k_range.index(other_k_size)
 							match_list, saw_match = self.return_matches(kmer, k_size_loc)
 							if saw_match:
