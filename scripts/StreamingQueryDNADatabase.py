@@ -223,7 +223,8 @@ if __name__ == '__main__':
 				kmer = seq[i:i + small_k_size]
 				possible_match = False
 				if kmer not in seen_kmers:  # if we should process it
-					if kmer in all_kmers_bf:  # if we should process it
+					#if kmer in all_kmers_bf:  # if we should process it
+					if True:
 						match_list, saw_match = self.return_matches(kmer, 0)
 						if saw_match:  #  TODO: note, I *could* add all the trie matches and their sub-kmers to the seen_kmers
 							seen_kmers.add(kmer)  # FIXME: might also be able to add the reverse complements in here, instead of adjusting the division down near line 332
