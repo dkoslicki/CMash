@@ -21,7 +21,7 @@ try:
 except ImportError:
 	try:
 		import MinHash as MH
-		import Query
+		import Create
 		import Counters
 		import Containment
 	except ImportError:

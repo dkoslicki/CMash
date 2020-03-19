@@ -27,20 +27,19 @@ from itertools import islice
 
 
 class Create:
-	def __init__(self, training_database_file=None, bloom_filter_file=None, TST_file=None, k_range=None):
+	def __init__(self, training_database_file: str, bloom_filter_file: str, TST_file: str, k_range: list):
 		self.bloom_filter_file = bloom_filter_file
 		self.TST_file = TST_file
 		self.k_range = k_range
 		self.training_database = training_database_file
 		self.seen_kmers = set() # Seen k-mers (set of k-mers that already hit the trie, so don't need to check again)
-		pass  # TBD what needs to be passed
 
-
-	def import_TST(self):  # no more safety net for those that didn't create a TST properly with the CreateStreamingQueryDNADatabase.py
+	def import_TST(self) -> None:
+		# no more safety net for those that didn't create a TST properly with the CreateStreamingQueryDNADatabase.py
 		self.tree = mt.Trie()
 		self.tree.load(self.TST_file)
 
-	def create_BF_prefilter(self):
+	def create_BF_prefilter(self) -> None:
 		tree = self.tree
 		k_range = self.k_range
 		if not self.bloom_filter_file:  # create one
@@ -67,18 +66,18 @@ class Create:
 
 # shared object that will update the intersection counts
 class Counters:
-	def __init__(self, tree=None, k_range=None, seen_kmers=None, all_kmers_bf=None):
+	def __init__(self, tree: mt.Trie, k_range: list, seen_kmers: set, all_kmers_bf: WritingBloomFilter):
 		self.tree = tree
 		self.k_range =k_range
 		self.seen_kmers = seen_kmers
 		self.all_kmers_bf = all_kmers_bf
-		pass
+
 	# This class is basically an array of counters (on the same basis as the sketches)
 	# it's used to keep track (in a parallel friendly way) of which streamed k-mers went into the training file sketches
 	#def __init__(self, training_database_file=None, bloom_filter_file=None, TST_file=None, k_range=None):
 	#	super().__init__(training_database_file, bloom_filter_file, TST_file, k_range)
 
-	def return_matches(self, input_kmer, k_size_loc):
+	def return_matches(self, input_kmer: str, k_size_loc: int) -> tuple:
 		""" Get all the matches in the trie with the kmer prefix"""
 		match_info = set()
 		to_return = []
@@ -104,7 +103,7 @@ class Counters:
 				break
 		return to_return, saw_match
 
-	def process_seq(self, seq):
+	def process_seq(self, seq: str) -> list:
 		k_range = self.k_range
 		seen_kmers = self.seen_kmers
 		all_kmers_bf = self.all_kmers_bf
@@ -142,13 +141,13 @@ class Counters:
 
 # class to take the processed data and turn it into the containment indicies matrices
 class Containment:
-	def __init__(self, k_range=None, match_tuples=None, sketches=None, num_hashes=None):
+	def __init__(self, k_range: list, match_tuples: list, sketches: list, num_hashes: int):  # TODO: would like to indicate that sketches should be a list of CEs from MH
 		self.k_range = k_range
 		self.match_tuples = match_tuples
 		self.sketches = sketches
 		self.num_hashes = num_hashes
 
-	def create_to_hit_matrices(self):
+	def create_to_hit_matrices(self) -> None:
 		k_range = self.k_range
 		match_tuples = self.match_tuples
 		sketches = self.sketches
@@ -190,8 +189,7 @@ class Containment:
 							 shape=(len(sketches), num_hashes))
 			self.hit_matrices.append(mat)
 
-
-	def create_containment_indicies(self):
+	def create_containment_indicies(self) -> None:
 		sketches = self.sketches
 		k_range = self.k_range
 		hit_matrices = self.hit_matrices
@@ -214,7 +212,7 @@ class Containment:
 				self.containment_indices[hash_loc, k_size_loc] /= float(
 					len(unique_kmers))  # divide by the unique num of k-mers
 
-	def create_data_frame(self, training_file_names=None, location_of_thresh=None, coverage_threshold=None):
+	def create_data_frame(self, training_file_names: list, location_of_thresh: int, coverage_threshold: float) -> None:
 		k_range = self.k_range
 		containment_indices = self.containment_indices
 		results = dict()
@@ -239,7 +237,7 @@ def main():
 	training_database_file = os.path.join(top_dir, 'tests/TrainingDatabase.h5')
 	k_range = [10, 12, 14, 16, 18, 20]
 
-	C = Create(training_database_file=training_database_file, bloom_filter_file=None, TST_file=TST_file, k_range=k_range)
+	C = Create(training_database_file=training_database_file, bloom_filter_file="", TST_file=TST_file, k_range=k_range)
 
 	# test import of TST
 	C.import_TST()
