@@ -161,12 +161,15 @@ if __name__ == '__main__':
 	# all the k-mers of interest in a set (as a pre-filter)
 	if not hydra_file:  # create one
 		try:
-			all_kmers_bf = WritingBloomFilter(len(sketches)*len(k_range)*num_hashes*2, 0.01)
-			for sketch in sketches:
-				for kmer in sketch._kmers:
-					for ksize in k_range:
-						all_kmers_bf.add(kmer[0:ksize])  # put all the k-mers and the appropriate suffixes in
-						all_kmers_bf.add(khmer.reverse_complement(kmer[0:ksize]))  # also add the reverse complement
+			# Get all the k-mers in the TST, put them in a bloom filter
+			#all_kmers_bf = WritingBloomFilter(len(sketches) * len(k_range) * num_hashes * 20, 0.01)
+			all_kmers_bf = WritingBloomFilter(len(tree.keys()) * len(k_range) * 5, 0.01, ignore_case=True) # fudge factor of 5 will make the BF larger, but also slightly faster
+			for kmer_info in tree.keys():
+				kmer = kmer_info.split('x')[0]  # remove the location information and just get the kmer
+				for ksize in k_range:
+					all_kmers_bf.add(kmer[0:ksize])
+					all_kmers_bf.add(khmer.reverse_complement(kmer[0:ksize]))
+
 		except IOError:
 			print("No such file or directory/error opening file: %s" % hydra_file)
 			sys.exit(1)
@@ -194,21 +197,25 @@ if __name__ == '__main__':
 			""" Get all the matches in the trie with the kmer prefix"""
 			match_info = set()
 			to_return = []
+			saw_match = False
+
+			# look for matches to both the kmer and its reverse complement in the TST as we can't assume
+			# directionality of reads (and training database is constructed without reverse complements)
 			for kmer in [input_kmer, khmer.reverse_complement(input_kmer)]:
 				prefix_matches = tree.keys(kmer)  # get all the k-mers whose prefix matches
-				#match_info = set()
 				# get the location of the found kmers in the counters
 				for item in prefix_matches:
 					split_string = item.split('x')  # first is the hash location, second is which k-mer
 					hash_loc = int(split_string[1])
 					kmer_loc = int(split_string[2])
 					match_info.add((hash_loc, k_size_loc, kmer_loc))
-				#to_return = []
 				saw_match = False
 				if match_info:
 					saw_match = True
 					for tup in match_info:
 						to_return.append(tup)
+				if saw_match:  # Only need to see a match to the original kmer or the reverse complement, don't return both otherwise you over-count
+					break
 			return to_return, saw_match
 
 		def process_seq(self, seq):
@@ -221,24 +228,27 @@ if __name__ == '__main__':
 				if kmer not in seen_kmers:  # if we should process it
 					if kmer in all_kmers_bf:  # if we should process it
 						match_list, saw_match = self.return_matches(kmer, 0)
-						if saw_match:  #  TODO: note, I *could* add all the trie matches and their sub-kmers to the seen_kmers
+						if saw_match:
 							seen_kmers.add(kmer)
+							seen_kmers.add(khmer.reverse_complement(kmer))
 							to_return.extend(match_list)
 						possible_match = True
 					# TODO: note: I could (since it'd only be for a single kmer size, keep a set of *all* small_kmers I've tried and use this as another pre-filter
 				else:
-					possible_match = True
+					possible_match = True  # FIXME: bug introduced here in cf64b7aace5eadf738b920109d6419c9d930a1dc
+
 				# start looking at the other k_sizes, don't overhang len(seq)
 				if possible_match:
 					for other_k_size in [x for x in k_range[1:] if i+x <= len(seq)]:
 						kmer = seq[i:i + other_k_size]
 						if kmer in all_kmers_bf:
+						#if True:
 							k_size_loc = k_range.index(other_k_size)
 							match_list, saw_match = self.return_matches(kmer, k_size_loc)
 							if saw_match:
 								to_return.extend(match_list)
 						else:
-							break
+							pass  # if you didn't see a match at a smaller k-length, you won't at a larger one
 			return to_return
 
 
@@ -253,13 +263,13 @@ if __name__ == '__main__':
 	if verbose:
 		print("Start streaming")
 		t0 = timeit.default_timer()
-	# populate the queue
+	# Open the file to prepare for processing
 	fid = khmer.ReadParser(query_file)  # This is faster than screed
 	match_tuples = []
-	#num_reads_per_core = 100000
 	num_reads_per_chunk = num_reads_per_core * num_threads
 	to_proc = [record.sequence for record in islice(fid, num_reads_per_chunk)]
 	i = 0
+	# process in chunks for less I/O time
 	while to_proc:
 			i += len(to_proc)
 			if verbose:
@@ -271,7 +281,7 @@ if __name__ == '__main__':
 			to_proc = [record.sequence for record in islice(fid, num_reads_per_chunk)]
 	fid.close()
 	pool.close()
-	#print(match_tuples)
+
 	if verbose:
 		print("Finished streaming")
 		t1 = timeit.default_timer()
@@ -280,7 +290,7 @@ if __name__ == '__main__':
 	if verbose:
 		print("Forming hit matrix")
 		t0 = timeit.default_timer()
-	#print("Len matches: %d" % len(match_tuples))
+
 	# create k_range spare matrices. Rows index by genomes (sketch/hash index), columns index by k_mer_loc
 	row_ind_dict = dict()
 	col_ind_dict = dict()
@@ -293,6 +303,7 @@ if __name__ == '__main__':
 
 	match_tuples = set(match_tuples)  # uniquify, so we don't make the row/col ind dicts too large
 
+	# convert the match tuples to the necessary format to be turned into a matrix/tensor
 	for hash_loc, k_size_loc, kmer_loc in match_tuples:
 		if hash_loc not in unique_kmers:
 			unique_kmers[hash_loc] = set()
@@ -301,12 +312,16 @@ if __name__ == '__main__':
 		if kmer not in unique_kmers[hash_loc]:  # if you've seen this k-mer before, don't add it. NOTE: this makes sure we don't over count
 			row_ind_dict[k_size].append(hash_loc)
 			col_ind_dict[k_size].append(kmer_loc)
-			value_dict[k_size].append(1)
+			value_dict[k_size].append(1)  # only counting presence/absence, so just a 1 for the value
 			unique_kmers[hash_loc].add(kmer)
 
+	# list of matrices that contain the hits: len(hit_matrices) == k_sizes
+	# each hit_matrices[i] has rows indexed by which genome/sketch they belong to
+	# columns indexed by where the k-mer appeared in the sketch/hash list
 	hit_matrices = []
 
 	for k_size in k_range:
+		# convert to matrices
 		mat = csc_matrix((value_dict[k_size], (row_ind_dict[k_size], col_ind_dict[k_size])), shape=(len(sketches), num_hashes))
 		hit_matrices.append(mat)
 	if verbose:
@@ -317,8 +332,10 @@ if __name__ == '__main__':
 	if verbose:
 		print("Computing containment indicies")
 		t0 = timeit.default_timer()
+	# prep the containment indicies matrix: rows are genome/sketch, one column for each k-mer size in k_range
 	containment_indices = np.zeros((len(sketches), len(k_range)))  # TODO: could make this thing sparse, or do the filtering for above threshold here
 	for k_size_loc in range(len(k_range)):
+		# sum over the columns: i.e. total up the number of matches in the sketch/hash list
 		containment_indices[:, k_size_loc] = (hit_matrices[k_size_loc].sum(axis=1).ravel()) #/float(num_hashes))
 
 	for k_size_loc in range(len(k_range)):
@@ -326,14 +343,16 @@ if __name__ == '__main__':
 		for hash_loc in np.where(containment_indices[:, k_size_loc])[0]:  # find the genomes with non-zero containment
 			unique_kmers = set()
 			for kmer in sketches[hash_loc]._kmers:
-				unique_kmers.add(kmer[:k_size])  # find the unique k-mers
+				# find the unique k-mers: for smaller k-mer truncation sizes, the length of the sketch might have
+				# been reduced due to duplicates, so adjust for this factor to get the correct denominator
+				unique_kmers.add(kmer[:k_size])
 			containment_indices[hash_loc, k_size_loc] /= float(len(unique_kmers))  # divide by the unique num of k-mers
 	if verbose:
 		print("Finished computing containment indicies")
 		t1 = timeit.default_timer()
 		print("Time: %f" % (t1 - t0))
 
-
+	# prepare a nice pandas data-frame for export
 	results = dict()
 	for k_size_loc in range(len(k_range)):
 		ksize = k_range[k_size_loc]
@@ -350,23 +369,6 @@ if __name__ == '__main__':
 			print("Exporting results")
 			t0 = timeit.default_timer()
 		filtered_results.to_csv(results_file, index=True, encoding='utf-8')
-
-	# TODO: may not have to do this if I do the pos-processing directly in here
-	# export the reduced hit matrices
-	# first, get the basis of the reduced data frame
-	to_select_names = list(filtered_results.index)
-	all_names = list(map(os.path.basename, training_file_names))
-	rows_to_select = []
-	for name in to_select_names:
-		rows_to_select.append(all_names.index(name))
-	hit_matrices_dict = dict()
-	# the reduce the hit matrix to this basis
-	for i in range(len(k_range)):
-		k_size = k_range[i]
-		hit_matrices_dict['k=%d' % k_size] = hit_matrices[i][rows_to_select, :]
-	# then export  # TODO: not necessary if I do the post-processing right here
-	#savemat(npz_file, hit_matrices_dict, appendmat=False, do_compression=True)
-
 
 	# If requested, plot the results
 	if args.plot_file:
@@ -390,6 +392,22 @@ if __name__ == '__main__':
 
 	if not sensitive:
 		# Do the post-processing
+		# Main idea here is to only concentrate on the unique k-mers: those that don't show up in more than one genome
+		# as they are more specific to the presence of that genome being present in the sample
+
+		# from the non-filtered out genomes, create a dictionary that maps k-mer size to the properly reduced hit_matrix
+		# first, get the basis of the reduced data frame
+		to_select_names = list(filtered_results.index)
+		all_names = list(map(os.path.basename, training_file_names))
+		rows_to_select = []
+		for name in to_select_names:
+			rows_to_select.append(all_names.index(name))
+		hit_matrices_dict = dict()
+		# the reduce the hit matrix to this basis
+		for i in range(len(k_range)):
+			k_size = k_range[i]
+			hit_matrices_dict['k=%d' % k_size] = hit_matrices[i][rows_to_select, :]
+
 		# Make the hit matrices dense
 		hit_matrices_dense_dict = dict()
 		for k_size in k_range:
@@ -434,7 +452,10 @@ if __name__ == '__main__':
 						non_unique.add(kmer)
 				# reduce the hit matrices by removing the hits corresponding to non-unique k-mers
 				to_zero_indicies = [ind for ind, kmer in enumerate(current_kmers) if kmer in non_unique]
-				hit_matrices_dict['k=%d' % k_size][i, to_zero_indicies] = 0  # set these to zero since they show up in other sketches (so not informative)
+				# if you use a really small initial kmer size, some of the hit matrices may be empty
+				# due to all k-mers being shared in common
+				if hit_matrices_dict['k=%d' % k_size].size > 0:
+					hit_matrices_dict['k=%d' % k_size][i, to_zero_indicies] = 0  # set these to zero since they show up in other sketches (so not informative)
 				num_unique[i, k_range.index(k_size)] = len(current_kmers_set) - len(non_unique)  # keep track of the size of the unique k-mers
 
 		# sum the modified hit matrices to get the size of the intersection
@@ -453,9 +474,8 @@ if __name__ == '__main__':
 				unique_kmers = set()
 				for kmer in CEs[hash_loc]._kmers:
 					unique_kmers.add(kmer[:k_size])  # find the unique k-mers
-				containment_indices[hash_loc, k_size_loc] /= float(
-					len(unique_kmers))  # TODO: this doesn't seem like the right way to normalize, but apparently it is!
-		# containment_indices[hash_loc, k_size_loc] /= float(num_unique[hash_loc, k_size_loc])  # divide by the unique num of k-mers
+				containment_indices[hash_loc, k_size_loc] /= float(len(unique_kmers))  # FIXME: this doesn't seem like the right way to normalize, but apparently it is!
+				#containment_indices[hash_loc, k_size_loc] /= float(num_unique[hash_loc, k_size_loc])  # FIXME: in small tests, this seems to give better results. To be revisted.
 
 		# spit out these results
 		results = dict()
@@ -474,7 +494,3 @@ if __name__ == '__main__':
 			t1 = timeit.default_timer()
 			print("Finished thresholding. Time: %f" % (t1 - t0))
 
-#if verbose:
-	#	print("Finished exporting results")
-	#	t1 = timeit.default_timer()
-	#	print("Time: %f" % (t1 - t0))

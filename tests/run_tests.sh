@@ -53,7 +53,7 @@ fi
 echo "Classifying sample, default settings"
 rm results.csv 2> /dev/null
 # make a streaming pre-filter
-/usr/bin/time python ../scripts/StreamingQueryDNADatabase.py Organisms/taxid_1192839_4_genomic.fna.gz TrainingDatabase.h5 results.csv 5-21-2
+/usr/bin/time python ../scripts/StreamingQueryDNADatabase.py Organisms/taxid_1192839_4_genomic.fna.gz TrainingDatabase.h5 results.csv 10-21-2
 if test -f results.csv; then
   echo "default classify successful"
 else
@@ -64,7 +64,7 @@ fi
 echo "Classifying sample, verbose settings"
 rm results.csv 2> /dev/null
 # make a streaming pre-filter
-/usr/bin/time python ../scripts/StreamingQueryDNADatabase.py Organisms/taxid_1192839_4_genomic.fna.gz TrainingDatabase.h5 results.csv 5-21-2 -v
+/usr/bin/time python ../scripts/StreamingQueryDNADatabase.py Organisms/taxid_1192839_4_genomic.fna.gz TrainingDatabase.h5 results.csv 10-21-2 -v
 if test -f results.csv; then
   echo "verbose classify successful"
 else
@@ -75,7 +75,7 @@ fi
 echo "Classifying sample, sensitive settings"
 rm results.csv 2> /dev/null
 # make a streaming pre-filter
-/usr/bin/time python ../scripts/StreamingQueryDNADatabase.py Organisms/taxid_1192839_4_genomic.fna.gz TrainingDatabase.h5 results.csv 5-21-2 --sensitive
+/usr/bin/time python ../scripts/StreamingQueryDNADatabase.py Organisms/taxid_1192839_4_genomic.fna.gz TrainingDatabase.h5 results.csv 10-21-2 --sensitive
 if test -f results.csv; then
   echo "sensitive classify successful"
   cat results.csv
@@ -87,7 +87,7 @@ fi
 echo "Create streaming prefilter"
 rm prefilter.bf 2> /dev/null
 # make a streaming pre-filter
-/usr/bin/time python ../scripts/MakeStreamingPrefilter.py TrainingDatabase.h5 prefilter.bf 5-21-2
+/usr/bin/time python ../scripts/MakeStreamingPrefilter.py TrainingDatabase.h5 prefilter.bf 10-21-2
 if test -f prefilter.bf; then
   echo "streaming prefilter creation successful"
 else
@@ -98,7 +98,7 @@ fi
 echo "Classifying sample, default settings with prefilter"
 rm results.csv 2> /dev/null
 # make a streaming pre-filter
-/usr/bin/time python ../scripts/StreamingQueryDNADatabase.py Organisms/taxid_1192839_4_genomic.fna.gz TrainingDatabase.h5 results.csv 5-21-2 -f prefilter.bf
+/usr/bin/time python ../scripts/StreamingQueryDNADatabase.py Organisms/taxid_1192839_4_genomic.fna.gz TrainingDatabase.h5 results.csv 10-21-2 -f prefilter.bf
 if test -f results.csv; then
   echo "default classify with prefilter successful"
 else
