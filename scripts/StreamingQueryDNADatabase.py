@@ -1,9 +1,17 @@
 #! /usr/bin/env python
 import khmer
-import marisa_trie as mt
 import numpy as np
 import os
 import sys
+import multiprocessing
+import pandas as pd
+import argparse
+from argparse import ArgumentTypeError
+import re
+import matplotlib.pyplot as plt
+import timeit
+from itertools import islice
+
 # The following is for ease of development (so I don't need to keep re-installing the tool)
 try:
 	from CMash import MinHash as MH
@@ -23,21 +31,8 @@ except ImportError:
 			from CMash.Query import Create  # fix relative imports
 			from CMash.Query import Counters
 			from CMash.Query import Containment
-		except:
+		except ImportError:
 			raise Exception("Unable to import necessary classes")
-
-import multiprocessing
-import pandas as pd
-import argparse
-from argparse import ArgumentTypeError
-import re
-import matplotlib.pyplot as plt
-from hydra import WritingBloomFilter, ReadingBloomFilter
-from scipy.sparse import csr_matrix, csc_matrix
-from scipy.sparse import save_npz
-from scipy.io import savemat
-import timeit
-from itertools import islice
 
 
 def parseNumList(input):
@@ -201,15 +196,16 @@ if __name__ == '__main__':
 		t1 = timeit.default_timer()
 		print("Time: %f" % (t1 - t0))
 
+
+	# initialize the containment class which will handle the conversion of the match tuples into hit matrices
+	# then into a containment indicies, and finally create a pandas DF for export
+	containment = Containment(k_range=k_range, match_tuples=match_tuples, sketches=sketches, num_hashes=num_hashes)
+
 	if verbose:
 		print("Forming hit matrix")
 		t0 = timeit.default_timer()
 
-	# FIXME: Containment class start
-
-	# FIXME: convert_to_hit_matrices
-
-	containment = Containment(k_range=k_range, match_tuples=match_tuples, sketches=sketches, num_hashes=num_hashes)
+	# create the hit matrices from the match_tuples
 	containment.create_to_hit_matrices()
 
 	if verbose:
@@ -221,7 +217,7 @@ if __name__ == '__main__':
 		print("Computing containment indicies")
 		t0 = timeit.default_timer()
 
-	# FIXME: create containment_indicies
+	# Create the containment indicies
 	containment.create_containment_indicies()
 
 	if verbose:
@@ -230,7 +226,6 @@ if __name__ == '__main__':
 		print("Time: %f" % (t1 - t0))
 
 	# prepare a nice pandas data-frame for export
-	# FIXME: export_data
 	containment.create_data_frame(training_file_names=training_file_names, location_of_thresh=location_of_thresh, coverage_threshold=coverage_threshold)
 
 
@@ -238,6 +233,7 @@ if __name__ == '__main__':
 		if verbose:
 			print("Exporting results")
 			t0 = timeit.default_timer()
+		# export results
 		containment.filtered_results.to_csv(results_file, index=True, encoding='utf-8')
 
 	# If requested, plot the results
