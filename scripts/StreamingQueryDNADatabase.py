@@ -26,8 +26,6 @@ from scipy.io import savemat
 import timeit
 from itertools import islice
 
-# TODO: export hit matrices
-
 
 def parseNumList(input):
 	"""Thank you stack overflow"""
@@ -158,6 +156,7 @@ if __name__ == '__main__':
 		tree = mt.Trie()
 		tree.load(streaming_database_file)
 
+	# TODO: start class from here
 	# all the k-mers of interest in a set (as a pre-filter)
 	if not hydra_file:  # create one
 		try:
