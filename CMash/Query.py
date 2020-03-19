@@ -75,8 +75,17 @@ def main():
 	k_range = [10, 12, 14, 16, 18, 20]
 
 	Q = Query(training_database=training_database, bloom_filter_file=None, TST_file=TST_file, k_range=k_range)
+
+	# test import of TST
 	Q.import_TST()
 	print(f"number of keys in tree: {len(Q.tree.keys())}")
+	Q.create_BF_prefilter()
+
+	# test creation of BF
+	Q.create_BF_prefilter()
+	print(f"Number of buckets in BF: {Q.all_kmers_bf.buckets()}")
+
+
 
 # simple way to do testing
 if __name__ == "__main__":
