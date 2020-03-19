@@ -89,21 +89,21 @@ if __name__ == '__main__':
 	k_range = args.range
 	if k_range is None:
 		raise Exception("The --range argument is required, no matter what the help menu says.")
-	training_data = args.reference_file
+	training_database_file = args.reference_file
 	query_file = args.in_file
 	results_file = args.out_file
 	npz_file = os.path.splitext(results_file)[0] + "_hit_matrix.npz"
 	num_threads = args.threads
 	location_of_thresh = args.location_of_thresh
 	coverage_threshold = args.containment_threshold
-	streaming_database_file = os.path.splitext(training_data)[0] + ".tst"  # name of the tst training file
-	streaming_database_file = os.path.abspath(streaming_database_file)
+	TST_file = os.path.splitext(training_database_file)[0] + ".tst"  # name of the tst training file
+	TST_file = os.path.abspath(TST_file)
 	hydra_file = args.filter_file
 	verbose = args.verbose
 	num_reads_per_core = args.reads_per_core
 	sensitive = args.sensitive
-	if not os.path.exists(streaming_database_file):
-		streaming_database_file = None
+	if not os.path.exists(TST_file):
+		TST_file = None
 	if args.plot_file:
 		plot_file = os.path.abspath(os.path.splitext(results_file)[0] + ".png")
 
@@ -111,14 +111,14 @@ if __name__ == '__main__':
 	# Query file
 	if not os.path.exists(query_file):
 		raise Exception("Query file %s does not exist." % query_file)
-	if not os.path.exists(training_data):
-		raise Exception("Training/reference file %s does not exist." % training_data)
+	if not os.path.exists(training_database_file):
+		raise Exception("Training/reference file %s does not exist." % training_database_file)
 
 	# Training data
 	if verbose:
 		print("Reading in sketches")
 		t0 = timeit.default_timer()
-	sketches = MH.import_multiple_from_single_hdf5(training_data)
+	sketches = MH.import_multiple_from_single_hdf5(training_database_file)
 	if sketches[0]._kmers is None:
 		raise Exception(
 			"For some reason, the k-mers were not saved when the database was created. Try running MakeStreamingDNADatabase.py again.")
@@ -156,7 +156,7 @@ if __name__ == '__main__':
 		t0 = timeit.default_timer()
 
 	# Import the query class to handle the creation of all the necessary data structures
-	C = Create(training_database_file=training_data, bloom_filter_file=hydra_file, TST_file=streaming_database_file, k_range=k_range)
+	C = Create(training_database_file=training_database_file, bloom_filter_file=hydra_file, TST_file=TST_file, k_range=k_range)
 
 	# Make the Marissa tree
 	C.import_TST()
@@ -258,7 +258,7 @@ if __name__ == '__main__':
 		fig.savefig(plot_file)
 
 
-	# FIXME: post-process
+	# FIXME: post-process class
 	###############################################################################
 	# Start the post-processing
 	if verbose and not sensitive:
@@ -270,6 +270,7 @@ if __name__ == '__main__':
 		# Main idea here is to only concentrate on the unique k-mers: those that don't show up in more than one genome
 		# as they are more specific to the presence of that genome being present in the sample
 
+		# FIXME: prepare_post_process
 		# from the non-filtered out genomes, create a dictionary that maps k-mer size to the properly reduced hit_matrix
 		# first, get the basis of the reduced data frame
 		to_select_names = list(filtered_results.index)
@@ -290,8 +291,9 @@ if __name__ == '__main__':
 
 		hit_matrices_dict = hit_matrices_dense_dict
 
+		# FIXME: find_kmers_in_filtered_results
 		# get the count estimators of just the organisms of interest
-		CEs = MH.import_multiple_from_single_hdf5(training_data, import_list=to_select_names)  # TODO: could make it a tad more memory efficient by sub-selecting the 'sketches'
+		CEs = MH.import_multiple_from_single_hdf5(training_database_file, import_list=to_select_names)  # TODO: could make it a tad more memory efficient by sub-selecting the 'sketches'
 
 		# get all the kmers (for each kmer size) and form their counts in the subset of predicted sketches to be in the sample
 		all_kmers_with_counts = dict()
@@ -307,6 +309,7 @@ if __name__ == '__main__':
 					else:
 						all_kmers_with_counts[kmer] = 1
 
+		# FIXME: find_unique_kmers
 		# Use this to identify which k-mers are unique (i.e. show up in exactly one sketch)
 		for kmer in all_kmers_with_counts.keys():
 			if all_kmers_with_counts[kmer] == 1:
@@ -314,6 +317,7 @@ if __name__ == '__main__':
 				is_unique_kmer_per_ksize[k_size].add(kmer)
 				is_unique_kmer.add(kmer)
 
+		# FIXME: find_non_unique_kmers
 		# Also keep track of which kmers appear in more than one sketch (not unique)
 		num_unique = dict()
 		for i in range(len(CEs)):
@@ -333,6 +337,7 @@ if __name__ == '__main__':
 					hit_matrices_dict['k=%d' % k_size][i, to_zero_indicies] = 0  # set these to zero since they show up in other sketches (so not informative)
 				num_unique[i, k_range.index(k_size)] = len(current_kmers_set) - len(non_unique)  # keep track of the size of the unique k-mers
 
+		# FIXME: create_post_containment_indicies
 		# sum the modified hit matrices to get the size of the intersection
 		containment_indices = np.zeros((len(to_select_names), len(k_range)))  # TODO: could make this thing sparse, or do the filtering for above threshold here
 		for k_size_loc in range(len(k_range)):
@@ -352,6 +357,7 @@ if __name__ == '__main__':
 				containment_indices[hash_loc, k_size_loc] /= float(len(unique_kmers))  # FIXME: this doesn't seem like the right way to normalize, but apparently it is!
 				#containment_indices[hash_loc, k_size_loc] /= float(num_unique[hash_loc, k_size_loc])  # FIXME: in small tests, this seems to give better results. To be revisted.
 
+		# FIXME: create_data_frame
 		# spit out these results
 		results = dict()
 		for k_size_loc in range(len(k_range)):
@@ -362,6 +368,7 @@ if __name__ == '__main__':
 		df = df.reindex(labels=['k=' + str(k_size) for k_size in k_range], axis=1)  # sort columns in ascending order
 		sort_key = 'k=%d' % k_range[location_of_thresh]
 		max_key = 'k=%d' % k_range[-1]
+		# TODO: might not want to filter at this point again, or adjust the coverage_threshold since now it's only based on unique k-mers
 		filtered_results = df[df[sort_key] > coverage_threshold].sort_values(max_key, ascending=False)  # only select those where the highest k-mer size's count is above the threshold
 
 		filtered_results.to_csv(results_file, index=True, encoding='utf-8')
