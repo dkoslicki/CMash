@@ -87,6 +87,7 @@ def main():
 	if verbose:
 		print("Creating ternary search tree")
 	to_insert = set()
+	# add both the original k-mer and the reverse complement, as the MinHashes were created without reverse complement
 	for i in range(len(genome_sketches)):
 		for kmer_index in range(len(genome_sketches[i]._kmers)):
 			# normal kmer
