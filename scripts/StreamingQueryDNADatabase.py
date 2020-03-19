@@ -360,23 +360,6 @@ if __name__ == '__main__':
 			t0 = timeit.default_timer()
 		filtered_results.to_csv(results_file, index=True, encoding='utf-8')
 
-	# TODO: may not have to do this if I do the pos-processing directly in here
-	# export the reduced hit matrices
-	# first, get the basis of the reduced data frame
-	to_select_names = list(filtered_results.index)
-	all_names = list(map(os.path.basename, training_file_names))
-	rows_to_select = []
-	for name in to_select_names:
-		rows_to_select.append(all_names.index(name))
-	hit_matrices_dict = dict()
-	# the reduce the hit matrix to this basis
-	for i in range(len(k_range)):
-		k_size = k_range[i]
-		hit_matrices_dict['k=%d' % k_size] = hit_matrices[i][rows_to_select, :]
-	# then export  # TODO: not necessary if I do the post-processing right here
-	#savemat(npz_file, hit_matrices_dict, appendmat=False, do_compression=True)
-
-
 	# If requested, plot the results
 	if args.plot_file:
 		df = pd.read_csv(results_file)  # annoyingly, I have to read it back in to get the format into something I can work with
@@ -399,6 +382,18 @@ if __name__ == '__main__':
 
 	if not sensitive:
 		# Do the post-processing
+		# export the reduced hit matrices
+		# first, get the basis of the reduced data frame
+		to_select_names = list(filtered_results.index)
+		all_names = list(map(os.path.basename, training_file_names))
+		rows_to_select = []
+		for name in to_select_names:
+			rows_to_select.append(all_names.index(name))
+		hit_matrices_dict = dict()
+		# the reduce the hit matrix to this basis
+		for i in range(len(k_range)):
+			k_size = k_range[i]
+			hit_matrices_dict['k=%d' % k_size] = hit_matrices[i][rows_to_select, :]
 		# Make the hit matrices dense
 		hit_matrices_dense_dict = dict()
 		for k_size in k_range:
