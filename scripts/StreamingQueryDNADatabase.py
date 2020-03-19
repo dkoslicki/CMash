@@ -232,7 +232,8 @@ if __name__ == '__main__':
 							to_return.extend(match_list)
 						possible_match = True
 					# TODO: note: I could (since it'd only be for a single kmer size, keep a set of *all* small_kmers I've tried and use this as another pre-filter
-
+					else:
+						possible_match = True
 				# start looking at the other k_sizes, don't overhang len(seq)
 				if possible_match:
 					for other_k_size in [x for x in k_range[1:] if i+x <= len(seq)]:
