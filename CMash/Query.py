@@ -224,61 +224,90 @@ class Containment:
 		df = df.reindex(labels=['k=' + str(k_size) for k_size in k_range], axis=1)  # sort columns in ascending order
 		sort_key = 'k=%d' % k_range[location_of_thresh]
 		max_key = 'k=%d' % k_range[-1]
-		self.filtered_results = df[df[sort_key] > coverage_threshold].sort_values(max_key,
-																			 ascending=False)  # only select those where the highest k-mer size's count is above the threshold
+		# only select those where the highest k-mer size's count is above the threshold
+		self.filtered_results = df[df[sort_key] > coverage_threshold].sort_values(max_key, ascending=False)
+
 
 class PostProcess:
-	def __init__(self, fil):
-		pass
+	def __init__(self, filtered_results: pd.DataFrame, training_file_names: list, k_range: list, hit_matrices: list):
+		self.filtered_results = filtered_results
+		self.training_file_names = training_file_names
+		self.k_range = k_range
+		self.hit_matrices = hit_matrices
+		self.to_select_names = None
+		self.all_kmers_with_counts = None
+		self.is_unique_kmer_per_ksize = dict()
+		self.CEs = None
+		self.hit_matrices_dict = None
+		self.containment_indices = None
 
-	def prepare_post_process(self):
-		to_select_names = list(filtered_results.index)
+	def prepare_post_process(self) -> None:
+		filtered_results = self.filtered_results
+		training_file_names = self.training_file_names
+		k_range = self.k_range
+		hit_matrices = self.hit_matrices
+		self.to_select_names = list(filtered_results.index)
 		all_names = list(map(os.path.basename, training_file_names))
 		rows_to_select = []
-		for name in to_select_names:
+		for name in self.to_select_names:
 			rows_to_select.append(all_names.index(name))
-		hit_matrices_dict = dict()
-		# the reduce the hit matrix to this basis
+		hit_matrices_dict_temp = dict()
+
+		# TODO: could make this much cleaner by not using the intermediate hit_matrices_dict_temp and just converting
+		# TODO: to dense immediately then reduce the hit matrix to this basis
 		for i in range(len(k_range)):
 			k_size = k_range[i]
-			hit_matrices_dict['k=%d' % k_size] = hit_matrices[i][rows_to_select, :]
+			hit_matrices_dict_temp['k=%d' % k_size] = hit_matrices[i][rows_to_select, :]
 
 		# Make the hit matrices dense
 		hit_matrices_dense_dict = dict()
 		for k_size in k_range:
-			hit_matrices_dense_dict['k=%d' % k_size] = hit_matrices_dict['k=%d' % k_size].todense()
+			hit_matrices_dense_dict['k=%d' % k_size] = hit_matrices_dict_temp['k=%d' % k_size].todense()
 
-		hit_matrices_dict = hit_matrices_dense_dict
+		self.hit_matrices_dict = hit_matrices_dense_dict
 
-	def find_kmers_in_filtered_results(self):
+	def find_kmers_in_filtered_results(self, training_database_file: str) -> None:
+		to_select_names = self.to_select_names
+		k_range = self.k_range
+		#is_unique_kmer_per_ksize = self.is_unique_kmer_per_ksize
+
 		# get the count estimators of just the organisms of interest
-		CEs = MH.import_multiple_from_single_hdf5(training_database_file,
-												  import_list=to_select_names)  # TODO: could make it a tad more memory efficient by sub-selecting the 'sketches'
+		# TODO: could make it a LOT more memory efficient by sub-selecting the 'sketches'
+		self.CEs = MH.import_multiple_from_single_hdf5(training_database_file, import_list=to_select_names)
 
 		# get all the kmers (for each kmer size) and form their counts in the subset of predicted sketches to be in the sample
-		all_kmers_with_counts = dict()
-		is_unique_kmer = set()
-		is_unique_kmer_per_ksize = dict()
+		self.all_kmers_with_counts = dict()
 		for k_size in k_range:
-			is_unique_kmer_per_ksize[k_size] = set()
-			for i in range(len(CEs)):
-				for big_kmer in CEs[i]._kmers:
+			#self.is_unique_kmer_per_ksize[k_size] = set()
+			for i in range(len(self.CEs)):
+				for big_kmer in self.CEs[i]._kmers:
 					kmer = big_kmer[:k_size]
-					if kmer in all_kmers_with_counts:
-						all_kmers_with_counts[kmer] += 1
+					if kmer in self.all_kmers_with_counts:
+						self.all_kmers_with_counts[kmer] += 1
 					else:
-						all_kmers_with_counts[kmer] = 1
+						self.all_kmers_with_counts[kmer] = 1
 
-	def find_unique_kmers(self):
+	def find_unique_kmers(self) -> None:
 		# Use this to identify which k-mers are unique (i.e. show up in exactly one sketch)
+		k_range = self.k_range
+		is_unique_kmer_per_ksize = self.is_unique_kmer_per_ksize
+		for k_size in k_range:
+			self.is_unique_kmer_per_ksize[k_size] = set()
+		is_unique_kmer = set()  # TODO: might not actually need this
+		all_kmers_with_counts = self.all_kmers_with_counts
 		for kmer in all_kmers_with_counts.keys():
 			if all_kmers_with_counts[kmer] == 1:
 				k_size = len(kmer)
 				is_unique_kmer_per_ksize[k_size].add(kmer)
 				is_unique_kmer.add(kmer)
 
-	def find_non_unique_kmers(self):
+	def find_non_unique_kmers(self) -> None:
 		# Also keep track of which kmers appear in more than one sketch (not unique)
+		CEs = self.CEs
+		k_range = self.k_range
+		is_unique_kmer_per_ksize = self.is_unique_kmer_per_ksize
+		hit_matrices_dict = self.hit_matrices_dict
+
 		num_unique = dict()
 		for i in range(len(CEs)):
 			for k_size in k_range:
@@ -299,13 +328,18 @@ class PostProcess:
 				num_unique[i, k_range.index(k_size)] = len(current_kmers_set) - len(
 					non_unique)  # keep track of the size of the unique k-mers
 
-	def create_post_containment_indicies(self):
+	def create_post_containment_indicies(self) -> None:
 		# sum the modified hit matrices to get the size of the intersection
-		containment_indices = np.zeros((len(to_select_names), len(
-			k_range)))  # TODO: could make this thing sparse, or do the filtering for above threshold here
+		to_select_names = self.to_select_names
+		k_range = self.k_range
+		hit_matrices_dict = self.hit_matrices_dict
+		CEs = self.CEs
+
+		# TODO: could make this thing sparse, or do the filtering for above threshold here
+		self.containment_indices = np.zeros((len(to_select_names), len(k_range)))
 		for k_size_loc in range(len(k_range)):
 			k_size = k_range[k_size_loc]
-			containment_indices[:, k_size_loc] = (
+			self.containment_indices[:, k_size_loc] = (
 				hit_matrices_dict['k=%d' % k_size].sum(axis=1).ravel())  # /float(num_hashes))
 
 		# then normalize by the number of unique k-mers (to get the containment index)
@@ -313,30 +347,34 @@ class PostProcess:
 		# but also increases the variance/confidence interval, since this decreases the size of the sketch.
 		for k_size_loc in range(len(k_range)):
 			k_size = k_range[k_size_loc]
-			for hash_loc in np.where(containment_indices[:, k_size_loc])[
+			for hash_loc in np.where(self.containment_indices[:, k_size_loc])[
 				0]:  # find the genomes with non-zero containment
 				unique_kmers = set()
 				for kmer in CEs[hash_loc]._kmers:
 					unique_kmers.add(kmer[:k_size])  # find the unique k-mers
-				containment_indices[hash_loc, k_size_loc] /= float(len(
-					unique_kmers))  # FIXME: this doesn't seem like the right way to normalize, but apparently it is!
-				# containment_indices[hash_loc, k_size_loc] /= float(num_unique[hash_loc, k_size_loc])  # FIXME: in small tests, this seems to give better results. To be revisted.
+				# FIXME: this doesn't seem like the right way to normalize, but apparently it is!
+				self.containment_indices[hash_loc, k_size_loc] /= float(len(unique_kmers))
+				# FIXME: in small tests, this seems to give better results. To be revisted.
+				# would need to inherit the non_unique's as well
+				# containment_indices[hash_loc, k_size_loc] /= float(num_unique[hash_loc, k_size_loc])
 
-	def create_data_frame(self):
-		# spit out these results
+
+	def create_data_frame(self, training_file_names: list, location_of_thresh: int, coverage_threshold: float) -> None:
+		# this is an exact copy of the one in the above class, so might be able to sub-class it to cut down on
+		# code repetition
+		k_range = self.k_range
+		containment_indices = self.containment_indices
 		results = dict()
 		for k_size_loc in range(len(k_range)):
 			ksize = k_range[k_size_loc]
 			key = 'k=%d' % ksize
 			results[key] = containment_indices[:, k_size_loc]
-		df = pd.DataFrame(results, map(os.path.basename, to_select_names))
+		df = pd.DataFrame(results, map(os.path.basename, training_file_names))
 		df = df.reindex(labels=['k=' + str(k_size) for k_size in k_range], axis=1)  # sort columns in ascending order
 		sort_key = 'k=%d' % k_range[location_of_thresh]
 		max_key = 'k=%d' % k_range[-1]
-		# TODO: might not want to filter at this point again, or adjust the coverage_threshold since now it's only based on unique k-mers
-		filtered_results = df[df[sort_key] > coverage_threshold].sort_values(max_key,
-																			 ascending=False)  # only select those where the highest k-mer size's count is above the threshold
-
+		# only select those where the highest k-mer size's count is above the threshold
+		self.filtered_results = df[df[sort_key] > coverage_threshold].sort_values(max_key, ascending=False)
 
 
 def main():

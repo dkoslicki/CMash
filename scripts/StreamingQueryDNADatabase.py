@@ -18,12 +18,14 @@ try:
 	from Query import Create
 	from Query import Counters
 	from Query import Containment
+	from Query import PostProcess
 except ImportError:
 	try:
 		import MinHash as MH
 		import Create
 		import Counters
 		import Containment
+		import PostProcess
 	except ImportError:
 		try:
 			sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -31,6 +33,7 @@ except ImportError:
 			from CMash.Query import Create  # fix relative imports
 			from CMash.Query import Counters
 			from CMash.Query import Containment
+			from CMash.Query import PostProcess
 		except ImportError:
 			raise Exception("Unable to import necessary classes")
 
@@ -269,28 +272,33 @@ if __name__ == '__main__':
 		# Do the post-processing
 		# Main idea here is to only concentrate on the unique k-mers: those that don't show up in more than one genome
 		# as they are more specific to the presence of that genome being present in the sample
-
+		post_process = PostProcess(filtered_results=containment.filtered_results,
+								   training_file_names=training_file_names, k_range=k_range,
+								   hit_matrices=containment.hit_matrices)
 		# FIXME: prepare_post_process
+		post_process.prepare_post_process()
+
 		# from the non-filtered out genomes, create a dictionary that maps k-mer size to the properly reduced hit_matrix
 		# first, get the basis of the reduced data frame
 
-
 		# FIXME: find_kmers_in_filtered_results
-
+		post_process.find_kmers_in_filtered_results(training_database_file=training_database_file)
 
 		# FIXME: find_unique_kmers
-
+		post_process.find_unique_kmers()
 
 		# FIXME: find_non_unique_kmers
-
+		post_process.find_non_unique_kmers()
 
 		# FIXME: create_post_containment_indicies
-
+		post_process.create_post_containment_indicies()
 
 		# FIXME: create_data_frame
+		to_select_names = post_process.to_select_names
+		post_process.create_data_frame(training_file_names=to_select_names, location_of_thresh=location_of_thresh, coverage_threshold=coverage_threshold)
 
-
-		filtered_results.to_csv(results_file, index=True, encoding='utf-8')
+		# and then export it
+		post_process.filtered_results.to_csv(results_file, index=True, encoding='utf-8')
 		if verbose:
 			t1 = timeit.default_timer()
 			print("Finished thresholding. Time: %f" % (t1 - t0))
