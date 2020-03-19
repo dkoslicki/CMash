@@ -163,12 +163,13 @@ if __name__ == '__main__':
 		try:
 			# Get all the k-mers in the TST, put them in a bloom filter
 			#all_kmers_bf = WritingBloomFilter(len(sketches) * len(k_range) * num_hashes * 20, 0.01)
-			all_kmers_bf = WritingBloomFilter(len(tree.keys()) * len(k_range) * 5, 0.01, ignore_case=True)  # fudge factor of 5 will make the BF larger, but also slightly faster
+			all_kmers_bf = WritingBloomFilter(len(tree.keys()) * len(k_range) * 5, 0.01, ignore_case=True) # fudge factor of 5 will make the BF larger, but also slightly faster
 			for kmer_info in tree.keys():
-				kmer = kmer_info.split('x')[0]  # remove the location information and get just the kmer
+				kmer = kmer_info.split('x')[0]  # remove the location information and just get the kmer
 				for ksize in k_range:
 					all_kmers_bf.add(kmer[0:ksize])
-					all_kmers_bf.add(khmer.reverse_complement(kmer[0:ksize]))  # include reverse complements
+					all_kmers_bf.add(khmer.reverse_complement(kmer[0:ksize]))
+
 		except IOError:
 			print("No such file or directory/error opening file: %s" % hydra_file)
 			sys.exit(1)
@@ -197,7 +198,9 @@ if __name__ == '__main__':
 			match_info = set()
 			to_return = []
 			saw_match = False
-			# look for matches to both the kmer and its reverse complement in the TST as we can't assume directionality of reads (and training database is constructed without reverse complements)
+
+			# look for matches to both the kmer and its reverse complement in the TST as we can't assume
+			# directionality of reads (and training database is constructed without reverse complements)
 			for kmer in [input_kmer, khmer.reverse_complement(input_kmer)]:
 				prefix_matches = tree.keys(kmer)  # get all the k-mers whose prefix matches
 				# get the location of the found kmers in the counters
@@ -222,9 +225,8 @@ if __name__ == '__main__':
 			for i in range(len(seq) - small_k_size + 1):  # look at all k-mers
 				kmer = seq[i:i + small_k_size]
 				possible_match = False
-				if kmer not in seen_kmers:  # if we should process it (hasn't been seen before)
-					if kmer in all_kmers_bf:  # if we should process it (in time O(1) check if it could be in the TST)
-					#if True:
+				if kmer not in seen_kmers:  # if we should process it
+					if kmer in all_kmers_bf:  # if we should process it
 						match_list, saw_match = self.return_matches(kmer, 0)
 						if saw_match:
 							seen_kmers.add(kmer)
@@ -232,8 +234,9 @@ if __name__ == '__main__':
 							to_return.extend(match_list)
 						possible_match = True
 					# TODO: note: I could (since it'd only be for a single kmer size, keep a set of *all* small_kmers I've tried and use this as another pre-filter
-					else:
-						possible_match = True
+				else:
+					possible_match = True  # FIXME: bug introduced here in cf64b7aace5eadf738b920109d6419c9d930a1dc
+
 				# start looking at the other k_sizes, don't overhang len(seq)
 				if possible_match:
 					for other_k_size in [x for x in k_range[1:] if i+x <= len(seq)]:
@@ -366,7 +369,6 @@ if __name__ == '__main__':
 			print("Exporting results")
 			t0 = timeit.default_timer()
 		filtered_results.to_csv(results_file, index=True, encoding='utf-8')
-
 
 	# If requested, plot the results
 	if args.plot_file:
