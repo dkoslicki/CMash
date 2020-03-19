@@ -150,8 +150,14 @@ if __name__ == '__main__':
 		to_insert = set()
 		for i in range(len(sketches)):
 			for kmer_index in range(len(sketches[i]._kmers)):
+				# normal kmer
 				kmer = sketches[i]._kmers[kmer_index]
-				to_insert.add(kmer + 'x' + str(i) + 'x' + str(kmer_index))  # format here is kmer+x+hash_index+kmer_index
+				to_insert.add(
+					kmer + 'x' + str(i) + 'x' + str(kmer_index))  # format here is kmer+x+hash_index+kmer_index
+				# rev-comp kmer
+				kmer = khmer.reverse_complement(sketches[i]._kmers[kmer_index])
+				to_insert.add(
+					kmer + 'x' + str(i) + 'x' + str(kmer_index))  # format here is kmer+x+hash_index+kmer_index
 		tree = mt.Trie(to_insert)
 		tree.save(streaming_database_file)
 	else:
