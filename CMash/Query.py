@@ -3,6 +3,9 @@ import marisa_trie as mt
 import numpy as np
 import os
 import sys
+import pandas as pd
+from hydra import WritingBloomFilter, ReadingBloomFilter
+from scipy.sparse import csc_matrix
 # The following is for ease of development (so I don't need to keep re-installing the tool)
 try:
 	from CMash import MinHash as MH
@@ -12,18 +15,34 @@ except ImportError:
 	except ImportError:
 		sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 		from CMash import MinHash as MH
-import multiprocessing
-import pandas as pd
-import argparse
-from argparse import ArgumentTypeError
-import re
-import matplotlib.pyplot as plt
-from hydra import WritingBloomFilter, ReadingBloomFilter
-from scipy.sparse import csr_matrix, csc_matrix
-from scipy.sparse import save_npz
-from scipy.io import savemat
-import timeit
-from itertools import islice
+
+
+def return_data_frame(training_file_names: list, k_range: list, location_of_thresh: int, containment_indices: np.ndarray, coverage_threshold: float) -> pd.DataFrame:
+	"""
+	Creates a nicely formatted Pandas data frame from the self.containment_indicies.
+	:param training_file_names: the file names that were used to create the training database
+	:type training_file_names: list
+	:param k_range: a range of k-mer sizes
+	:type k_range: list
+	:param location_of_thresh: where in self.k_range the thresholding should take place (-1 means the last one)
+	:type location_of_thresh: int
+	:param containment_indices: the containment indicies matrix you wish to convert to a pandas data frame
+	:type containment_indices: numpy.ndarray
+	:param coverage_threshold: filter out those results that have containment indicies below this threshold
+	:type coverage_threshold: float
+	"""
+	results = dict()
+	for k_size_loc in range(len(k_range)):
+		ksize = k_range[k_size_loc]
+		key = 'k=%d' % ksize
+		results[key] = containment_indices[:, k_size_loc]
+	df = pd.DataFrame(results, map(os.path.basename, training_file_names))
+	df = df.reindex(labels=['k=' + str(k_size) for k_size in k_range], axis=1)  # sort columns in ascending order
+	sort_key = 'k=%d' % k_range[location_of_thresh]
+	max_key = 'k=%d' % k_range[-1]
+	# only select those where the highest k-mer size's count is above the threshold
+	filtered_results = df[df[sort_key] > coverage_threshold].sort_values(max_key, ascending=False)
+	return filtered_results
 
 
 class Create:
@@ -212,6 +231,7 @@ class Containment:
 		# TODO: could make this thing sparse, or do the filtering for above threshold here
 		# as it's probably a memory hog
 		self.containment_indices = np.zeros((len(sketches), len(k_range)))
+		self.filtered_results = None  # will be filled in when I do the exporting
 
 	def create_to_hit_matrices(self) -> None:
 		"""
@@ -280,29 +300,11 @@ class Containment:
 				self.containment_indices[hash_loc, k_size_loc] /= float(
 					len(unique_kmers))  # divide by the unique num of k-mers
 
-	def create_data_frame(self, training_file_names: list, location_of_thresh: int, coverage_threshold: float) -> None:
+	def create_data_frame(self, training_file_names: list, location_of_thresh: int, coverage_threshold: int) -> None:
 		"""
 		Creates a nicely formatted Pandas data frame from the self.containment_indicies.
-		:param training_file_names: the file names that were used to create the training database
-		:type training_file_names: list
-		:param location_of_thresh: where in self.k_range the thresholding should take place (-1 means the last one)
-		:type location_of_thresh: int
-		:param coverage_threshold: filter out those results that have containment indicies below this threshold
-		:type coverage_threshold: float
 		"""
-		k_range = self.k_range
-		containment_indices = self.containment_indices
-		results = dict()
-		for k_size_loc in range(len(k_range)):
-			ksize = k_range[k_size_loc]
-			key = 'k=%d' % ksize
-			results[key] = containment_indices[:, k_size_loc]
-		df = pd.DataFrame(results, map(os.path.basename, training_file_names))
-		df = df.reindex(labels=['k=' + str(k_size) for k_size in k_range], axis=1)  # sort columns in ascending order
-		sort_key = 'k=%d' % k_range[location_of_thresh]
-		max_key = 'k=%d' % k_range[-1]
-		# only select those where the highest k-mer size's count is above the threshold
-		self.filtered_results = df[df[sort_key] > coverage_threshold].sort_values(max_key, ascending=False)
+		self.filtered_results = return_data_frame(training_file_names, self.k_range, location_of_thresh, self.containment_indices, coverage_threshold)
 
 
 class PostProcess:
@@ -471,29 +473,18 @@ class PostProcess:
 				# would need to inherit the non_unique's as well
 				# containment_indices[hash_loc, k_size_loc] /= float(num_unique[hash_loc, k_size_loc])
 
-	def create_data_frame(self, training_file_names: list, location_of_thresh: int, coverage_threshold: float) -> None:
+	def create_data_frame(self, training_file_names: list, location_of_thresh: int, coverage_threshold: int) -> None:
 		"""
 		Creates a nicely formatted Pandas data frame from the self.containment_indicies.
 		:param training_file_names: the file names that were used to create the training database
 		:type training_file_names: list
-		:param location_of_thresh: where in self.k_range the thresholding should take place (-1 means the last one)
+		:param location_of_thresh: here in self.k_range the thresholding should take place (-1 means the last one)
 		:type location_of_thresh: int
 		:param coverage_threshold: filter out those results that have containment indicies below this threshold
 		:type coverage_threshold: float
 		"""
-		k_range = self.k_range
-		containment_indices = self.containment_indices
-		results = dict()
-		for k_size_loc in range(len(k_range)):
-			ksize = k_range[k_size_loc]
-			key = 'k=%d' % ksize
-			results[key] = containment_indices[:, k_size_loc]
-		df = pd.DataFrame(results, map(os.path.basename, training_file_names))
-		df = df.reindex(labels=['k=' + str(k_size) for k_size in k_range], axis=1)  # sort columns in ascending order
-		sort_key = 'k=%d' % k_range[location_of_thresh]
-		max_key = 'k=%d' % k_range[-1]
-		# only select those where the highest k-mer size's count is above the threshold
-		self.filtered_results = df[df[sort_key] > coverage_threshold].sort_values(max_key, ascending=False)
+		self.filtered_results = return_data_frame(training_file_names, self.k_range, location_of_thresh,
+												  self.containment_indices, coverage_threshold)
 
 def main():
 	"""
@@ -516,8 +507,8 @@ def main():
 
 	# test import of Counters class
 
-	counters = Counters(tree=C.tree, k_range=C.k_range, seen_kmers=C.seen_kmers, all_kmers_bf=C.all_kmers_bf)
-	print(f"Processed sequence with counter: {counters.process_seq('AGTCCGCGCCACTGGCAGTGACCATCGACACGCAGACGGAGATTAACAACATTGTACTGGTCAATGATACCGGTATGCCG')}")
+	#counters = Counters(tree=C.tree, k_range=C.k_range, seen_kmers=C.seen_kmers, all_kmers_bf=C.all_kmers_bf)
+	#print(f"Processed sequence with counter: {counters.process_seq('AGTCCGCGCCACTGGCAGTGACCATCGACACGCAGACGGAGATTAACAACATTGTACTGGTCAATGATACCGGTATGCCG')}")
 
 
 
