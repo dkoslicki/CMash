@@ -7,16 +7,18 @@ import sys
 # The following is for ease of development (so I don't need to keep re-installing the tool)
 try:
 	from CMash import MinHash as MH
-	from Query import Query as Q
+	from Query import Query
 	from Query import Counters
 except ImportError:
 	try:
 		import MinHash as MH
-		import Query as Q
+		import Query
+		import Counters
 	except ImportError:
 		sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 		from CMash import MinHash as MH
-		from CMash import Query as Q  # FIXME: figure out these relative imports
+		from CMash.Query import Query  # FIXME: figure out these relative imports
+		from CMash.Query import Counters  # FIXME: figure out these relative imports
 import multiprocessing
 import pandas as pd
 import argparse
@@ -144,7 +146,7 @@ if __name__ == '__main__':
 		t0 = timeit.default_timer()
 
 	# TODO: start class from here
-	Q = Q(necessary_args)
+	Q = Query(training_database_file=training_data, bloom_filter_file=None, TST_file=streaming_database_file, k_range=k_range)
 
 	# Make the Marissa tree
 	Q.import_TST()
@@ -157,12 +159,9 @@ if __name__ == '__main__':
 		t1 = timeit.default_timer()
 		print("Time: %f" % (t1 - t0))
 
-
-
-
-
 	# Initialize the counters
-	counter = Q.Counters()
+	counter = Counters(tree=Q.tree, k_range=Q.k_range, seen_kmers=Q.seen_kmers, all_kmers_bf=Q.all_kmers_bf)
+
 	def map_func(sequence):
 		return counter.process_seq(sequence)
 
