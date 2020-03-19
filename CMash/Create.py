@@ -142,7 +142,55 @@ class Counters:
 
 # class to take the processed data and turn it into the containment indicies matrices
 class Containment:
-	def __init__(self):
+	def __init__(self, k_range=None, match_tuples=None, sketches=None, num_hashes=None):
+		self.k_range = k_range
+		self.match_tuples = match_tuples
+		self.sketches = sketches
+		self.num_hashes = num_hashes
+
+	def convert_to_hit_matrices(self):
+		k_range = self.k_range
+		match_tuples = self.match_tuples
+		sketches = self.sketches
+		num_hashes = self.num_hashes
+
+		# create k_range spare matrices. Rows index by genomes (sketch/hash index), columns index by k_mer_loc
+		row_ind_dict = dict()
+		col_ind_dict = dict()
+		value_dict = dict()
+		unique_kmers = dict()  # this will keep track of the unique k-mers seen in each genome (sketch/hash loc)
+		for k_size in k_range:
+			row_ind_dict[k_size] = []
+			col_ind_dict[k_size] = []
+			value_dict[k_size] = []
+
+		match_tuples = set(match_tuples)  # uniquify, so we don't make the row/col ind dicts too large
+
+		# convert the match tuples to the necessary format to be turned into a matrix/tensor
+		for hash_loc, k_size_loc, kmer_loc in match_tuples:
+			if hash_loc not in unique_kmers:
+				unique_kmers[hash_loc] = set()
+			k_size = k_range[k_size_loc]
+			kmer = sketches[hash_loc]._kmers[kmer_loc][:k_size]
+			if kmer not in unique_kmers[
+				hash_loc]:  # if you've seen this k-mer before, don't add it. NOTE: this makes sure we don't over count
+				row_ind_dict[k_size].append(hash_loc)
+				col_ind_dict[k_size].append(kmer_loc)
+				value_dict[k_size].append(1)  # only counting presence/absence, so just a 1 for the value
+				unique_kmers[hash_loc].add(kmer)
+
+		# list of matrices that contain the hits: len(hit_matrices) == k_sizes
+		# each hit_matrices[i] has rows indexed by which genome/sketch they belong to
+		# columns indexed by where the k-mer appeared in the sketch/hash list
+		hit_matrices = []
+
+		for k_size in k_range:
+			# convert to matrices
+			mat = csc_matrix((value_dict[k_size], (row_ind_dict[k_size], col_ind_dict[k_size])),
+							 shape=(len(sketches), num_hashes))
+			hit_matrices.append(mat)
+
+		return hit_matrices
 
 
 def main():
@@ -166,8 +214,10 @@ def main():
 
 	# test import of Counters class
 
-	C = Counters(tree=C.tree, k_range=C.k_range, seen_kmers=C.seen_kmers, all_kmers_bf=C.all_kmers_bf)
-	print(f"Processed sequence with counter: {C.process_seq('AGTCCGCGCCACTGGCAGTGACCATCGACACGCAGACGGAGATTAACAACATTGTACTGGTCAATGATACCGGTATGCCG')}")
+	counters = Counters(tree=C.tree, k_range=C.k_range, seen_kmers=C.seen_kmers, all_kmers_bf=C.all_kmers_bf)
+	print(f"Processed sequence with counter: {counters.process_seq('AGTCCGCGCCACTGGCAGTGACCATCGACACGCAGACGGAGATTAACAACATTGTACTGGTCAATGATACCGGTATGCCG')}")
+
+
 
 
 
