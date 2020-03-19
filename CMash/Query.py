@@ -189,7 +189,7 @@ class Counters:
 					possible_match = True
 			# TODO: note: I could (since it'd only be for a single kmer size, keep a set of *all* small_kmers I've tried and use this as another pre-filter
 			else:
-				possible_match = True  # FIXME: bug introduced here in cf64b7aace5eadf738b920109d6419c9d930a1dc
+				possible_match = True  # FIXME: bug introduced here in cf64b7aace5eadf738b920109d6419c9d930a1dc, make sure it didn't happen again
 
 			# start looking at the other k_sizes, don't overhang len(seq)
 			if possible_match:
@@ -335,6 +335,7 @@ class PostProcess:
 		self.CEs = None
 		self.hit_matrices_dict = None
 		self.containment_indices = None
+		self.num_unique_dict = dict()
 
 	def prepare_post_process(self) -> None:
 		"""
@@ -417,27 +418,26 @@ class PostProcess:
 		k_range = self.k_range
 		is_unique_kmer_per_ksize = self.is_unique_kmer_per_ksize
 		hit_matrices_dict = self.hit_matrices_dict
-
-		num_unique = dict()
+		num_unique_dict = self.num_unique_dict
 		for i in range(len(CEs)):
 			for k_size in k_range:
 				current_kmers = [k[:k_size] for k in CEs[i]._kmers]
 				current_kmers_set = set(current_kmers)
-				non_unique = set()
+				non_unique_set = set()
 
 				for kmer in current_kmers:
 					if kmer not in is_unique_kmer_per_ksize[k_size]:
-						non_unique.add(kmer)
-				# FIXME: this should go in the next function
+						non_unique_set.add(kmer)
+				# FIXME: this should go in the next function, since this is where the hit_matries are actually reduced
 				# reduce the hit matrices by removing the hits corresponding to non-unique k-mers
-				to_zero_indicies = [ind for ind, kmer in enumerate(current_kmers) if kmer in non_unique]
+				to_zero_indicies = [ind for ind, kmer in enumerate(current_kmers) if kmer in non_unique_set]
 				# if you use a really small initial kmer size, some of the hit matrices may be empty
 				# due to all k-mers being shared in common
 				if hit_matrices_dict['k=%d' % k_size].size > 0:
 					hit_matrices_dict['k=%d' % k_size][
 						i, to_zero_indicies] = 0  # set these to zero since they show up in other sketches (so not informative)
-				num_unique[i, k_range.index(k_size)] = len(current_kmers_set) - len(
-					non_unique)  # keep track of the size of the unique k-mers
+				# keep track of the size of the unique k-mers
+				num_unique_dict[i, k_range.index(k_size)] = len(current_kmers_set) - len(non_unique_set)
 
 	def create_post_containment_indicies(self) -> None:
 		"""
