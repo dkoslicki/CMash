@@ -145,7 +145,7 @@ if __name__ == '__main__':
 		print("Reading in/creating ternary search tree")
 		t0 = timeit.default_timer()
 
-	# TODO: start class from here
+	# Import the query class to handle the creation of all the necessary data structures
 	Q = Query(training_database_file=training_data, bloom_filter_file=None, TST_file=streaming_database_file, k_range=k_range)
 
 	# Make the Marissa tree
@@ -197,6 +197,8 @@ if __name__ == '__main__':
 	if verbose:
 		print("Forming hit matrix")
 		t0 = timeit.default_timer()
+
+	# FIXME: modularize the following as well
 
 	# create k_range spare matrices. Rows index by genomes (sketch/hash index), columns index by k_mer_loc
 	row_ind_dict = dict()
