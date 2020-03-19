@@ -44,7 +44,8 @@ class Create:
 		self.TST_file = TST_file
 		self.k_range = k_range
 		self.training_database = training_database_file
-		#self.seen_kmers = set() # Seen k-mers (set of k-mers that already hit the trie, so don't need to check again)
+		self.tree = None  # populated by import_TST
+		self.all_kmers_bf = None  # populated by create_BF_prefilter
 
 	def import_TST(self) -> None:
 		"""
@@ -70,7 +71,6 @@ class Create:
 					for ksize in k_range:
 						self.all_kmers_bf.add(kmer[0:ksize])
 						self.all_kmers_bf.add(khmer.reverse_complement(kmer[0:ksize]))
-
 			except IOError:
 				print("No such file or directory/error opening file: %s" % self.bloom_filter_file)
 				sys.exit(1)
@@ -208,6 +208,10 @@ class Containment:
 		self.match_tuples = match_tuples
 		self.sketches = sketches
 		self.num_hashes = num_hashes
+		self.hit_matrices = []
+		# TODO: could make this thing sparse, or do the filtering for above threshold here
+		# as it's probably a memory hog
+		self.containment_indices = np.zeros((len(sketches), len(k_range)))
 
 	def create_to_hit_matrices(self) -> None:
 		"""
@@ -246,8 +250,6 @@ class Containment:
 		# list of matrices that contain the hits: len(hit_matrices) == k_sizes
 		# each hit_matrices[i] has rows indexed by which genome/sketch they belong to
 		# columns indexed by where the k-mer appeared in the sketch/hash list
-		self.hit_matrices = []
-
 		for k_size in k_range:
 			# convert to matrices
 			mat = csc_matrix((value_dict[k_size], (row_ind_dict[k_size], col_ind_dict[k_size])),
@@ -262,8 +264,6 @@ class Containment:
 		k_range = self.k_range
 		hit_matrices = self.hit_matrices
 		# prep the containment indicies matrix: rows are genome/sketch, one column for each k-mer size in k_range
-		self.containment_indices = np.zeros((len(sketches), len(
-			k_range)))  # TODO: could make this thing sparse, or do the filtering for above threshold here
 		for k_size_loc in range(len(k_range)):
 			# sum over the columns: i.e. total up the number of matches in the sketch/hash list
 			self.containment_indices[:, k_size_loc] = (hit_matrices[k_size_loc].sum(axis=1).ravel())  # /float(num_hashes))
@@ -471,7 +471,6 @@ class PostProcess:
 				# would need to inherit the non_unique's as well
 				# containment_indices[hash_loc, k_size_loc] /= float(num_unique[hash_loc, k_size_loc])
 
-
 	def create_data_frame(self, training_file_names: list, location_of_thresh: int, coverage_threshold: float) -> None:
 		"""
 		Creates a nicely formatted Pandas data frame from the self.containment_indicies.
@@ -482,8 +481,6 @@ class PostProcess:
 		:param coverage_threshold: filter out those results that have containment indicies below this threshold
 		:type coverage_threshold: float
 		"""
-		# FIXME: this is an exact copy of the one in the above class, so might be able to sub-class it to cut down on
-		# code repetition
 		k_range = self.k_range
 		containment_indices = self.containment_indices
 		results = dict()
@@ -497,7 +494,6 @@ class PostProcess:
 		max_key = 'k=%d' % k_range[-1]
 		# only select those where the highest k-mer size's count is above the threshold
 		self.filtered_results = df[df[sort_key] > coverage_threshold].sort_values(max_key, ascending=False)
-
 
 def main():
 	"""
