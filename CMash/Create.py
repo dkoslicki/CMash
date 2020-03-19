@@ -26,7 +26,7 @@ import timeit
 from itertools import islice
 
 
-class Query:
+class Create:
 	def __init__(self, training_database_file=None, bloom_filter_file=None, TST_file=None, k_range=None):
 		self.bloom_filter_file = bloom_filter_file
 		self.TST_file = TST_file
@@ -140,6 +140,9 @@ class Counters:
 						pass  # if you didn't see a match at a smaller k-length, you won't at a larger one
 		return to_return
 
+# class to take the processed data and turn it into the containment indicies matrices
+class Containment:
+	def __init__(self):
 
 
 def main():
@@ -151,19 +154,19 @@ def main():
 	training_database_file = os.path.join(top_dir, 'tests/TrainingDatabase.h5')
 	k_range = [10, 12, 14, 16, 18, 20]
 
-	Q = Query(training_database_file=training_database_file, bloom_filter_file=None, TST_file=TST_file, k_range=k_range)
+	C = Create(training_database_file=training_database_file, bloom_filter_file=None, TST_file=TST_file, k_range=k_range)
 
 	# test import of TST
-	Q.import_TST()
-	print(f"number of keys in tree: {len(Q.tree.keys())}")
+	C.import_TST()
+	print(f"number of keys in tree: {len(C.tree.keys())}")
 
 	# test creation of BF
-	Q.create_BF_prefilter()
-	print(f"Number of buckets in BF: {Q.all_kmers_bf.buckets()}")
+	C.create_BF_prefilter()
+	print(f"Number of buckets in BF: {C.all_kmers_bf.buckets()}")
 
 	# test import of Counters class
 
-	C = Counters(tree=Q.tree, k_range=Q.k_range, seen_kmers=Q.seen_kmers, all_kmers_bf=Q.all_kmers_bf)
+	C = Counters(tree=C.tree, k_range=C.k_range, seen_kmers=C.seen_kmers, all_kmers_bf=C.all_kmers_bf)
 	print(f"Processed sequence with counter: {C.process_seq('AGTCCGCGCCACTGGCAGTGACCATCGACACGCAGACGGAGATTAACAACATTGTACTGGTCAATGATACCGGTATGCCG')}")
 
 

@@ -17,8 +17,8 @@ except ImportError:
 	except ImportError:
 		sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 		from CMash import MinHash as MH
-		from CMash.Query import Query  # FIXME: figure out these relative imports
-		from CMash.Query import Counters  # FIXME: figure out these relative imports
+		from CMash.Create import Create  # FIXME: figure out these relative imports
+		from CMash.Create import Counters  # FIXME: figure out these relative imports
 import multiprocessing
 import pandas as pd
 import argparse
@@ -146,13 +146,13 @@ if __name__ == '__main__':
 		t0 = timeit.default_timer()
 
 	# Import the query class to handle the creation of all the necessary data structures
-	Q = Query(training_database_file=training_data, bloom_filter_file=None, TST_file=streaming_database_file, k_range=k_range)
+	C = Create(training_database_file=training_data, bloom_filter_file=hydra_file, TST_file=streaming_database_file, k_range=k_range)
 
 	# Make the Marissa tree
-	Q.import_TST()
+	C.import_TST()
 
 	# create the Bloom Filter prefilter
-	Q.create_BF_prefilter()
+	C.create_BF_prefilter()
 
 	if verbose:
 		print("Finished reading in/creating ternary search tree")
@@ -160,7 +160,7 @@ if __name__ == '__main__':
 		print("Time: %f" % (t1 - t0))
 
 	# Initialize the counters
-	counter = Counters(tree=Q.tree, k_range=Q.k_range, seen_kmers=Q.seen_kmers, all_kmers_bf=Q.all_kmers_bf)
+	counter = Counters(tree=C.tree, k_range=C.k_range, seen_kmers=C.seen_kmers, all_kmers_bf=C.all_kmers_bf)
 
 	def map_func(sequence):
 		return counter.process_seq(sequence)
@@ -198,8 +198,9 @@ if __name__ == '__main__':
 		print("Forming hit matrix")
 		t0 = timeit.default_timer()
 
-	# FIXME: modularize the following as well
+	# FIXME: Containment class start
 
+	# FIXME: convert_to_hit_matrices
 	# create k_range spare matrices. Rows index by genomes (sketch/hash index), columns index by k_mer_loc
 	row_ind_dict = dict()
 	col_ind_dict = dict()
@@ -229,6 +230,7 @@ if __name__ == '__main__':
 	# columns indexed by where the k-mer appeared in the sketch/hash list
 	hit_matrices = []
 
+
 	for k_size in k_range:
 		# convert to matrices
 		mat = csc_matrix((value_dict[k_size], (row_ind_dict[k_size], col_ind_dict[k_size])), shape=(len(sketches), num_hashes))
@@ -241,6 +243,8 @@ if __name__ == '__main__':
 	if verbose:
 		print("Computing containment indicies")
 		t0 = timeit.default_timer()
+
+	# FIXME: create containment_indicies
 	# prep the containment indicies matrix: rows are genome/sketch, one column for each k-mer size in k_range
 	containment_indices = np.zeros((len(sketches), len(k_range)))  # TODO: could make this thing sparse, or do the filtering for above threshold here
 	for k_size_loc in range(len(k_range)):
@@ -262,6 +266,7 @@ if __name__ == '__main__':
 		print("Time: %f" % (t1 - t0))
 
 	# prepare a nice pandas data-frame for export
+	# FIXME: export_data
 	results = dict()
 	for k_size_loc in range(len(k_range)):
 		ksize = k_range[k_size_loc]
@@ -280,6 +285,7 @@ if __name__ == '__main__':
 		filtered_results.to_csv(results_file, index=True, encoding='utf-8')
 
 	# If requested, plot the results
+	# FIXME: plot
 	if args.plot_file:
 		df = pd.read_csv(results_file)  # annoyingly, I have to read it back in to get the format into something I can work with
 		dft = df.transpose()
@@ -292,7 +298,7 @@ if __name__ == '__main__':
 		fig.savefig(plot_file)
 
 
-
+	# FIXME: post-process
 	###############################################################################
 	# Start the post-processing
 	if verbose and not sensitive:
