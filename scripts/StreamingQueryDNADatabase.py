@@ -161,51 +161,13 @@ if __name__ == '__main__':
 	# all the k-mers of interest in a set (as a pre-filter)
 	if not hydra_file:  # create one
 		try:
-			all_kmers_bf = WritingBloomFilter(len(sketches)*len(k_range)*num_hashes*11, 0.01)
-			for sketch in sketches:
-				for kmer in sketch._kmers:  # FIXME: think about what all actually needs to be added
-					break
-					for ksize in k_range:
-						# truncated kmer
-						all_kmers_bf.add(kmer[0:ksize])  # put all the k-mers and the appropriate suffixes in
-						# truncate, reverse
-						#all_kmers_bf.add(kmer[0:ksize][::-1])
-
-						# truncate, rev-comp
-						all_kmers_bf.add(khmer.reverse_complement(kmer[0:ksize]))  # also add the reverse complement
-						# truncate, reverse, rev-comp
-						#all_kmers_bf.add(khmer.reverse_complement(kmer[0:ksize][::-1]))
-						# truncate, rev-comp, reverse
-						#all_kmers_bf.add(khmer.reverse_complement(kmer[0:ksize])[::-1])
-
-						# tail
-						all_kmers_bf.add(kmer[-ksize:])  # TODO: this is somewhat critical
-						# reversed tail
-						#all_kmers_bf.add(kmer[-ksize:][::-1])
-
-						# tail, rev-comp
-						all_kmers_bf.add(khmer.reverse_complement(kmer[-ksize:]))  # TODO: this is critical
-						# tail, reverse, rev-comp
-						#all_kmers_bf.add(khmer.reverse_complement(kmer[-ksize:][::-1]))
-						# tail, revcomp, reverse
-						#all_kmers_bf.add(khmer.reverse_complement(kmer[-ksize:])[::-1])
-						# rev-comp, tail
-						#all_kmers_bf.add(khmer.reverse_complement(kmer)[-ksize:])  # TODO: makes no difference
-
-			# Alternate, just add from TST
-			#print(f"Tree keys: {len(tree.keys())}")
-			#print(f"Num sketches: {len(sketches)*num_hashes}")
-			#print(f"old BF size: {len(sketches) * len(k_range) * num_hashes * 20}")
-			#print(f"New BF size: {len(tree.keys()) * len(k_range) * 20}")
 			#all_kmers_bf = WritingBloomFilter(len(sketches) * len(k_range) * num_hashes * 20, 0.01)
-			all_kmers_bf = WritingBloomFilter(len(tree.keys()) * len(k_range) * 5, 0.01, ignore_case=True)
+			all_kmers_bf = WritingBloomFilter(len(tree.keys()) * len(k_range) * 5, 0.01, ignore_case=True) # fudge factor of 5 will make the BF larger, but also slightly faster
 			for kmer_info in tree.keys():
-				kmer = kmer_info.split('x')[0]  # remove the location information and just the kmer
+				kmer = kmer_info.split('x')[0]  # remove the location information and just get the kmer
 				for ksize in k_range:
 					all_kmers_bf.add(kmer[0:ksize])
 					all_kmers_bf.add(khmer.reverse_complement(kmer[0:ksize]))
-					#all_kmers_bf.add(kmer[-ksize:])
-					#all_kmers_bf.add(khmer.reverse_complement(kmer[-ksize:]))
 
 		except IOError:
 			print("No such file or directory/error opening file: %s" % hydra_file)
@@ -235,19 +197,16 @@ if __name__ == '__main__':
 			match_info = set()
 			to_return = []
 			saw_match = False
+			# look for matches to both the kmer and its reverse complement in the TST as we can't assume
+			# directionality of reads (and training database is constructed without reverse complements)
 			for kmer in [input_kmer, khmer.reverse_complement(input_kmer)]:
-			#for kmer in [input_kmer]:
-				#if kmer not in all_kmers_bf:  # TODO: this is questionable
-				#	continue
 				prefix_matches = tree.keys(kmer)  # get all the k-mers whose prefix matches
-				#match_info = set()
 				# get the location of the found kmers in the counters
 				for item in prefix_matches:
 					split_string = item.split('x')  # first is the hash location, second is which k-mer
 					hash_loc = int(split_string[1])
 					kmer_loc = int(split_string[2])
 					match_info.add((hash_loc, k_size_loc, kmer_loc))
-				#to_return = []
 				saw_match = False
 				if match_info:
 					saw_match = True
@@ -265,18 +224,16 @@ if __name__ == '__main__':
 				kmer = seq[i:i + small_k_size]
 				possible_match = False
 				if kmer not in seen_kmers:  # if we should process it
-				#if True:
 					if kmer in all_kmers_bf:  # if we should process it
-					#if True:
 						match_list, saw_match = self.return_matches(kmer, 0)
 						if saw_match:
-							seen_kmers.add(kmer)  # FIXME: might also be able to add the reverse complements in here, instead of adjusting the division down near line 332
+							seen_kmers.add(kmer)
 							seen_kmers.add(khmer.reverse_complement(kmer))
 							to_return.extend(match_list)
 						possible_match = True
 					# TODO: note: I could (since it'd only be for a single kmer size, keep a set of *all* small_kmers I've tried and use this as another pre-filter
 				else:
-					possible_match = True  #TODO: this may need to be false
+					possible_match = True  # FIXME: bug introduced here in cf64b7aace5eadf738b920109d6419c9d930a1dc
 				# start looking at the other k_sizes, don't overhang len(seq)
 				if possible_match:
 					for other_k_size in [x for x in k_range[1:] if i+x <= len(seq)]:
