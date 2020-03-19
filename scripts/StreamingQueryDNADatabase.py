@@ -382,7 +382,9 @@ if __name__ == '__main__':
 
 	if not sensitive:
 		# Do the post-processing
-		# export the reduced hit matrices
+		# Main idea here is to only concentrate on the unique k-mers: those that don't show up in more than one genome
+		# as they are more specific to the presence of that genome being present in the sample
+		# from the non-filtered out genomes, create a dictionary that maps k-mer size to the properly reduced hit_matrix
 		# first, get the basis of the reduced data frame
 		to_select_names = list(filtered_results.index)
 		all_names = list(map(os.path.basename, training_file_names))
@@ -457,9 +459,8 @@ if __name__ == '__main__':
 				unique_kmers = set()
 				for kmer in CEs[hash_loc]._kmers:
 					unique_kmers.add(kmer[:k_size])  # find the unique k-mers
-				containment_indices[hash_loc, k_size_loc] /= float(
-					len(unique_kmers))  # TODO: this doesn't seem like the right way to normalize, but apparently it is!
-		# containment_indices[hash_loc, k_size_loc] /= float(num_unique[hash_loc, k_size_loc])  # divide by the unique num of k-mers
+				containment_indices[hash_loc, k_size_loc] /= float(len(unique_kmers))  # TODO: this doesn't seem like the right way to normalize, but apparently it is!
+				# containment_indices[hash_loc, k_size_loc] /= float(num_unique[hash_loc, k_size_loc])  # divide by the unique num of k-mers
 
 		# spit out these results
 		results = dict()
@@ -478,7 +479,3 @@ if __name__ == '__main__':
 			t1 = timeit.default_timer()
 			print("Finished thresholding. Time: %f" % (t1 - t0))
 
-#if verbose:
-	#	print("Finished exporting results")
-	#	t1 = timeit.default_timer()
-	#	print("Time: %f" % (t1 - t0))
