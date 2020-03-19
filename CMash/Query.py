@@ -27,12 +27,17 @@ from itertools import islice
 
 
 class Query:
-	def __init__(self, bloom_filter_file=None, TST_tree=None, k_range=None):
+	def __init__(self, training_database=None, bloom_filter_file=None, TST_file=None, k_range=None):
 		self.bloom_filter_file = bloom_filter_file
-		self.tree = TST_tree
+		self.TST_file = TST_file
 		self.k_range = k_range
+		self.training_database = training_database
 		pass  # TBD what needs to be passed
 
+
+	def import_TST(self):  # no more safety net for those that didn't create a TST properly with the CreateStreamingQueryDNADatabase.py
+		self.tree = mt.Trie()
+		self.tree.load(self.TST_file)
 
 	def create_BF_prefilter(self):
 		tree = self.tree
@@ -58,3 +63,21 @@ class Query:
 				print("No such file or directory/error opening file: %s" % self.bloom_filter_file)
 				sys.exit(1)
 
+
+
+def main():
+	"""
+	Basically a bunch of simple command line tests
+	"""
+	top_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+	TST_file = os.path.join(top_dir, 'tests/TrainingDatabase.tst')
+	training_database = os.path.join(top_dir, 'tests/TrainingDatabase.h5')
+	k_range = [10, 12, 14, 16, 18, 20]
+
+	Q = Query(training_database=training_database, bloom_filter_file=None, TST_file=TST_file, k_range=k_range)
+	Q.import_TST()
+	print(f"number of keys in tree: {len(Q.tree.keys())}")
+
+# simple way to do testing
+if __name__ == "__main__":
+	main()

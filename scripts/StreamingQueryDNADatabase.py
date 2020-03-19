@@ -141,32 +141,13 @@ if __name__ == '__main__':
 	if verbose:
 		print("Reading in/creating ternary search tree")
 		t0 = timeit.default_timer()
-	# Make the Marissa tree
-	if streaming_database_file is None:
-		streaming_database_file = os.path.splitext(training_data)[0] + ".tst"
-		streaming_database_file = os.path.abspath(streaming_database_file)
-		print("It appears a tst training file has not been created (did you remember to use MakeStreamingDNADatabase.py?).")
-		print("I'm creating one anyway at: %s" % streaming_database_file)
-		print("This may take a while...")
-		to_insert = set()
-		for i in range(len(sketches)):
-			for kmer_index in range(len(sketches[i]._kmers)):
-				# normal kmer
-				kmer = sketches[i]._kmers[kmer_index]
-				to_insert.add(
-					kmer + 'x' + str(i) + 'x' + str(kmer_index))  # format here is kmer+x+hash_index+kmer_index
-				# rev-comp kmer
-				kmer = khmer.reverse_complement(sketches[i]._kmers[kmer_index])
-				to_insert.add(
-					kmer + 'x' + str(i) + 'x' + str(kmer_index))  # format here is kmer+x+hash_index+kmer_index
-		tree = mt.Trie(to_insert)
-		tree.save(streaming_database_file)
-	else:
-		tree = mt.Trie()
-		tree.load(streaming_database_file)
 
 	# TODO: start class from here
 	Q = Q(necessary_args)
+
+	# Make the Marissa tree
+	Q.import_TST()
+
 	# create the Bloom Filter prefilter
 	Q.create_BF_prefilter()
 
