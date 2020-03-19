@@ -27,19 +27,37 @@ from itertools import islice
 
 
 class Create:
+	"""
+	This class has functionality to:
+	1. Import the ternary search tree created in the training step
+	2. Create or import the bloom filter pre-filter file
+	"""
 	def __init__(self, training_database_file: str, bloom_filter_file: str, TST_file: str, k_range: list):
+		"""
+		Initializes the class
+		:param training_database_file: file pointing to the HDF5 training database created with MakeStreamingDNADatabase.py
+		:param bloom_filter_file: (optional) file pointing to file created with MakeStreamingPrePfilter.py. If empty string, one will be created
+		:param TST_file: file pointing to the TST file (ternary search tree) that was created with MakeStreamingDNADatabase.py
+		:param k_range: range of k-mer sizes. eg [10, 20, 30]
+		"""
 		self.bloom_filter_file = bloom_filter_file
 		self.TST_file = TST_file
 		self.k_range = k_range
 		self.training_database = training_database_file
-		self.seen_kmers = set() # Seen k-mers (set of k-mers that already hit the trie, so don't need to check again)
+		#self.seen_kmers = set() # Seen k-mers (set of k-mers that already hit the trie, so don't need to check again)
 
 	def import_TST(self) -> None:
+		"""
+		Imports the ternary search tree
+		"""
 		# no more safety net for those that didn't create a TST properly with the CreateStreamingQueryDNADatabase.py
 		self.tree = mt.Trie()
 		self.tree.load(self.TST_file)
 
 	def create_BF_prefilter(self) -> None:
+		"""
+		Imports or creates the pre-filter Bloom filter
+		"""
 		tree = self.tree
 		k_range = self.k_range
 		if not self.bloom_filter_file:  # create one
@@ -66,10 +84,23 @@ class Create:
 
 # shared object that will update the intersection counts
 class Counters:
-	def __init__(self, tree: mt.Trie, k_range: list, seen_kmers: set, all_kmers_bf: WritingBloomFilter):
+	"""
+	This class is mainly to facilitate the parallelization of enumerating input query k-mer hits to the ternary
+	search tree
+	"""
+	def __init__(self, tree: mt.Trie, k_range: list, all_kmers_bf: WritingBloomFilter):
+		"""
+		Initialize the class
+		:param tree: The actual ternary search tree (TST) that k-mers and their pre-fixes will be searched against
+		:type tree: marisa_trie.Tree
+		:param k_range: a range of k-mer sizes
+		:type k_range: list
+		:param all_kmers_bf: a pre-filter that checks in O(1) time if an input k-mer may be in the TST
+		:type all_kmers_bf: hydra.WritingBloomFilter
+		"""
 		self.tree = tree
 		self.k_range =k_range
-		self.seen_kmers = seen_kmers
+		self.seen_kmers = set()
 		self.all_kmers_bf = all_kmers_bf
 
 	# This class is basically an array of counters (on the same basis as the sketches)
@@ -78,7 +109,15 @@ class Counters:
 	#	super().__init__(training_database_file, bloom_filter_file, TST_file, k_range)
 
 	def return_matches(self, input_kmer: str, k_size_loc: int) -> tuple:
-		""" Get all the matches in the trie with the kmer prefix"""
+		"""
+		Get all the matches in the TST with the kmer prefix
+		:param input_kmer: an input k-mer
+		:type input_kmer: str
+		:param k_size_loc: where in self.k_range this k-mer (via it's length) belongs
+		:type k_size_loc: int
+		:return: a tuple: first of which is a list of strings (all the matches in the TST), and the second is a Boolean indicating if you saw a match
+		:rtype: tuple
+		"""
 		match_info = set()
 		to_return = []
 		saw_match = False
@@ -104,6 +143,14 @@ class Counters:
 		return to_return, saw_match
 
 	def process_seq(self, seq: str) -> list:
+		"""
+		Takes an input sequence, breaks it into its k-mers (for every size self.k_range), and after some filtering and
+		checking, sends it to return_matches to query the TST
+		:param seq: an input DNA sequence
+		:type seq: string
+		:return: a list of keys indicating all the TST hits for all the k-mers in seq
+		:rtype: list
+		"""
 		k_range = self.k_range
 		seen_kmers = self.seen_kmers
 		all_kmers_bf = self.all_kmers_bf
@@ -141,13 +188,31 @@ class Counters:
 
 # class to take the processed data and turn it into the containment indicies matrices
 class Containment:
-	def __init__(self, k_range: list, match_tuples: list, sketches: list, num_hashes: int):  # TODO: would like to indicate that sketches should be a list of CEs from MH
+	"""
+	This class handles all the conversion from raw TST hits, to containment index computations
+	"""
+	# TODO: would like to indicate that sketches should be a list of CEs from MH
+	def __init__(self, k_range: list, match_tuples: list, sketches: list, num_hashes: int):
+		"""
+		Initialize the class
+		:param k_range: a range of k-mer sizes
+		:type k_range: list
+		:param match_tuples: all the tuples returned by Query.return_matches after processing each sequence
+		:type match_tuples:  list
+		:param sketches: the MinHash sketches
+		:type sketches: list[CMash.CountEstimator]
+		:param num_hashes: number of hashes that each count estimator has
+		:type num_hashes: int
+		"""
 		self.k_range = k_range
 		self.match_tuples = match_tuples
 		self.sketches = sketches
 		self.num_hashes = num_hashes
 
 	def create_to_hit_matrices(self) -> None:
+		"""
+		Converts the match tuples into a list of matrices, one for each k-mer size in self.k_range
+		"""
 		k_range = self.k_range
 		match_tuples = self.match_tuples
 		sketches = self.sketches
@@ -190,6 +255,9 @@ class Containment:
 			self.hit_matrices.append(mat)
 
 	def create_containment_indicies(self) -> None:
+		"""
+		Utilizes the self.hit_matrices to compute the actual containment indicies in self.containment_indicies
+		"""
 		sketches = self.sketches
 		k_range = self.k_range
 		hit_matrices = self.hit_matrices
@@ -213,6 +281,15 @@ class Containment:
 					len(unique_kmers))  # divide by the unique num of k-mers
 
 	def create_data_frame(self, training_file_names: list, location_of_thresh: int, coverage_threshold: float) -> None:
+		"""
+		Creates a nicely formatted Pandas data frame from the self.containment_indicies.
+		:param training_file_names: the file names that were used to create the training database
+		:type training_file_names: list
+		:param location_of_thresh: where in self.k_range the thresholding should take place (-1 means the last one)
+		:type location_of_thresh: int
+		:param coverage_threshold: filter out those results that have containment indicies below this threshold
+		:type coverage_threshold: float
+		"""
 		k_range = self.k_range
 		containment_indices = self.containment_indices
 		results = dict()
@@ -229,7 +306,23 @@ class Containment:
 
 
 class PostProcess:
+	"""
+	A class to perform the post-processing for more specific (less sensitive) results.
+	Main idea here is to only concentrate on the unique k-mers: those that don't show up in more than one genome
+	as they are more specific to the presence of that genome being present in the sample
+	"""
 	def __init__(self, filtered_results: pd.DataFrame, training_file_names: list, k_range: list, hit_matrices: list):
+		"""
+		Initialize the class
+		:param filtered_results: the Containment.filtered_results pandas data frame
+		:type filtered_results: pandas.DataFrame
+		:param training_file_names: the file names that were used to create the training database
+		:type training_file_names: list
+		:param k_range: a range of k-mer sizes
+		:type k_range: list
+		:param hit_matrices: the list of hit matrices from Containment.hit_matrices
+		:type hit_matrices: list
+		"""
 		self.filtered_results = filtered_results
 		self.training_file_names = training_file_names
 		self.k_range = k_range
@@ -242,6 +335,9 @@ class PostProcess:
 		self.containment_indices = None
 
 	def prepare_post_process(self) -> None:
+		"""
+		Converts the filtered results to a dictionary mapping k-mer size to dense matrices. Stores in self.hit_matrices_dict
+		"""
 		filtered_results = self.filtered_results
 		training_file_names = self.training_file_names
 		k_range = self.k_range
@@ -267,6 +363,12 @@ class PostProcess:
 		self.hit_matrices_dict = hit_matrices_dense_dict
 
 	def find_kmers_in_filtered_results(self, training_database_file: str) -> None:
+		"""
+		For each of the genomes that showed up in self.filtered_results, collects all their k-mers and counts
+		and puts it in self.all_kmers_with_counts.
+		:param training_database_file: file pointing to the HDF5 training database created with MakeStreamingDNADatabase.py
+		:type training_database_file: string
+		"""
 		to_select_names = self.to_select_names
 		k_range = self.k_range
 		#is_unique_kmer_per_ksize = self.is_unique_kmer_per_ksize
@@ -288,6 +390,9 @@ class PostProcess:
 						self.all_kmers_with_counts[kmer] = 1
 
 	def find_unique_kmers(self) -> None:
+		"""
+		Finds the k-mers that showed up in exactly one sketch (i.e. uniquely identified the related genome)
+		"""
 		# Use this to identify which k-mers are unique (i.e. show up in exactly one sketch)
 		k_range = self.k_range
 		is_unique_kmer_per_ksize = self.is_unique_kmer_per_ksize
@@ -302,6 +407,9 @@ class PostProcess:
 				is_unique_kmer.add(kmer)
 
 	def find_non_unique_kmers(self) -> None:
+		"""
+		Finds the k-mers that showed up in more than one sketch/genome
+		"""
 		# Also keep track of which kmers appear in more than one sketch (not unique)
 		CEs = self.CEs
 		k_range = self.k_range
@@ -318,6 +426,7 @@ class PostProcess:
 				for kmer in current_kmers:
 					if kmer not in is_unique_kmer_per_ksize[k_size]:
 						non_unique.add(kmer)
+				# FIXME: this should go in the next function
 				# reduce the hit matrices by removing the hits corresponding to non-unique k-mers
 				to_zero_indicies = [ind for ind, kmer in enumerate(current_kmers) if kmer in non_unique]
 				# if you use a really small initial kmer size, some of the hit matrices may be empty
@@ -329,6 +438,10 @@ class PostProcess:
 					non_unique)  # keep track of the size of the unique k-mers
 
 	def create_post_containment_indicies(self) -> None:
+		"""
+		Goes through the hit_matrices_dict and sets to 0 those that showed up in more than one sketch
+		(i.e. did not uniquely identify the associated genome)
+		"""
 		# sum the modified hit matrices to get the size of the intersection
 		to_select_names = self.to_select_names
 		k_range = self.k_range
@@ -360,7 +473,16 @@ class PostProcess:
 
 
 	def create_data_frame(self, training_file_names: list, location_of_thresh: int, coverage_threshold: float) -> None:
-		# this is an exact copy of the one in the above class, so might be able to sub-class it to cut down on
+		"""
+		Creates a nicely formatted Pandas data frame from the self.containment_indicies.
+		:param training_file_names: the file names that were used to create the training database
+		:type training_file_names: list
+		:param location_of_thresh: where in self.k_range the thresholding should take place (-1 means the last one)
+		:type location_of_thresh: int
+		:param coverage_threshold: filter out those results that have containment indicies below this threshold
+		:type coverage_threshold: float
+		"""
+		# FIXME: this is an exact copy of the one in the above class, so might be able to sub-class it to cut down on
 		# code repetition
 		k_range = self.k_range
 		containment_indices = self.containment_indices

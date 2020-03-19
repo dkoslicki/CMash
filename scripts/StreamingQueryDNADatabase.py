@@ -95,13 +95,12 @@ if __name__ == '__main__':
 	training_database_file = args.reference_file
 	query_file = args.in_file
 	results_file = args.out_file
-	npz_file = os.path.splitext(results_file)[0] + "_hit_matrix.npz"
 	num_threads = args.threads
 	location_of_thresh = args.location_of_thresh
 	coverage_threshold = args.containment_threshold
 	TST_file = os.path.splitext(training_database_file)[0] + ".tst"  # name of the tst training file
 	TST_file = os.path.abspath(TST_file)
-	hydra_file = args.filter_file
+	bloom_filter_file = args.filter_file
 	verbose = args.verbose
 	num_reads_per_core = args.reads_per_core
 	sensitive = args.sensitive
@@ -128,10 +127,7 @@ if __name__ == '__main__':
 	num_hashes = len(sketches[0]._kmers)  # note: this is relying on the fact that the sketches were properly constructed
 	max_ksize = sketches[0].ksize
 
-	def keyfunction(item):
-		return os.path.basename(item.input_file_name)
-
-	sketches = sorted(sketches, key=keyfunction)  # sort the sketches by the basename of input file
+	sketches = sorted(sketches, key=lambda x: os.path.basename(x.input_file_name))
 
 	# adjust the k-range if necessary
 	k_range = [val for val in k_range if val <= max_ksize]
@@ -159,7 +155,7 @@ if __name__ == '__main__':
 		t0 = timeit.default_timer()
 
 	# Import the query class to handle the creation of all the necessary data structures
-	C = Create(training_database_file=training_database_file, bloom_filter_file=hydra_file, TST_file=TST_file, k_range=k_range)
+	C = Create(training_database_file=training_database_file, bloom_filter_file=bloom_filter_file, TST_file=TST_file, k_range=k_range)
 
 	# Make the Marissa tree
 	C.import_TST()
@@ -173,7 +169,7 @@ if __name__ == '__main__':
 		print("Time: %f" % (t1 - t0))
 
 	# Initialize the counters
-	counter = Counters(tree=C.tree, k_range=C.k_range, seen_kmers=C.seen_kmers, all_kmers_bf=C.all_kmers_bf)
+	counter = Counters(tree=C.tree, k_range=C.k_range, all_kmers_bf=C.all_kmers_bf)
 
 	def map_func(sequence):
 		return counter.process_seq(sequence)
@@ -261,9 +257,7 @@ if __name__ == '__main__':
 		fig.savefig(plot_file)
 
 
-	# FIXME: post-process class
-	###############################################################################
-	# Start the post-processing
+	# Start the post-processing, if requested
 	if verbose and not sensitive:
 		print("Starting the post-processing")
 		t0 = timeit.default_timer()
@@ -275,25 +269,24 @@ if __name__ == '__main__':
 		post_process = PostProcess(filtered_results=containment.filtered_results,
 								   training_file_names=training_file_names, k_range=k_range,
 								   hit_matrices=containment.hit_matrices)
-		# FIXME: prepare_post_process
+
+		# import the TST and import/create the BF pre-filter
 		post_process.prepare_post_process()
 
-		# from the non-filtered out genomes, create a dictionary that maps k-mer size to the properly reduced hit_matrix
-		# first, get the basis of the reduced data frame
-
-		# FIXME: find_kmers_in_filtered_results
+		# find all the k-mers in the current results
 		post_process.find_kmers_in_filtered_results(training_database_file=training_database_file)
 
-		# FIXME: find_unique_kmers
+		# find those k-mers that are unique to their genome/sketch
 		post_process.find_unique_kmers()
 
-		# FIXME: find_non_unique_kmers
+		# find k-mers that are shared between more than one genome/sketch
 		post_process.find_non_unique_kmers()
 
-		# FIXME: create_post_containment_indicies
+		# reduce the hit_matrices/containment indicies by not considering those k-mers that are shared between more
+		# than one genome/sketch
 		post_process.create_post_containment_indicies()
 
-		# FIXME: create_data_frame
+		# create the data frame
 		to_select_names = post_process.to_select_names
 		post_process.create_data_frame(training_file_names=to_select_names, location_of_thresh=location_of_thresh, coverage_threshold=coverage_threshold)
 
