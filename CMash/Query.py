@@ -227,6 +227,117 @@ class Containment:
 		self.filtered_results = df[df[sort_key] > coverage_threshold].sort_values(max_key,
 																			 ascending=False)  # only select those where the highest k-mer size's count is above the threshold
 
+class PostProcess:
+	def __init__(self, fil):
+		pass
+
+	def prepare_post_process(self):
+		to_select_names = list(filtered_results.index)
+		all_names = list(map(os.path.basename, training_file_names))
+		rows_to_select = []
+		for name in to_select_names:
+			rows_to_select.append(all_names.index(name))
+		hit_matrices_dict = dict()
+		# the reduce the hit matrix to this basis
+		for i in range(len(k_range)):
+			k_size = k_range[i]
+			hit_matrices_dict['k=%d' % k_size] = hit_matrices[i][rows_to_select, :]
+
+		# Make the hit matrices dense
+		hit_matrices_dense_dict = dict()
+		for k_size in k_range:
+			hit_matrices_dense_dict['k=%d' % k_size] = hit_matrices_dict['k=%d' % k_size].todense()
+
+		hit_matrices_dict = hit_matrices_dense_dict
+
+	def find_kmers_in_filtered_results(self):
+		# get the count estimators of just the organisms of interest
+		CEs = MH.import_multiple_from_single_hdf5(training_database_file,
+												  import_list=to_select_names)  # TODO: could make it a tad more memory efficient by sub-selecting the 'sketches'
+
+		# get all the kmers (for each kmer size) and form their counts in the subset of predicted sketches to be in the sample
+		all_kmers_with_counts = dict()
+		is_unique_kmer = set()
+		is_unique_kmer_per_ksize = dict()
+		for k_size in k_range:
+			is_unique_kmer_per_ksize[k_size] = set()
+			for i in range(len(CEs)):
+				for big_kmer in CEs[i]._kmers:
+					kmer = big_kmer[:k_size]
+					if kmer in all_kmers_with_counts:
+						all_kmers_with_counts[kmer] += 1
+					else:
+						all_kmers_with_counts[kmer] = 1
+
+	def find_unique_kmers(self):
+		# Use this to identify which k-mers are unique (i.e. show up in exactly one sketch)
+		for kmer in all_kmers_with_counts.keys():
+			if all_kmers_with_counts[kmer] == 1:
+				k_size = len(kmer)
+				is_unique_kmer_per_ksize[k_size].add(kmer)
+				is_unique_kmer.add(kmer)
+
+	def find_non_unique_kmers(self):
+		# Also keep track of which kmers appear in more than one sketch (not unique)
+		num_unique = dict()
+		for i in range(len(CEs)):
+			for k_size in k_range:
+				current_kmers = [k[:k_size] for k in CEs[i]._kmers]
+				current_kmers_set = set(current_kmers)
+				non_unique = set()
+
+				for kmer in current_kmers:
+					if kmer not in is_unique_kmer_per_ksize[k_size]:
+						non_unique.add(kmer)
+				# reduce the hit matrices by removing the hits corresponding to non-unique k-mers
+				to_zero_indicies = [ind for ind, kmer in enumerate(current_kmers) if kmer in non_unique]
+				# if you use a really small initial kmer size, some of the hit matrices may be empty
+				# due to all k-mers being shared in common
+				if hit_matrices_dict['k=%d' % k_size].size > 0:
+					hit_matrices_dict['k=%d' % k_size][
+						i, to_zero_indicies] = 0  # set these to zero since they show up in other sketches (so not informative)
+				num_unique[i, k_range.index(k_size)] = len(current_kmers_set) - len(
+					non_unique)  # keep track of the size of the unique k-mers
+
+	def create_post_containment_indicies(self):
+		# sum the modified hit matrices to get the size of the intersection
+		containment_indices = np.zeros((len(to_select_names), len(
+			k_range)))  # TODO: could make this thing sparse, or do the filtering for above threshold here
+		for k_size_loc in range(len(k_range)):
+			k_size = k_range[k_size_loc]
+			containment_indices[:, k_size_loc] = (
+				hit_matrices_dict['k=%d' % k_size].sum(axis=1).ravel())  # /float(num_hashes))
+
+		# then normalize by the number of unique k-mers (to get the containment index)
+		# In essence, this is the containment index, restricted to unique k-mers. This effectively increases the specificity,
+		# but also increases the variance/confidence interval, since this decreases the size of the sketch.
+		for k_size_loc in range(len(k_range)):
+			k_size = k_range[k_size_loc]
+			for hash_loc in np.where(containment_indices[:, k_size_loc])[
+				0]:  # find the genomes with non-zero containment
+				unique_kmers = set()
+				for kmer in CEs[hash_loc]._kmers:
+					unique_kmers.add(kmer[:k_size])  # find the unique k-mers
+				containment_indices[hash_loc, k_size_loc] /= float(len(
+					unique_kmers))  # FIXME: this doesn't seem like the right way to normalize, but apparently it is!
+				# containment_indices[hash_loc, k_size_loc] /= float(num_unique[hash_loc, k_size_loc])  # FIXME: in small tests, this seems to give better results. To be revisted.
+
+	def create_data_frame(self):
+		# spit out these results
+		results = dict()
+		for k_size_loc in range(len(k_range)):
+			ksize = k_range[k_size_loc]
+			key = 'k=%d' % ksize
+			results[key] = containment_indices[:, k_size_loc]
+		df = pd.DataFrame(results, map(os.path.basename, to_select_names))
+		df = df.reindex(labels=['k=' + str(k_size) for k_size in k_range], axis=1)  # sort columns in ascending order
+		sort_key = 'k=%d' % k_range[location_of_thresh]
+		max_key = 'k=%d' % k_range[-1]
+		# TODO: might not want to filter at this point again, or adjust the coverage_threshold since now it's only based on unique k-mers
+		filtered_results = df[df[sort_key] > coverage_threshold].sort_values(max_key,
+																			 ascending=False)  # only select those where the highest k-mer size's count is above the threshold
+
+
 
 def main():
 	"""
