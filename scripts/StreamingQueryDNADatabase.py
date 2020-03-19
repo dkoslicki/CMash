@@ -51,30 +51,38 @@ def parseNumList(input):
 
 
 if __name__ == '__main__':
-	parser = argparse.ArgumentParser(description="This script calculates containment indicies for each of the training/reference sketches"
-									" by streaming through the query file.", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-	parser.add_argument('-t', '--threads', type=int, help="Number of threads to use", default=multiprocessing.cpu_count())
-	parser.add_argument('-c', '--containment_threshold', type=float, help="Only return results with containment index above this "
-															  "threshold at the maximum k-mer size.", default=0.1)
+	parser = argparse.ArgumentParser(
+		description="This script calculates containment indicies for each of the training/reference sketches"
+					" by streaming through the query file.", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+	parser.add_argument('-t', '--threads', type=int, help="Number of threads to use",
+						default=multiprocessing.cpu_count())
+	parser.add_argument('-c', '--containment_threshold', type=float,
+						help="Only return results with containment index above this "
+							 "threshold at the maximum k-mer size.", default=0.1)
 	parser.add_argument('-p', '--plot_file', action="store_true", help="Optional flag to specify that a plot of the "
 																	   "k-mer curves should also be saved (same basename"
 																	   "as the out_file).")
-	parser.add_argument('-r', '--reads_per_core', type=int, help="Number of reads per core in each chunk of parallelization."
-																 " Set as high as memory will allow (eg. 1M on 256GB, 48 core machine)", default=100000)
+	parser.add_argument('-r', '--reads_per_core', type=int,
+						help="Number of reads per core in each chunk of parallelization."
+							 " Set as high as memory will allow (eg. 1M on 256GB, 48 core machine)", default=100000)
 	parser.add_argument('-f', '--filter_file',
 						help="Location of pre-filter bloom filter. Use only if you absolutely know what you're doing "
-							"(hard to error check bloom filters).")
+							 "(hard to error check bloom filters).")
 	parser.add_argument('-l', '--location_of_thresh', type=int,
 						help="Location in range to apply the threshold passed by the -c flag. -l 2 -c 5-50-10 means the"
-							" threshold will be applied at k-size 25. Default is largest size.", default=-1)
-	parser.add_argument('--sensitive', action="store_true", help="Operate in sensitive mode. Marginally more true positives with significantly more false positives. Use with caution.", default=False)
+							 " threshold will be applied at k-size 25. Default is largest size.", default=-1)
+	parser.add_argument('--sensitive', action="store_true",
+						help="Operate in sensitive mode. Marginally more true positives with significantly more false positives. Use with caution.",
+						default=False)
 	parser.add_argument('-v', '--verbose', action="store_true", help="Print out progress report/timing information")
 	parser.add_argument('in_file', help="Input file: FASTA/Q file to be processes")
-	parser.add_argument('reference_file', help='Training database/reference file (in HDF5 format). Created with MakeStreamingDNADatabase.py')
+	parser.add_argument('reference_file',
+						help='Training database/reference file (in HDF5 format). Created with MakeStreamingDNADatabase.py')
 	parser.add_argument('out_file', help='Output csv file with the containment indices.')
-	parser.add_argument('range', type=parseNumList, help="Range of k-mer sizes in the formate <start>-<end>-<increment>."
-														   " So 5-10-2 means [5, 7, 9]. If <end> is larger than the k-mer size"
-														   "of the training data, this will automatically be reduced.")
+	parser.add_argument('range', type=parseNumList,
+						help="Range of k-mer sizes in the formate <start>-<end>-<increment>."
+							 " So 5-10-2 means [5, 7, 9]. If <end> is larger than the k-mer size"
+							 "of the training data, this will automatically be reduced.")
 
 	# read in the arguments
 	args = parser.parse_args()
