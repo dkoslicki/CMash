@@ -17,11 +17,14 @@ except ImportError:
 		import Counters
 		import Containment
 	except ImportError:
-		sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-		from CMash import MinHash as MH
-		from CMash.Query import Create  # fix relative imports
-		from CMash.Query import Counters
-		from CMash.Query import Containment
+		try:
+			sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+			from CMash import MinHash as MH
+			from CMash.Query import Create  # fix relative imports
+			from CMash.Query import Counters
+			from CMash.Query import Containment
+		except:
+			raise Exception("Unable to import necessary classes")
 
 import multiprocessing
 import pandas as pd
@@ -206,7 +209,8 @@ if __name__ == '__main__':
 
 	# FIXME: convert_to_hit_matrices
 
-	Containment.convert_to_hit_matrices(necessary_args)
+	containment = Containment(k_range=k_range, match_tuples=match_tuples, sketches=sketches, num_hashes=num_hashes)
+	hit_matrices = containment.convert_to_hit_matrices()
 
 	if verbose:
 		print("Finished forming hit matrix")
