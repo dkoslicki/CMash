@@ -210,7 +210,7 @@ if __name__ == '__main__':
 	# FIXME: convert_to_hit_matrices
 
 	containment = Containment(k_range=k_range, match_tuples=match_tuples, sketches=sketches, num_hashes=num_hashes)
-	hit_matrices = containment.convert_to_hit_matrices()
+	containment.create_to_hit_matrices()
 
 	if verbose:
 		print("Finished forming hit matrix")
@@ -222,21 +222,8 @@ if __name__ == '__main__':
 		t0 = timeit.default_timer()
 
 	# FIXME: create containment_indicies
-	# prep the containment indicies matrix: rows are genome/sketch, one column for each k-mer size in k_range
-	containment_indices = np.zeros((len(sketches), len(k_range)))  # TODO: could make this thing sparse, or do the filtering for above threshold here
-	for k_size_loc in range(len(k_range)):
-		# sum over the columns: i.e. total up the number of matches in the sketch/hash list
-		containment_indices[:, k_size_loc] = (hit_matrices[k_size_loc].sum(axis=1).ravel()) #/float(num_hashes))
+	containment.create_containment_indicies()
 
-	for k_size_loc in range(len(k_range)):
-		k_size = k_range[k_size_loc]
-		for hash_loc in np.where(containment_indices[:, k_size_loc])[0]:  # find the genomes with non-zero containment
-			unique_kmers = set()
-			for kmer in sketches[hash_loc]._kmers:
-				# find the unique k-mers: for smaller k-mer truncation sizes, the length of the sketch might have
-				# been reduced due to duplicates, so adjust for this factor to get the correct denominator
-				unique_kmers.add(kmer[:k_size])
-			containment_indices[hash_loc, k_size_loc] /= float(len(unique_kmers))  # divide by the unique num of k-mers
 	if verbose:
 		print("Finished computing containment indicies")
 		t1 = timeit.default_timer()
@@ -244,22 +231,14 @@ if __name__ == '__main__':
 
 	# prepare a nice pandas data-frame for export
 	# FIXME: export_data
-	results = dict()
-	for k_size_loc in range(len(k_range)):
-		ksize = k_range[k_size_loc]
-		key = 'k=%d' % ksize
-		results[key] = containment_indices[:, k_size_loc]
-	df = pd.DataFrame(results, map(os.path.basename, training_file_names))
-	df = df.reindex(labels=['k=' + str(k_size) for k_size in k_range], axis=1)  # sort columns in ascending order
-	sort_key = 'k=%d' % k_range[location_of_thresh]
-	max_key = 'k=%d' % k_range[-1]
-	filtered_results = df[df[sort_key] > coverage_threshold].sort_values(max_key, ascending=False)  # only select those where the highest k-mer size's count is above the threshold
+	containment.create_data_frame(training_file_names=training_file_names, location_of_thresh=location_of_thresh, coverage_threshold=coverage_threshold)
+
 
 	if sensitive:
 		if verbose:
 			print("Exporting results")
 			t0 = timeit.default_timer()
-		filtered_results.to_csv(results_file, index=True, encoding='utf-8')
+		containment.filtered_results.to_csv(results_file, index=True, encoding='utf-8')
 
 	# If requested, plot the results
 	# FIXME: plot

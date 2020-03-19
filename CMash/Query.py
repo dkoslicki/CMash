@@ -148,7 +148,7 @@ class Containment:
 		self.sketches = sketches
 		self.num_hashes = num_hashes
 
-	def convert_to_hit_matrices(self):
+	def create_to_hit_matrices(self):
 		k_range = self.k_range
 		match_tuples = self.match_tuples
 		sketches = self.sketches
@@ -182,15 +182,52 @@ class Containment:
 		# list of matrices that contain the hits: len(hit_matrices) == k_sizes
 		# each hit_matrices[i] has rows indexed by which genome/sketch they belong to
 		# columns indexed by where the k-mer appeared in the sketch/hash list
-		hit_matrices = []
+		self.hit_matrices = []
 
 		for k_size in k_range:
 			# convert to matrices
 			mat = csc_matrix((value_dict[k_size], (row_ind_dict[k_size], col_ind_dict[k_size])),
 							 shape=(len(sketches), num_hashes))
-			hit_matrices.append(mat)
+			self.hit_matrices.append(mat)
 
-		return hit_matrices
+
+	def create_containment_indicies(self):
+		sketches = self.sketches
+		k_range = self.k_range
+		hit_matrices = self.hit_matrices
+		# prep the containment indicies matrix: rows are genome/sketch, one column for each k-mer size in k_range
+		self.containment_indices = np.zeros((len(sketches), len(
+			k_range)))  # TODO: could make this thing sparse, or do the filtering for above threshold here
+		for k_size_loc in range(len(k_range)):
+			# sum over the columns: i.e. total up the number of matches in the sketch/hash list
+			self.containment_indices[:, k_size_loc] = (hit_matrices[k_size_loc].sum(axis=1).ravel())  # /float(num_hashes))
+
+		for k_size_loc in range(len(k_range)):
+			k_size = k_range[k_size_loc]
+			for hash_loc in np.where(self.containment_indices[:, k_size_loc])[
+				0]:  # find the genomes with non-zero containment
+				unique_kmers = set()
+				for kmer in sketches[hash_loc]._kmers:
+					# find the unique k-mers: for smaller k-mer truncation sizes, the length of the sketch might have
+					# been reduced due to duplicates, so adjust for this factor to get the correct denominator
+					unique_kmers.add(kmer[:k_size])
+				self.containment_indices[hash_loc, k_size_loc] /= float(
+					len(unique_kmers))  # divide by the unique num of k-mers
+
+	def create_data_frame(self, training_file_names=None, location_of_thresh=None, coverage_threshold=None):
+		k_range = self.k_range
+		containment_indices = self.containment_indices
+		results = dict()
+		for k_size_loc in range(len(k_range)):
+			ksize = k_range[k_size_loc]
+			key = 'k=%d' % ksize
+			results[key] = containment_indices[:, k_size_loc]
+		df = pd.DataFrame(results, map(os.path.basename, training_file_names))
+		df = df.reindex(labels=['k=' + str(k_size) for k_size in k_range], axis=1)  # sort columns in ascending order
+		sort_key = 'k=%d' % k_range[location_of_thresh]
+		max_key = 'k=%d' % k_range[-1]
+		self.filtered_results = df[df[sort_key] > coverage_threshold].sort_values(max_key,
+																			 ascending=False)  # only select those where the highest k-mer size's count is above the threshold
 
 
 def main():
