@@ -52,7 +52,7 @@ def test_PostProcess_find_kmers_in_filtered_results():
 def test_PostProcess_find_unique_kmers():
 	pass
 
-def test_PostProcess_find_non_unique_kmers():
+def test_PostProcess_find_non_unique_kmers_reduce_hit_matrices():
 	pass
 
 def test_PostProcess_create_post_containment_indicies():

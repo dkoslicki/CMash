@@ -280,7 +280,7 @@ if __name__ == '__main__':
 		post_process.find_unique_kmers()
 
 		# find k-mers that are shared between more than one genome/sketch
-		post_process.find_non_unique_kmers()
+		post_process.find_non_unique_kmers_reduce_hit_matrices()
 
 		# reduce the hit_matrices/containment indicies by not considering those k-mers that are shared between more
 		# than one genome/sketch

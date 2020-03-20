@@ -409,9 +409,10 @@ class PostProcess:
 				is_unique_kmer_per_ksize[k_size].add(kmer)
 				is_unique_kmer.add(kmer)
 
-	def find_non_unique_kmers(self) -> None:
+	def find_non_unique_kmers_reduce_hit_matrices(self) -> None:
 		"""
-		Finds the k-mers that showed up in more than one sketch/genome
+		Finds the k-mers that showed up in more than one sketch/genome, use these to reduce the hit matrices to set
+		the corresponding entries to zero.
 		"""
 		# Also keep track of which kmers appear in more than one sketch (not unique)
 		CEs = self.CEs
@@ -428,14 +429,13 @@ class PostProcess:
 				for kmer in current_kmers:
 					if kmer not in is_unique_kmer_per_ksize[k_size]:
 						non_unique_set.add(kmer)
-				# FIXME: this should go in the next function, since this is where the hit_matries are actually reduced
 				# reduce the hit matrices by removing the hits corresponding to non-unique k-mers
 				to_zero_indicies = [ind for ind, kmer in enumerate(current_kmers) if kmer in non_unique_set]
 				# if you use a really small initial kmer size, some of the hit matrices may be empty
 				# due to all k-mers being shared in common
+				# set these to zero since they show up in other sketches (so not informative)
 				if hit_matrices_dict['k=%d' % k_size].size > 0:
-					hit_matrices_dict['k=%d' % k_size][
-						i, to_zero_indicies] = 0  # set these to zero since they show up in other sketches (so not informative)
+					hit_matrices_dict['k=%d' % k_size][i, to_zero_indicies] = 0
 				# keep track of the size of the unique k-mers
 				num_unique_dict[i, k_range.index(k_size)] = len(current_kmers_set) - len(non_unique_set)
 
@@ -470,8 +470,7 @@ class PostProcess:
 				# FIXME: this doesn't seem like the right way to normalize, but apparently it is!
 				self.containment_indices[hash_loc, k_size_loc] /= float(len(unique_kmers))
 				# FIXME: in small tests, this seems to give better results. To be revisted.
-				# would need to inherit the non_unique's as well
-				# containment_indices[hash_loc, k_size_loc] /= float(num_unique[hash_loc, k_size_loc])
+				#self.containment_indices[hash_loc, k_size_loc] /= float(self.num_unique_dict[hash_loc, k_size_loc])
 
 	def create_data_frame(self, training_file_names: list, location_of_thresh: int, coverage_threshold: int) -> None:
 		"""
