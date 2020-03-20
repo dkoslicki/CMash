@@ -15,10 +15,13 @@ seq1 = "ATCGTATGAGTATCGTCGATGCATGCATCGATGCATGCTACGTATCGCATGCATG"
 seq2 = "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT"
 seq3 = "ATATATATATATATATATATATATATATATATATATATATATATATATATATATAT"
 seq4 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-CE1 = MH.CountEstimator(n=5, max_prime=9999999999971, ksize=5, save_kmers='y')
-CE2 = MH.CountEstimator(n=5, max_prime=9999999999971, ksize=5, save_kmers='y')
-CE3 = MH.CountEstimator(n=5, max_prime=9999999999971, ksize=5, save_kmers='y')
-CE4 = MH.CountEstimator(n=5, max_prime=9999999999971, ksize=5, save_kmers='y')
+seqs = [seq1, seq2, seq3, seq4]
+query_seq = seq2
+num_hashes = 5
+CE1 = MH.CountEstimator(n=num_hashes, max_prime=9999999999971, ksize=5, save_kmers='y')
+CE2 = MH.CountEstimator(n=num_hashes, max_prime=9999999999971, ksize=5, save_kmers='y')
+CE3 = MH.CountEstimator(n=num_hashes, max_prime=9999999999971, ksize=5, save_kmers='y')
+CE4 = MH.CountEstimator(n=num_hashes, max_prime=9999999999971, ksize=5, save_kmers='y')
 CE1.add_sequence(seq1)
 CE2.add_sequence(seq2)
 CE3.add_sequence(seq3)
@@ -28,6 +31,7 @@ CE1.input_file_name = "seq1"
 CE2.input_file_name = "seq2"
 CE3.input_file_name = "seq3"
 CE4.input_file_name = "seq4"
+training_file_names = ["seq1", "seq2", "seq3", "seq4"]
 CEs = [CE1, CE2, CE3, CE4]
 temp_database_file = tempfile.mktemp()
 MH.export_multiple_to_single_hdf5(CEs, temp_database_file)
@@ -159,21 +163,74 @@ def test_Counters_return_matches():
 
 
 def test_Counters_process_seq():
-	pass
+	C = Create(training_database_file=temp_database_file, bloom_filter_file="", TST_file=temp_TST_file, k_range=k_range)
+	C.import_TST()
+	C.create_BF_prefilter()
+	counters = Counters(tree=C.tree, k_range=k_range, all_kmers_bf=C.all_kmers_bf)
+	#print(counters.process_seq(seq1))
+	# TODO: make sure these results are correct
 
 
 # Containment module tests
 def test_initialize_Containment():
-	pass
+	C = Create(training_database_file=temp_database_file, bloom_filter_file="", TST_file=temp_TST_file, k_range=k_range)
+	C.import_TST()
+	C.create_BF_prefilter()
+	counters = Counters(tree=C.tree, k_range=k_range, all_kmers_bf=C.all_kmers_bf)
+	match_tuples = set()
+	# TODO: this is where you set where the "query file" is
+	match_tuples.update(counters.process_seq(query_seq))
+	match_tuples = list(match_tuples)
+	containment = Containment(k_range=k_range, match_tuples=match_tuples, sketches=CEs, num_hashes=num_hashes)
+
 
 def test_Containment_create_to_hit_matrices():
-	pass
+	C = Create(training_database_file=temp_database_file, bloom_filter_file="", TST_file=temp_TST_file, k_range=k_range)
+	C.import_TST()
+	C.create_BF_prefilter()
+	counters = Counters(tree=C.tree, k_range=k_range, all_kmers_bf=C.all_kmers_bf)
+	match_tuples = set()
+	# TODO: this is where you set where the "query file" is
+	match_tuples.update(counters.process_seq(query_seq))
+	match_tuples = list(match_tuples)
+	containment = Containment(k_range=k_range, match_tuples=match_tuples, sketches=CEs, num_hashes=num_hashes)
+	containment.create_to_hit_matrices()
+	# TODO: make sure these results are correct
+	# FIXME: should iterate over all the "query files" and make sure the results are correct
+
 
 def test_Containment_create_containment_indicies():
-	pass
+	C = Create(training_database_file=temp_database_file, bloom_filter_file="", TST_file=temp_TST_file, k_range=k_range)
+	C.import_TST()
+	C.create_BF_prefilter()
+	counters = Counters(tree=C.tree, k_range=k_range, all_kmers_bf=C.all_kmers_bf)
+	match_tuples = set()
+	# TODO: this is where you set where the "query file" is
+	match_tuples.update(counters.process_seq(query_seq))
+	match_tuples = list(match_tuples)
+	containment = Containment(k_range=k_range, match_tuples=match_tuples, sketches=CEs, num_hashes=num_hashes)
+	containment.create_to_hit_matrices()
+	containment.create_containment_indicies()
+	print(containment.containment_indices)
+	# TODO: make sure these results are correct
+	# FIXME: should iterate over all the "query files" and make sure the results are correct
+
 
 def test_Containment_create_data_frame():
-	pass
+	C = Create(training_database_file=temp_database_file, bloom_filter_file="", TST_file=temp_TST_file, k_range=k_range)
+	C.import_TST()
+	C.create_BF_prefilter()
+	counters = Counters(tree=C.tree, k_range=k_range, all_kmers_bf=C.all_kmers_bf)
+	match_tuples = set()
+	# TODO: this is where you set where the "query file" is
+	match_tuples.update(counters.process_seq(query_seq))
+	match_tuples = list(match_tuples)
+	containment = Containment(k_range=k_range, match_tuples=match_tuples, sketches=CEs, num_hashes=num_hashes)
+	containment.create_to_hit_matrices()
+	containment.create_containment_indicies()
+	containment.create_data_frame(training_file_names=training_file_names, location_of_thresh=0, coverage_threshold=0)
+	print(containment.filtered_results)
+	# FIXME: should iterate over all the "query files" and make sure the results are correct
 
 
 # PostProcess module tests
