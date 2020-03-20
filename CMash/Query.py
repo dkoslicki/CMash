@@ -41,7 +41,7 @@ def return_data_frame(training_file_names: list, k_range: list, location_of_thre
 	sort_key = 'k=%d' % k_range[location_of_thresh]
 	max_key = 'k=%d' % k_range[-1]
 	# only select those where the highest k-mer size's count is above the threshold
-	filtered_results = df[df[sort_key] > coverage_threshold].sort_values(max_key, ascending=False)
+	filtered_results = df[df[sort_key] >= coverage_threshold].sort_values(max_key, ascending=False)
 	return filtered_results
 
 
