@@ -3,14 +3,15 @@ import os
 import sys
 import khmer
 # The following is for ease of development (so I don't need to keep re-installing the tool)
-try:
-	from CMash import MinHash as MH
-except ImportError:
-	try:
-		import MinHash as MH
-	except ImportError:
-		sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-		from CMash import MinHash as MH
+#try:
+#	from CMash import MinHash as MH
+#except ImportError:
+#	try:
+#		import MinHash as MH
+#	except ImportError:
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from CMash import MinHash as MH
+from CMash.Query import Create
 import argparse
 from argparse import ArgumentTypeError
 import re
@@ -50,30 +51,22 @@ if __name__ == '__main__':
 	results_file = os.path.abspath(results_file)
 
 	# Import data and error checking
-	# Query file
+	# Training file
 	if not os.path.exists(training_data):
 		raise Exception("Training/reference file %s does not exist." % training_data)
 
-	# Training data
-	sketches = MH.import_multiple_from_single_hdf5(training_data)
-	if sketches[0]._kmers is None:
-		raise Exception(
-			"For some reason, the k-mers were not saved when the database was created. Try running MakeDNADatabase.py again.")
-	num_hashes = len(sketches[0]._kmers)  # note: this is relying on the fact that the sketches were properly constructed
-	max_ksize = sketches[0].ksize
+	# get the name of the TST
+	TST_file = os.path.splitext(training_data)[0] + ".tst"
+	if not os.path.exists(TST_file):
+		raise Exception(f"Ternary search tree {TST_file} does not exist. Did you run CreateStreamingDNADatabase.py?")
 
-	# adjust the k-range if necessary
-	k_range = [val for val in k_range if val <= max_ksize]
+	# TODO: adjust the k-range if necessary
+	#  k_range = [val for val in k_range if val <= max_ksize]  # max_ksize is unknown without reading in the whole
+	#  training database, which I don't want to do
 
-	# all the k-mers of interest in a set (as a pre-filter)
-	try:
-		all_kmers_bf = WritingBloomFilter(len(sketches)*len(k_range)*num_hashes*2, 0.01, results_file)
-		for sketch in sketches:
-			for kmer in sketch._kmers:
-				for ksize in k_range:
-					kmer_str = kmer[0:ksize]
-					all_kmers_bf.add(kmer_str)  # put all the k-mers and the appropriate suffixes in
-					all_kmers_bf.add(khmer.reverse_complement(kmer_str))  # also add the reverse complement
-	except IOError:
-		print("No such file or directory/error opening file: %s" % results_file)
-		sys.exit(1)
+	# create the class
+	C = Create(training_database_file=training_data, bloom_filter_file="", TST_file=TST_file, k_range=k_range)
+	# import the TST
+	C.import_TST()
+	# create and export the BF
+	C.create_BF_prefilter(result_file=results_file)

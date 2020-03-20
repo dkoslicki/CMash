@@ -103,9 +103,11 @@ fi
 echo "Classifying sample, default settings with prefilter"
 rm results.csv 2> /dev/null
 # make a streaming pre-filter
-/usr/bin/time python ${scriptsDir}/StreamingQueryDNADatabase.py ${testOrganism} TrainingDatabase.h5 results.csv 10-21-2 -f prefilter.bf
+/usr/bin/time python ${scriptsDir}/StreamingQueryDNADatabase.py ${testOrganism} TrainingDatabase.h5 results.csv 10-21-2 -f prefilter.bf --sensitive
 if test -f results.csv; then
   echo "default classify with prefilter successful"
+  echo "results with prefilter:"
+  cat results.csv
 else
   echo "SOMETHING WENT WRONG!!!!"
   exit 1
