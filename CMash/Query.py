@@ -296,7 +296,8 @@ class Containment:
 				for kmer in sketches[hash_loc]._kmers:
 					# find the unique k-mers: for smaller k-mer truncation sizes, the length of the sketch might have
 					# been reduced due to duplicates, so adjust for this factor to get the correct denominator
-					unique_kmers.add(kmer[:k_size])
+					if kmer[:k_size]:
+						unique_kmers.add(kmer[:k_size])
 				self.containment_indices[hash_loc, k_size_loc] /= float(
 					len(unique_kmers))  # divide by the unique num of k-mers
 

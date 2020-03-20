@@ -195,6 +195,8 @@ def test_Containment_create_to_hit_matrices():
 	match_tuples = list(match_tuples)
 	containment = Containment(k_range=k_range, match_tuples=match_tuples, sketches=CEs, num_hashes=num_hashes)
 	containment.create_to_hit_matrices()
+	for i, k in enumerate(k_range):
+		print(f"hit matrix at k={k}:\n {containment.hit_matrices[i].todense()}")
 	# TODO: make sure these results are correct
 	# FIXME: should iterate over all the "query files" and make sure the results are correct
 
