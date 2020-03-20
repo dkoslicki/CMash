@@ -16,7 +16,7 @@ seq2 = "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT"
 seq3 = "ATATATATATATATATATATATATATATATATATATATATATATATATATATATAT"
 seq4 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 seqs = [seq1, seq2, seq3, seq4]
-query_seq = seq2
+query_seq = seq3
 num_hashes = 5
 CE1 = MH.CountEstimator(n=num_hashes, max_prime=9999999999971, ksize=5, save_kmers='y')
 CE2 = MH.CountEstimator(n=num_hashes, max_prime=9999999999971, ksize=5, save_kmers='y')
@@ -263,6 +263,13 @@ def test_PostProces_create_data_frame():
 def test_return_data_frame():
 	pass
 
+
+def test_ground_truth():
+	# TODO:
+	#  Intention here is to:
+	#  1. check what the results would be with the given sketches via brute force considering revcomps
+	#  2. check what the *actual* ground truth here is by enumerating all the k-mers and their revcomps and doing the
+	#  actual containment value checks and seeing if they are "close enough" given the very small sketch size
 
 # run through all the tests
 def main():
