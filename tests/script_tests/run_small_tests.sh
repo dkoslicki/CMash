@@ -20,7 +20,7 @@ fi
 
 scriptsDir="${parentDir}/scripts"
 testOrganism="../Organisms/taxid_1192839_4_genomic.fna.gz"
-: << 'END'
+
 # make the training database
 echo "Training on data"
 rm TrainingDatabase.h5 2> /dev/null
@@ -37,7 +37,6 @@ if test -f TrainingDatabase.h5; then
     echo "SOMETHING WENT WRONG!!!!"
     exit 1
 fi
-END
 
 echo "Classifying sample, sensitive settings"
 rm results.csv 2> /dev/null
