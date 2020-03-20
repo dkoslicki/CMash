@@ -74,9 +74,11 @@ class Create:
 		self.tree = mt.Trie()
 		self.tree.load(self.TST_file)
 
-	def create_BF_prefilter(self) -> None:
+	def create_BF_prefilter(self, result_file=None) -> None:
 		"""
 		Imports or creates the pre-filter Bloom filter
+		:param result_file: (optional) if you'd like to export the bloom filter, populate that here
+		:type result_file: str
 		"""
 		tree = self.tree
 		k_range = self.k_range
@@ -84,7 +86,12 @@ class Create:
 			try:
 				# Get all the k-mers in the TST, put them in a bloom filter
 				# all_kmers_bf = WritingBloomFilter(len(sketches) * len(k_range) * num_hashes * 20, 0.01)
-				self.all_kmers_bf = WritingBloomFilter(len(tree.keys()) * len(k_range) * 5, 0.01, ignore_case=True)  # fudge factor of 5 will make the BF larger, but also slightly faster
+				if result_file:
+					# save it to the file
+					self.all_kmers_bf = WritingBloomFilter(len(tree.keys()) * len(k_range) * 5, 0.01, ignore_case=True, filename=result_file)  # fudge factor of 5 will make the BF larger, but also slightly faster
+				else:
+					# keep it in memory
+					self.all_kmers_bf = WritingBloomFilter(len(tree.keys()) * len(k_range) * 5, 0.01, ignore_case=True)  # fudge factor of 5 will make the BF larger, but also slightly faster
 				for kmer_info in tree.keys():
 					kmer = kmer_info.split('x')[0]  # remove the location information and just get the kmer
 					for ksize in k_range:
