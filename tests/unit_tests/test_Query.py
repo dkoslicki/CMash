@@ -270,6 +270,7 @@ def test_ground_truth():
 	#  1. check what the results would be with the given sketches via brute force considering revcomps
 	#  2. check what the *actual* ground truth here is by enumerating all the k-mers and their revcomps and doing the
 	#  actual containment value checks and seeing if they are "close enough" given the very small sketch size
+	pass
 
 # run through all the tests
 def main():
