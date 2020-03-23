@@ -195,8 +195,8 @@ def test_Containment_create_to_hit_matrices():
 	match_tuples = list(match_tuples)
 	containment = Containment(k_range=k_range, match_tuples=match_tuples, sketches=CEs, num_hashes=num_hashes)
 	containment.create_to_hit_matrices()
-	for i, k in enumerate(k_range):
-		print(f"hit matrix at k={k}:\n {containment.hit_matrices[i].todense()}")
+	#for i, k in enumerate(k_range):
+	#	print(f"hit matrix at k={k}:\n {containment.hit_matrices[i].todense()}")
 	# TODO: make sure these results are correct
 	# FIXME: should iterate over all the "query files" and make sure the results are correct
 
@@ -213,7 +213,7 @@ def test_Containment_create_containment_indicies():
 	containment = Containment(k_range=k_range, match_tuples=match_tuples, sketches=CEs, num_hashes=num_hashes)
 	containment.create_to_hit_matrices()
 	containment.create_containment_indicies()
-	print(containment.containment_indices)
+	#print(containment.containment_indices)
 	# TODO: make sure these results are correct
 	# FIXME: should iterate over all the "query files" and make sure the results are correct
 
@@ -231,7 +231,7 @@ def test_Containment_create_data_frame():
 	containment.create_to_hit_matrices()
 	containment.create_containment_indicies()
 	containment.create_data_frame(training_file_names=training_file_names, location_of_thresh=0, coverage_threshold=0)
-	print(containment.filtered_results)
+	#print(containment.filtered_results)
 	# FIXME: should iterate over all the "query files" and make sure the results are correct
 
 
