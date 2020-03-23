@@ -1,4 +1,4 @@
-# Issue1: inconsistent CI output (github issue #19)
+# [Fixed!!!] Issue1: inconsistent CI output (github issue #19)
 
 ### Issue statement: 
 
@@ -8,21 +8,6 @@ The calculated true CI are different when input ranges are different (i.e. 61-61
 code1: StreamingQueryDNADatabase.py 61-61-1 -v -c 0 -l 0 --sensitive
 code2: StreamingQueryDNADatabase.py 4-61-3 -v -c 0 -l 0 --sensitive
 2 codes above generate different CI for k=61.
-```
-
-Possible reason:
-
-```bash
-No idea now.
-```
-
-Current update:
-
-```bash
-# Computationally confirmed:
-1. the main problem is the difference between max-max-1 and start-max-gap, e.g. with maxk=61, the difference can be 0.6 vs 0.4 for closely related species.
-2. while there are tiny differences among different start-max-gap combinations (with same maxk), they look like normal flunctuations due to random sampling process and can be neglectable.
-3. from the py code, the len(range_k) would only affect a) BF size (164); b) location to apply threshold (123) which manually set to 0; c) output df (320). So the BF size should NOT be an issue.
 ```
 
 

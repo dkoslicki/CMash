@@ -6,16 +6,11 @@
 
 
 
-### Revision note:
+### Running note:
 
-- Update:
-  - Step1 seems in trouble (overflow or due to lack of MEM or data is too big?)
-  - Step2 should be ready soon (k61 results for demo)
-- Q:
-  - [x] MakeStreamingDNADatabase.py will generate different database when repeat (md5 check dif)? The TST is same.
-  - [x] Errors: step1 record in folder
-    - Code was manually tested for smaller range on single filer (bingo)
-    - For full data, it already run overnight (>5h on ICS) but no results generated
+- "StreamingQueryDNADatabase.py" would get stucked with k=1 in input range, skip this number.
+
+
 
 ### Pseudo-code
 
@@ -26,7 +21,7 @@
 max_k=61
 MakeStreamingDNADatabase.py <all_genome> <max_k>  -> TB_61.hs
 for gi in <all_genome>:
-  StreamingqueryDNADatabase.py	gi	TB_61.hs	1-61-3	-c 0 -l 0 --sensitive
+  StreamingqueryDNADatabase.py	gi	TB_61.hs	4-61-3	-c 0 -l 0 --sensitive
 # In the output matrix: col[k=61] is the true value of each gi; col[k<61] is the variation due to truncation
   
 ### ii) find the true CI with all k<61
@@ -74,7 +69,7 @@ for file in `cat filenames.txt`
 do
   echo "processing $file"
   name=`echo ${file##*/}`
-  ${ltime} ${python_exec} ${CMash_scripts}/StreamingQueryDNADatabase.py ${file} TrainingDB_k${k_size}.h5 truncation_${name}_results.csv 1-61-3 -v -c 0 -l 0 --sensitive
+  ${ltime} ${python_exec} ${CMash_scripts}/StreamingQueryDNADatabase.py ${file} TrainingDB_k${k_size}.h5 truncation_${name}_results.csv 4-61-3 -v -c 0 -l 0 --sensitive
   mv temp_runLog truncation_${name}_results.log  2> /dev/null
   unset name file
 done
