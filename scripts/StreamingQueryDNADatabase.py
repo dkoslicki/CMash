@@ -235,7 +235,6 @@ if __name__ == '__main__':
 	# prepare a nice pandas data-frame for export
 	containment.create_data_frame(training_file_names=training_file_names, location_of_thresh=location_of_thresh, coverage_threshold=coverage_threshold)
 
-
 	if sensitive:
 		if verbose:
 			print("Exporting results")
