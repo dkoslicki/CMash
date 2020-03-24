@@ -55,7 +55,6 @@ class MakeTSTOld:
         self.genome_sketches = genome_sketches
         self.TST_export_file_name = TST_export_file_name
 
-    @classmethod
     def make_TST(self):
         genome_sketches = self.genome_sketches
         to_insert = set()
@@ -76,3 +75,30 @@ class MakeTSTOld:
         # export the TST
         tree = mt.Trie(to_insert)
         tree.save(self.TST_export_file_name)
+
+def main():
+    import timeit
+    from CMash import MinHash as MH
+    small_database_file = "/home/dkoslicki/Desktop/CMash/tests/TempData/cmash_db_n5000_k60_1000.h5"
+    TST_export_file_new = "/home/dkoslicki/Desktop/CMash/tests/TempData/cmash_db_n5000_k60_new.tst"
+    TST_export_file_old = "/home/dkoslicki/Desktop/CMash/tests/TempData/cmash_db_n5000_k60_old.tst"
+
+    # new way
+    t0 = timeit.default_timer()
+    M = MakeTSTNew(small_database_file, TST_export_file_new)
+    M.make_TST()
+    t1 = timeit.default_timer()
+    print(f"New timing: {t1 - t0}")
+
+    # old way
+    CEs = MH.import_multiple_from_single_hdf5(small_database_file)
+    t0 = timeit.default_timer()
+    M = MakeTSTOld(CEs, TST_export_file_old)
+    M.make_TST()
+    t1 = timeit.default_timer()
+    print(f"Old timing: {t1 - t0}")
+
+
+# simple way to do testing
+if __name__ == "__main__":
+    main()
