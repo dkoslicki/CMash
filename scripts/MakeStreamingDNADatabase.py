@@ -78,13 +78,16 @@ def main():
 	if verbose:
 		print("Creating Min Hash Sketches")
 	pool = Pool(processes=num_threads)
-	genome_sketches = pool.map(make_minhash_star, zip(file_names, repeat(max_h), repeat(prime), repeat(ksize)))
-	pool.close()
+	#genome_sketches = pool.map(make_minhash_star, zip(file_names, repeat(max_h), repeat(prime), repeat(ksize)))
+	# use imap so we get an iterable instead, that way we can immediately start writing to file and don't need to keep
+	# the entire genome sketches in memory
+	genome_sketches = pool.imap(make_minhash_star, zip(file_names, repeat(max_h), repeat(prime), repeat(ksize)))
+	#pool.close()
 	# Export all the sketches
 	if verbose:
 		print("Exporting sketches")
 	MH.export_multiple_to_single_hdf5(genome_sketches, out_file)
-
+	pool.close()
 	# Initialize the creation of the TST
 	M = MakeTSTNew(out_file, streaming_database_file)
 	if verbose:
