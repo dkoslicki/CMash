@@ -1,7 +1,5 @@
-from CMash import MinHash as MH
 import marisa_trie as mt
 import khmer
-import timeit
 import os
 import h5py
 
@@ -78,7 +76,7 @@ class MakeTSTOld:
 
 def main():
     import timeit
-    from CMash import MinHash as MH
+    import MinHash as MH
     small_database_file = "/home/dkoslicki/Desktop/CMash/tests/TempData/cmash_db_n5000_k60_1000.h5"
     TST_export_file_new = "/home/dkoslicki/Desktop/CMash/tests/TempData/cmash_db_n5000_k60_new.tst"
     TST_export_file_old = "/home/dkoslicki/Desktop/CMash/tests/TempData/cmash_db_n5000_k60_old.tst"
@@ -91,8 +89,8 @@ def main():
     print(f"New timing: {t1 - t0}")
 
     # old way
-    CEs = MH.import_multiple_from_single_hdf5(small_database_file)
     t0 = timeit.default_timer()
+    CEs = MH.import_multiple_from_single_hdf5(small_database_file)
     M = MakeTSTOld(CEs, TST_export_file_old)
     M.make_TST()
     t1 = timeit.default_timer()
