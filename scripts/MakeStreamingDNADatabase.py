@@ -5,12 +5,14 @@ import sys
 # The following is for ease of development (so I don't need to keep re-installing the tool)
 try:
 	from CMash import MinHash as MH
+	from CMash.Make import MakeTSTNew
 except ImportError:
 	try:
 		import MinHash as MH
 	except ImportError:
 		sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 		from CMash import MinHash as MH
+		from CMash.Make import MakeTSTNew
 from multiprocessing import Pool  # Much faster without dummy (threading)
 import multiprocessing
 from itertools import *
@@ -83,29 +85,16 @@ def main():
 		print("Exporting sketches")
 	MH.export_multiple_to_single_hdf5(genome_sketches, out_file)
 
-	# Save the ternary search tree
+	# Initialize the creation of the TST
+	M = MakeTSTNew(out_file, streaming_database_file)
 	if verbose:
-		print("Creating ternary search tree")
-	to_insert = set()
-	# add both the original k-mer and the reverse complement, as the MinHashes were created without reverse complement
-	for i in range(len(genome_sketches)):
-		for kmer_index in range(len(genome_sketches[i]._kmers)):
-			# normal kmer
-			kmer = genome_sketches[i]._kmers[kmer_index]
-			# only insert the kmer if it's actually non-empty
-			if kmer:
-				to_insert.add(kmer + 'x' + str(i) + 'x' + str(kmer_index))  # format here is kmer+x+hash_index+kmer_index
-				# rev-comp kmer
-				kmer = khmer.reverse_complement(genome_sketches[i]._kmers[kmer_index])
-				to_insert.add(kmer + 'x' + str(i) + 'x' + str(kmer_index))  # format here is kmer+x+hash_index+kmer_index
+		print("Creating and saving the ternary search tree")
+	# make the actual TST
+	M.make_TST()
 
-	# export the TST
-	tree = mt.Trie(to_insert)
-	if verbose:
-		print("Saving Ternary search tree")
-	tree.save(streaming_database_file)
 	if verbose:
 		print("Finished.")
+
 
 if __name__ == "__main__":
 	main()
