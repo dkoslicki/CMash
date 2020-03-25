@@ -6,6 +6,7 @@ import sys
 import pandas as pd
 from hydra import WritingBloomFilter, ReadingBloomFilter
 from scipy.sparse import csc_matrix
+from h5py import File
 # The following is for ease of development (so I don't need to keep re-installing the tool)
 try:
 	from CMash import MinHash as MH
@@ -107,6 +108,41 @@ class Create:
 				print("No such file or directory/error opening file: %s" % self.bloom_filter_file)
 				sys.exit(1)
 
+
+class Intersect:
+    """
+    This class computes the intersection of the kmers in the input sample
+    and the kmers in the training sample prior to testing each training sample
+    for membership in the input sample. This eliminates the need to pre-screen kmers
+    for presence in the TST via the prefilter since every kmer in the input must be
+    in both the input and the training samples.
+    """
+    def __init__(self,reads_path, training_path):
+        self.reads_path = reads_path
+        #self.training_path = training_path
+        #returns "" (is not None) if the path ends in "/" or "\"
+        self.training_path = training_path 
+        self.kmc_location = os.path.dirname \
+                (os.path.dirname(os.path.abspath(__file__))) + "/KMC/bin/"
+        self.numThreads=8
+#cmashBaseName="cmash_db_n1000_k60"
+        self.cmashBaseName=((os.path.split(training_path))[-1])[:-3]
+        if self.cmashBaseName == "":
+            raise Exception("Invalid training database file name/path")
+        self.cmashDatabase=self.cmashBaseName + ".h5"
+        self.cmashDump=self.cmashBaseName + "_dump.fa"
+        self.db_kmers_loc = self.cmashBaseName + '_dump'
+        self.ksize = self.get_kmer_size()
+        print ("ksize is {}".format(self.ksize))
+
+    """Reads the training database (in HDF5 format)
+       and returns the uniform size of the k-mers.
+    """
+    def get_kmer_size(self):
+        with File(self.cmashDatabase, 'r') as db:
+            ce = db["CountEstimators"]
+            ts = ce["training_set.fa"]
+            return ts.attrs["ksize"]
 
 # shared object that will update the intersection counts
 class Counters:
