@@ -26,8 +26,51 @@ Eg: [This PR](https://github.com/bioconda/bioconda-recipes/pull/21112) failed. L
 $ git clone https://github.com/bioconda/bioconda-recipes.git -b bump/cmash
 $ cd bioconda-recipes/recipes/cmash
 <edit the yaml file>
-$ git commit && git push
+$ git commit -a  # Make sure to add what changes you made and the PR issue number to the commit message
+$ git push
 
 ```
 
 # How to test build locally to make sure that you don't run into a Bioconda PR issue.
+
+This is still a work in progress, have not been able to get anything to install properly, but this is how Bioconda is doing it on their back-end:
+```
+#!/bin/bash -eo pipefail
+bioconda-utils build recipes config.yml \
+  --docker --mulled-test \
+  --git-range master HEAD
+```
+
+
+## Make sure you have Docker installed
+
+If you don't have Docker installed, do the following:
+```
+sudo apt-get update
+sudo apt install docker.io
+sudo systemctl start docker
+sudo systemctl enable docker
+```
+
+## Create bioconda conda environment
+
+1. Add the bioconda channels to your conda installation
+```bash
+$ conda config --add channels defaults
+$ conda config --add channels bioconda
+$ conda config --add channels conda-forge
+```
+2. Install bioconda utils
+```bash
+$ conda create -y -n bioconda python=3.6  # seems to fail with python>=3.7
+$ conda activate bioconda
+$ conda install -y bioconda-utils
+```
+## Install Bioconda CircleCI
+
+This is the continuous integration checker that the Bioconda bot is using to check if your recipe builds.
+
+1. Install the CircleCI docker image: `sudo docker pull bioconda/bioconda-utils-build-env:latest`
+2. `sudo docker run -t --name test bioconda/bioconda-utils-build-env`
+2. `cd` to where you made your changes. eg. `cd bioconda-recipes/recipes/cmash` 
+ 
