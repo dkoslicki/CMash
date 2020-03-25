@@ -18,7 +18,7 @@ with open(os.path.join(HERE, 'README.md'), 'r') as fid:
 
 setup(
 	name="CMash",
-	version="0.4.0",
+	version="0.5.0",
 	author="David Koslicki",
 	author_email="dmkoslicki@gmail.com",
 	description=("Fast and accurate set similarity estimation via containment min hash (for genomic datasets)."),
@@ -44,16 +44,18 @@ setup(
 		'pycairo'
 	],
 	zip_safe=False,
-	package_data={'CMash': ['data/*.fna']},
+	package_data={'CMash': ['data/*.fna', 'tests/Organisms/*.fna.gz']},
 	scripts=SCRIPTS,
 	classifiers=[
 		"Development Status :: 3 - Alpha",
 		"Topic :: Scientific/Engineering :: Bio-Informatics",
 		"Topic :: Scientific/Engineering :: Mathematics",
-		"Programming Language :: Python :: 2.7",
 		"License :: OSI Approved :: BSD License",
 		"Intended Audience :: Science/Research",
 		"Programming Language :: Python :: 3.5",
+		"Programming Language :: Python :: 3.6",
+		"Programming Language :: Python :: 3.7",
+		"Programming Language :: Python :: 3.8",
 		"Natural Language :: English",
 		"Operating System :: MacOS :: MacOS X",
 		"Operating System :: POSIX :: Linux",
