@@ -74,3 +74,11 @@ This is the continuous integration checker that the Bioconda bot is using to che
 2. `sudo docker run -t --name test bioconda/bioconda-utils-build-env`
 2. `cd` to where you made your changes. eg. `cd bioconda-recipes/recipes/cmash` 
  
+
+# Other things tried
+
+```
+docker pull quay.io/biocontainers/bioconda-utils:0.16.12--py_0
+sudo docker run -it quay.io/biocontainers/bioconda-utils:0.16.12--py_0 /bin/bash
+$ bioconda-utils
+```
