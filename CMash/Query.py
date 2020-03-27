@@ -28,7 +28,7 @@ def return_data_frame(training_file_names: list, k_range: list, location_of_thre
 	:type location_of_thresh: int
 	:param containment_indices: the containment indicies matrix you wish to convert to a pandas data frame
 	:type containment_indices: numpy.ndarray
-	:param coverage_threshold: filter out those results that have containment indicies below this threshold
+	:param coverage_threshold: filter out those results that have containment indicies strictly below this threshold
 	:type coverage_threshold: float
 	"""
 	results = dict()
