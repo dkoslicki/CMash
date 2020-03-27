@@ -24,7 +24,8 @@ except ImportError:
 		from CMash import MinHash as MH
 		from CMash import Query
 
-# FIXME: Make sure I am *identifying* the rc k-mers with the k-mers and not counting them as distinct entities
+# Note: here, I am using canonical k-mers: i.e. to disambiguate between a k-mer and it's reverse complement, I
+# simply take as the representative whichever one is lexicographically smaller.
 
 
 notACTG = re.compile('[^ACTG]')  # look for any not ACTG
@@ -99,9 +100,13 @@ class TrueContainment:
 				for k_size in k_sizes:
 					for kmer in self.__kmers(seq, k_size):
 						if kmer:
-							# FIXME: would add the canonical k-mers here
-							k_size_to_kmers[k_size].add(kmer)  # add the kmer
-							k_size_to_kmers[k_size].add(khmer.reverse_complement(kmer))  # add the reverse complement
+							# Use canonical k-mers
+							temp_kmer = kmer
+							temp_kmer_rc = khmer.reverse_complement(kmer)
+							if temp_kmer < temp_kmer_rc:
+								k_size_to_kmers[k_size].add(temp_kmer)  # add the kmer
+							else:
+								k_size_to_kmers[k_size].add(temp_kmer_rc)  # add the reverse complement
 			# otherwise, we need to do the same thing for each of the subsequences
 			else:
 				for sub_seq in seq_split_onlyACTG:
@@ -109,9 +114,13 @@ class TrueContainment:
 						for k_size in k_sizes:
 							for kmer in self.__kmers(seq, k_size):
 								if kmer:
-									# FIXME: would add the canonical k-mers here
-									k_size_to_kmers[k_size].add(kmer)  # add the kmer
-									k_size_to_kmers[k_size].add(khmer.reverse_complement(kmer))  # add the reverse complement
+									# Use canonical k-mers
+									temp_kmer = kmer
+									temp_kmer_rc = khmer.reverse_complement(kmer)
+									if temp_kmer < temp_kmer_rc:
+										k_size_to_kmers[k_size].add(temp_kmer)  # add the kmer
+									else:
+										k_size_to_kmers[k_size].add(temp_kmer_rc)  # add the reverse complement
 		return k_size_to_kmers
 
 	@staticmethod
@@ -124,7 +133,6 @@ class TrueContainment:
 		pool = multiprocessing.Pool(processes=num_threads)
 		# res is returned in the same order as self.training_file_names according to the docs
 		res = pool.map(self._return_ksize_to_kmers, self.training_file_names)
-		#res = map(self.__return_ksize_to_kmers, self.training_file_names)
 		for (item, file_name) in zip(res, self.training_file_names):
 			training_file_to_ksize_to_kmers[file_name] = item
 		pool.close()
