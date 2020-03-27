@@ -130,7 +130,7 @@ class TrueContainment:
 	def __compute_all_training_kmers(self):
 		training_file_to_ksize_to_kmers = dict()
 		num_threads = multiprocessing.cpu_count()
-		pool = multiprocessing.Pool(processes=num_threads)
+		pool = multiprocessing.Pool(processes=int(min(num_threads, len(self.training_file_names))))
 		# res is returned in the same order as self.training_file_names according to the docs
 		res = pool.map(self._return_ksize_to_kmers, self.training_file_names)
 		for (item, file_name) in zip(res, self.training_file_names):
