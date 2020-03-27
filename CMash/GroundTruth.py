@@ -99,6 +99,7 @@ class TrueContainment:
 				for k_size in k_sizes:
 					for kmer in self.__kmers(seq, k_size):
 						if kmer:
+							# FIXME: would add the canonical k-mers here
 							k_size_to_kmers[k_size].add(kmer)  # add the kmer
 							k_size_to_kmers[k_size].add(khmer.reverse_complement(kmer))  # add the reverse complement
 			# otherwise, we need to do the same thing for each of the subsequences
@@ -108,9 +109,9 @@ class TrueContainment:
 						for k_size in k_sizes:
 							for kmer in self.__kmers(seq, k_size):
 								if kmer:
+									# FIXME: would add the canonical k-mers here
 									k_size_to_kmers[k_size].add(kmer)  # add the kmer
-									k_size_to_kmers[k_size].add(
-										khmer.reverse_complement(kmer))  # add the reverse complement
+									k_size_to_kmers[k_size].add(khmer.reverse_complement(kmer))  # add the reverse complement
 		return k_size_to_kmers
 
 	@staticmethod
