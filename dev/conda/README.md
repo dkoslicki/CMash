@@ -15,6 +15,8 @@ To properly be notified of such PR's and to be able to contribute to them, you w
 1. Join the [Bioconda gitter lobby](https://gitter.im/bioconda/Lobby) and ask nicely to become a member.
 2. Make sure that the yaml file lists you as a recipe maintainer.
 
+This will allow you to add the tag `please review & merge` to request a review __after__ all tests are passing as indicated by the BiocondaBot.
+
 # How to resolve a Bioconda PR issues.
 
 Eg: [This PR](https://github.com/bioconda/bioconda-recipes/pull/21112) failed. Let's see what the issue might be.
@@ -28,8 +30,9 @@ $ cd bioconda-recipes/recipes/cmash
 <edit the yaml file>
 $ git commit -a  # Make sure to add what changes you made and the PR issue number to the commit message
 $ git push
-
 ```
+
+Then wait for the BiocondaBot to run the continuous integration tests, and see what else might pop up.
 
 # How to test build locally to make sure that you don't run into a Bioconda PR issue.
 
