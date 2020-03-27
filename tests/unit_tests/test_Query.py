@@ -223,15 +223,32 @@ def test_Containment_create_data_frame():
 	C.import_TST()
 	C.create_BF_prefilter()
 	counters = Counters(tree=C.tree, k_range=k_range, all_kmers_bf=C.all_kmers_bf)
-	match_tuples = set()
 	# TODO: this is where you set where the "query file" is
+
+	# test with upper case
+	query_seq = seq3
+	match_tuples = set()
 	match_tuples.update(counters.process_seq(query_seq))
 	match_tuples = list(match_tuples)
 	containment = Containment(k_range=k_range, match_tuples=match_tuples, sketches=CEs, num_hashes=num_hashes)
 	containment.create_to_hit_matrices()
 	containment.create_containment_indicies()
 	containment.create_data_frame(training_file_names=training_file_names, location_of_thresh=0, coverage_threshold=0)
-	#print(containment.filtered_results)
+	df_upper = containment.filtered_results
+
+	# test with lower
+	query_seq = seq3.lower()
+	match_tuples = set()
+	match_tuples.update(counters.process_seq(query_seq))
+	match_tuples = list(match_tuples)
+	containment = Containment(k_range=k_range, match_tuples=match_tuples, sketches=CEs, num_hashes=num_hashes)
+	containment.create_to_hit_matrices()
+	containment.create_containment_indicies()
+	containment.create_data_frame(training_file_names=training_file_names, location_of_thresh=0, coverage_threshold=0)
+	df_lower = containment.filtered_results
+	assert np.sum(np.abs(df_upper-df_lower)).sum() < .0001
+
+
 	# FIXME: should iterate over all the "query files" and make sure the results are correct
 
 
