@@ -10,6 +10,7 @@ import re
 import screed
 from argparse import ArgumentTypeError
 import multiprocessing
+
 # The following is for ease of development (so I don't need to keep re-installing the tool)
 try:
 	from CMash import MinHash as MH
@@ -23,11 +24,11 @@ except ImportError:
 		from CMash import MinHash as MH
 		from CMash import Query
 
-
 # FIXME: Make sure I am *identifying* the rc k-mers with the k-mers and not counting them as distinct entities
 
 
 notACTG = re.compile('[^ACTG]')  # look for any not ACTG
+
 
 class TrueContainment:
 	"""
@@ -36,6 +37,7 @@ class TrueContainment:
 	1. Small training databases
 	2. Databases that were formed using genomes that you have direct access to (i.e. live on your file system)
 	"""
+
 	def __init__(self, training_database_file: str, k_sizes: str):
 		self.training_database_file = training_database_file
 		self.k_sizes = self.__parseNumList(k_sizes)
@@ -80,7 +82,7 @@ class TrueContainment:
 		for i in range(len(seq) - ksize + 1):
 			yield seq[i:i + ksize]
 
-	def __return_ksize_to_kmers(self, input_file):
+	def __return_ksize_to_kmers(self, input_file: str) -> dict:
 		k_sizes = self.k_sizes
 		k_size_to_kmers = dict()
 		# initialize all the k-mer sizes for the query file
@@ -107,7 +109,8 @@ class TrueContainment:
 							for kmer in self.__kmers(seq, k_size):
 								if kmer:
 									k_size_to_kmers[k_size].add(kmer)  # add the kmer
-									k_size_to_kmers[k_size].add(khmer.reverse_complement(kmer))  # add the reverse complement
+									k_size_to_kmers[k_size].add(
+										khmer.reverse_complement(kmer))  # add the reverse complement
 		return k_size_to_kmers
 
 	@staticmethod
@@ -119,24 +122,55 @@ class TrueContainment:
 		num_threads = multiprocessing.cpu_count()
 		pool = multiprocessing.Pool(processes=num_threads)
 		# res is returned in the same order as self.training_file_names according to the docs
-		res = pool.map(self.__return_ksize_to_kmers, self.training_file_names)
+		#res = pool.map(self.__return_ksize_to_kmers, self.training_file_names)
+		res = map(self.__return_ksize_to_kmers, self.training_file_names)
 		for (item, file_name) in zip(res, self.training_file_names):
 			training_file_to_ksize_to_kmers[file_name] = item
 		pool.close()
 		return training_file_to_ksize_to_kmers
 
-	def return_data_frame(self, query_file: str) -> pd.DataFrame:
-		pass
+	def __return_containment_indicies(self, query_file: str) -> np.ndarray:
+		training_file_names = self.training_file_names
+		k_sizes = self.k_sizes
+		training_file_to_ksize_to_kmers = self.training_file_to_ksize_to_kmers
+		num_files = len(training_file_names)
+		# rows are the files, columns are the k-mer sizes
+		containment_indicies = np.zeros((num_files, len(k_sizes)))
+		# if the query file is part of the training files, then nothing extra to do
+		if query_file in training_file_names:
+			for (j, k_size) in enumerate(k_sizes):
+				query_kmers = training_file_to_ksize_to_kmers[query_file][k_size]
+				for (i, file_name) in enumerate(training_file_names):
+					training_kmers = training_file_to_ksize_to_kmers[file_name][k_size]
+					# | train \cap query| / | train |
+					containment_indicies[i, j] = self.__return_containment_index(training_kmers, query_kmers)
+		else:
+			# need to compute the k-mers in the query file
+			query_file_to_ksize_to_kmers = self.__return_ksize_to_kmers(query_file)
+			for (j, k_size) in enumerate(k_sizes):
+				query_kmers = query_file_to_ksize_to_kmers[query_file][k_size]
+				for (i, file_name) in enumerate(training_file_names):
+					training_kmers = training_file_to_ksize_to_kmers[file_name][k_size]
+					# | train \cap query| / | train |
+					containment_indicies[i, j] = self.__return_containment_index(training_kmers, query_kmers)
+		return containment_indicies
 
-
-
-
-
+	def return_containment_data_frame(self, query_file: str, location_of_thresh: int, coverage_threshold: float) -> pd.DataFrame:
+		k_range = self.k_sizes
+		training_file_names = self.training_file_names
+		containment_indices = self.__return_containment_indicies(query_file)
+		df = Query.return_data_frame(training_file_names=training_file_names,
+		                             k_range=k_range,
+		                             location_of_thresh=location_of_thresh,
+		                             containment_indices=containment_indices,
+		                             coverage_threshold=coverage_threshold)
+		return df
 
 
 def main():
 	training_database_file = "/home/dkoslicki/Desktop/CMash/tests/script_tests/TrainingDatabase.h5"
 	query_file = "/home/dkoslicki/Desktop/CMash/tests/Organisms/taxid_1192839_4_genomic.fna.gz"
+
 
 if __name__ == "__main__":
 	main()
