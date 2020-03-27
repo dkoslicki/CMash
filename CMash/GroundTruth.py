@@ -82,7 +82,7 @@ class TrueContainment:
 		for i in range(len(seq) - ksize + 1):
 			yield seq[i:i + ksize]
 
-	def __return_ksize_to_kmers(self, input_file: str) -> dict:
+	def _return_ksize_to_kmers(self, input_file: str) -> dict:
 		k_sizes = self.k_sizes
 		k_size_to_kmers = dict()
 		# initialize all the k-mer sizes for the query file
@@ -122,8 +122,8 @@ class TrueContainment:
 		num_threads = multiprocessing.cpu_count()
 		pool = multiprocessing.Pool(processes=num_threads)
 		# res is returned in the same order as self.training_file_names according to the docs
-		#res = pool.map(self.__return_ksize_to_kmers, self.training_file_names)
-		res = map(self.__return_ksize_to_kmers, self.training_file_names)
+		res = pool.map(self._return_ksize_to_kmers, self.training_file_names)
+		#res = map(self.__return_ksize_to_kmers, self.training_file_names)
 		for (item, file_name) in zip(res, self.training_file_names):
 			training_file_to_ksize_to_kmers[file_name] = item
 		pool.close()
@@ -146,7 +146,7 @@ class TrueContainment:
 					containment_indicies[i, j] = self.__return_containment_index(training_kmers, query_kmers)
 		else:
 			# need to compute the k-mers in the query file
-			query_file_to_ksize_to_kmers = self.__return_ksize_to_kmers(query_file)
+			query_file_to_ksize_to_kmers = self._return_ksize_to_kmers(query_file)
 			for (j, k_size) in enumerate(k_sizes):
 				query_kmers = query_file_to_ksize_to_kmers[query_file][k_size]
 				for (i, file_name) in enumerate(training_file_names):
