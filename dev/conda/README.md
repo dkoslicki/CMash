@@ -75,10 +75,32 @@ This is the continuous integration checker that the Bioconda bot is using to che
 2. `cd` to where you made your changes. eg. `cd bioconda-recipes/recipes/cmash` 
  
 
-# Other things tried
+# As close as I've gotten it to working
+https://bioconda.github.io/recipes/bioconda-utils/README.html
 
+https://github.com/bioconda/bioconda-utils/blob/master/Dockerfile
+
+https://quay.io/repository/biocontainers/bioconda-utils?tab=tags
 ```
-docker pull quay.io/biocontainers/bioconda-utils:0.16.12--py_0
-sudo docker run -it quay.io/biocontainers/bioconda-utils:0.16.12--py_0 /bin/bash
-$ bioconda-utils
+# or 0.16.14--py_0
+# or sudo docker run -it bioconda/bioconda-utils-build-env:latest /bin/bash  # has yum
+sudo docker pull quay.io/biocontainers/bioconda-utils:0.16.14--py_0
+sudo docker run -it quay.io/biocontainers/bioconda-utils:0.16.14--py_0 /bin/bash
+#conda update -n base conda
+conda config --add channels defaults
+conda config --add channels bioconda
+conda config --add channels conda-forge
+conda install -y conda-build
+git clone https://github.com/bioconda/bioconda-recipes.git
+cd bioconda-recipes/recipes
+conda-build cmash  # just check if it builds
+git checkout -b local_test  # make a local branch to make changes to your meta.yaml file
+vi /bioconda-recipes/recipes/cmash/meta.yaml  # make your edits
+git config --global user.email "dmkoslicki@gmail.com"
+git config --global user.name "dkoslicki"
+git commit -a  # make all your changes to the local branch DO NOT PUSH
+cd /bioconda-recipes
+bioconda-utils build recipes config.yml --mulled-test --git-range master HEAD --force  # can't find the package manager on this docker image, so foregoe the --docker option that's actually being used.
+
+vi /bioconda-recipes/recipes/cmash/meta.yaml
 ```
