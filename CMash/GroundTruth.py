@@ -170,6 +170,11 @@ class TrueContainment:
 def main():
 	training_database_file = "/home/dkoslicki/Desktop/CMash/tests/script_tests/TrainingDatabase.h5"
 	query_file = "/home/dkoslicki/Desktop/CMash/tests/Organisms/taxid_1192839_4_genomic.fna.gz"
+	k_range = "4-5-1"  # small test
+	#k_range = "10-21-2"  # same as in tests/script_tests/run_small_tests.sh
+	g = TrueContainment(training_database_file, k_range)
+	print(g.return_containment_data_frame(query_file, -1, .1))  # defaults
+
 
 
 if __name__ == "__main__":
