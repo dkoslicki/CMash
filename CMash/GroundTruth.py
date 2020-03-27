@@ -9,6 +9,7 @@ from scipy.sparse import csc_matrix
 import re
 import screed
 from argparse import ArgumentTypeError
+import multiprocessing
 # The following is for ease of development (so I don't need to keep re-installing the tool)
 try:
 	from CMash import MinHash as MH
@@ -35,17 +36,22 @@ class TrueContainment:
 	1. Small training databases
 	2. Databases that were formed using genomes that you have direct access to (i.e. live on your file system)
 	"""
-	def __init__(self, training_database_file: str, query_file: str, k_sizes: str):
+	def __init__(self, training_database_file: str, k_sizes: str):
 		self.training_database_file = training_database_file
-		self.query_file = query_file
-		self.CEs = []
-		self.k_sizes = self.parseNumList(k_sizes)
-		self.query_kmers = dict()
+		self.k_sizes = self.__parseNumList(k_sizes)
+		self.CEs = self.__import_database()
+		self.training_file_names = self.__return_file_names()
+		self.training_file_to_ksize_to_kmers = self.__compute_all_training_kmers()
 
-	def import_database(self):
-		self.CEs = MH.import_multiple_from_single_hdf5(self.training_database_file)
+	def __import_database(self) -> list:
+		CEs = MH.import_multiple_from_single_hdf5(self.training_database_file)
+		return CEs
 
-	def parseNumList(self, k_sizes_str: str) -> list:
+	def __return_file_names(self):
+		training_file_names = list(map(lambda x: x.input_file_name.decode('utf-8'), self.CEs))
+		return training_file_names
+
+	def __parseNumList(self, k_sizes_str: str) -> list:
 		"""
 		Parses a string like 10-21-1 and turn it into a list like [10, 11, 12,...,21]
 		:param k_sizes_str: the <start>-<end>-<increment> string
@@ -67,14 +73,14 @@ class TrueContainment:
 		return list(range(start, end + 1, increment))
 
 	@staticmethod
-	def kmers(seq, ksize):
+	def __kmers(seq, ksize):
 		"""yield all k-mers of len ksize from seq.
 		Returns an iterable object
 		"""
 		for i in range(len(seq) - ksize + 1):
 			yield seq[i:i + ksize]
 
-	def return_kmers(self, input_file):
+	def __return_ksize_to_kmers(self, input_file):
 		k_sizes = self.k_sizes
 		k_size_to_kmers = dict()
 		# initialize all the k-mer sizes for the query file
@@ -89,7 +95,7 @@ class TrueContainment:
 			# if there are no non-ACTG's we get only a single one
 			if len(seq_split_onlyACTG) == 1:
 				for k_size in k_sizes:
-					for kmer in self.kmers(seq, k_size):
+					for kmer in self.__kmers(seq, k_size):
 						if kmer:
 							k_size_to_kmers[k_size].add(kmer)  # add the kmer
 							k_size_to_kmers[k_size].add(khmer.reverse_complement(kmer))  # add the reverse complement
@@ -98,11 +104,31 @@ class TrueContainment:
 				for sub_seq in seq_split_onlyACTG:
 					if sub_seq:
 						for k_size in k_sizes:
-							for kmer in self.kmers(seq, k_size):
+							for kmer in self.__kmers(seq, k_size):
 								if kmer:
 									k_size_to_kmers[k_size].add(kmer)  # add the kmer
 									k_size_to_kmers[k_size].add(khmer.reverse_complement(kmer))  # add the reverse complement
 		return k_size_to_kmers
+
+	@staticmethod
+	def __return_containment_index(set1: set, set2: set):
+		return len(set1.intersection(set2)) / float(len(set1))
+
+	def __compute_all_training_kmers(self):
+		training_file_to_ksize_to_kmers = dict()
+		num_threads = multiprocessing.cpu_count()
+		pool = multiprocessing.Pool(processes=num_threads)
+		# res is returned in the same order as self.training_file_names according to the docs
+		res = pool.map(self.__return_ksize_to_kmers, self.training_file_names)
+		for (item, file_name) in zip(res, self.training_file_names):
+			training_file_to_ksize_to_kmers[file_name] = item
+		pool.close()
+		return training_file_to_ksize_to_kmers
+
+	def return_data_frame(self, query_file: str) -> pd.DataFrame:
+		pass
+
+
 
 
 
