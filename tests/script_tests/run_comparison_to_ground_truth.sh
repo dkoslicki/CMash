@@ -52,8 +52,8 @@ rm ${outName} 2> /dev/null
 # make a streaming pre-filter
 /usr/bin/time python ${scriptsDir}/StreamingQueryDNADatabase.py ${testOrganism} TrainingDatabase.h5 ${outName} $kSizes --sensitive -l $locationOfThresh -c $containmentThresh
 if test -f ${outName}; then
-  echo "sensitive classify successful"
-  cat ${outName}
+  echo "Estimate successful:"
+  #cat ${outName}
 else
   echo "SOMETHING WENT WRONG!!!!"
   exit 1
@@ -65,9 +65,37 @@ rm ${outName} 2> /dev/null
 # make a streaming pre-filter
 /usr/bin/time python ${modulesDir}/GroundTruth.py ${testOrganism} TrainingDatabase.h5 ${outName} $kSizes -l $locationOfThresh -c $containmentThresh
 if test -f ${outName}; then
-  echo "sensitive classify successful"
-  cat ${outName}
+  echo "Ground truth successful:"
+  #cat ${outName}
 else
   echo "SOMETHING WENT WRONG!!!!"
   exit 1
 fi
+
+# then compare the results
+python -c "import pandas as pd
+import numpy as np
+df = pd.read_csv('true_results.csv', index_col=0)
+df.sort_index(inplace=True)
+df2 = pd.read_csv('est_results.csv', index_col=0)
+df2.sort_index(inplace=True)
+diff = np.abs(df - df2)
+diff.sort_index(inplace=True)
+print('True:');
+print(df)
+print('')
+print('CMash:');
+print(df2)
+print('')
+print('|true-CMash|:');
+print(diff)
+print('')
+print('Total error per k-mer size:')
+print(diff.sum())
+print('')
+print('Median error per k-mer size:')
+print(diff.median())
+print('')
+print('Mean error per k-mer size:')
+print(diff.mean())
+"
