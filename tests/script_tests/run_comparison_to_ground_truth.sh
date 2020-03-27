@@ -20,10 +20,10 @@ else
 fi
 
 testOrganism="../Organisms/taxid_1192839_4_genomic.fna.gz"
-maxK=5
-kSizes="4-${maxK}-1"
-numHashes=10
-containmentThresh=.01
+maxK=22
+kSizes="10-${maxK}-2"
+numHashes=2000
+containmentThresh=0
 locationOfThresh=-1
 
 scriptsDir="${parentDir}/scripts"
