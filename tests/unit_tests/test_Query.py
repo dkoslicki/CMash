@@ -222,11 +222,11 @@ def test_Containment_create_data_frame():
 	C = Create(training_database_file=temp_database_file, bloom_filter_file="", TST_file=temp_TST_file, k_range=k_range)
 	C.import_TST()
 	C.create_BF_prefilter()
-	counters = Counters(tree=C.tree, k_range=k_range, all_kmers_bf=C.all_kmers_bf)
 	# TODO: this is where you set where the "query file" is
 
 	# test with upper case
 	query_seq = seq3
+	counters = Counters(tree=C.tree, k_range=k_range, all_kmers_bf=C.all_kmers_bf)
 	match_tuples = set()
 	match_tuples.update(counters.process_seq(query_seq))
 	match_tuples = list(match_tuples)
@@ -238,6 +238,7 @@ def test_Containment_create_data_frame():
 
 	# test with lower
 	query_seq = seq3.lower()
+	counters = Counters(tree=C.tree, k_range=k_range, all_kmers_bf=C.all_kmers_bf)  # FIXME: note that if you instantiate this once, and then use it again, the properties persist so may lead to odd behavior. ALWAYS re-instantiate
 	match_tuples = set()
 	match_tuples.update(counters.process_seq(query_seq))
 	match_tuples = list(match_tuples)
