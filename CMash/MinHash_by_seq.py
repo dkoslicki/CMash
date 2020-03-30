@@ -152,8 +152,9 @@ class CountEstimator(object):
             return
 
         i = bisect.bisect_left(_mins, h)  # find index to insert h
-        if _mins[i] == h and _kmers[i] == kmer:  # if h in mins and the kmer in kmers, increment counts
-            _counts[i] += 1
+        if _mins[i] == h:
+            if _kmers[i] == kmer:  # if h in mins and the kmer sequence in kmers, increment counts
+                _counts[i] += 1
             return
         else:  # otherwise insert h, initialize counts to 1, and insert kmer if necessary
             _mins.insert(i, h)
