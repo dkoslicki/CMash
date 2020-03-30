@@ -77,7 +77,7 @@ def k_mer_global_histogram_KMC(k, genome, runKMC=False):
     KMC_outname = genome.split('/')[-1] + '.ksize' + str(k) + '.res'
     outpath = os.path.dirname(os.path.realpath(__file__)) + '/kmc_global_count/'
     # if the value not stored, compute it, else load it
-    if not os.path.isfile(outpath + KMC_outname + '.global.pickle'):
+    if not os.path.isfile(outpath + KMC_outname + '.global.pickle') or runKMC:
         # check if KMC database exists
         if runKMC or not os.path.isfile(outpath + KMC_outname + '.kmc_pre'):
             # -ci2 - exclude k-mers occurring less than 2 times
@@ -189,6 +189,25 @@ def L1_metric (histo1, histo2, occur_at_least=1, to_normalize=True):
         _padding = np.zeros(len(histo2) - len(histo1))
         histo1 = np.concatenate((histo1, _padding))
     return distance.cityblock(histo1, histo2)
+
+
+def diff_percentage(histo1, histo2, occur_at_least=1, to_normalize=True):
+    # histo1, histo2 are normalized distributions
+    # make two distribution have the same dim
+    histo1[:occur_at_least] = np.zeros(occur_at_least)
+    histo2[:occur_at_least] = np.zeros(occur_at_least)
+    if to_normalize:
+        histo1 = histo1 / sum(histo1)
+        histo2 = histo2 / sum(histo2)
+    if len(histo1) > len(histo2):
+        _padding = np.zeros(len(histo1) - len(histo2))
+        histo2 = np.concatenate((histo2, _padding))
+    elif len(histo1) < len(histo2):
+        _padding = np.zeros(len(histo2) - len(histo1))
+        histo1 = np.concatenate((histo1, _padding))
+
+    diff_percent = np.absolute(histo1 - histo2) / histo1
+    return diff_percent
 
 
 if __name__ == "__main__":
