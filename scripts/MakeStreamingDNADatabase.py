@@ -68,7 +68,7 @@ def main():
 		line = line.strip()
 		if not os.path.exists(line):
 			raise Exception("Training genome %s does not exist." % line)
-		file_names.append(line)
+		file_names.append(os.path.abspath(line))
 	fid.close()
 	file_names = sorted(file_names, key=os.path.basename)  # sort based off of base name
 
@@ -87,10 +87,19 @@ def main():
 	if verbose:
 		print("Creating ternary search tree")
 	to_insert = set()
+	# add both the original k-mer and the reverse complement, as the MinHashes were created without reverse complement
 	for i in range(len(genome_sketches)):
 		for kmer_index in range(len(genome_sketches[i]._kmers)):
+			# normal kmer
 			kmer = genome_sketches[i]._kmers[kmer_index]
-			to_insert.add(kmer + 'x' + str(i) + 'x' + str(kmer_index))  # format here is kmer+x+hash_index+kmer_index
+			# only insert the kmer if it's actually non-empty
+			if kmer:
+				to_insert.add(kmer + 'x' + str(i) + 'x' + str(kmer_index))  # format here is kmer+x+hash_index+kmer_index
+				# rev-comp kmer
+				kmer = khmer.reverse_complement(genome_sketches[i]._kmers[kmer_index])
+				to_insert.add(kmer + 'x' + str(i) + 'x' + str(kmer_index))  # format here is kmer+x+hash_index+kmer_index
+
+	# export the TST
 	tree = mt.Trie(to_insert)
 	if verbose:
 		print("Saving Ternary search tree")
