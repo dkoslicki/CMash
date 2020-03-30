@@ -33,29 +33,29 @@ def k_mer_sketch_histogram(n, k, genome, rev_comp=False):
     KMC_outname = genome.split('/')[-1] + '.ksize' + str(k) + '.res'
     outpath = os.path.dirname(os.path.realpath(__file__)) + '/kmc_global_count/'
     # if the value not stored, compute it, else load it
-    if not os.path.isfile(outpath + KMC_outname + '.sketch' + str(n) + '.pickle'):
+    if not os.path.isfile(outpath + KMC_outname + '.sketch' + str(n) + '.byseq.pickle'):
         # if MinHash Estimator with larger sketch size doesn't exists, compute it with current sketch size
         MHS_filenames = os.listdir(outpath + 'MH_counts/')
         if MHS_filenames:
             try:
                 # get min sketch sizes of existing MinHash Estimator which is greater than n
-                sketch_size_existing = [int(_.split('.sketch')[-1].split('.MHScounts.pickle')[0]) for _ in MHS_filenames
-                                        if (_.endswith('.MHScounts.pickle') and '.ksize' + str(k) + '.' in _
+                sketch_size_existing = [int(_.split('.sketch')[-1].split('.MHScounts.byseq.pickle')[0]) for _ in MHS_filenames
+                                        if (_.endswith('.MHScounts.byseq.pickle') and '.ksize' + str(k) + '.' in _
                                             and KMC_outname in _)]
                 sketch_size_existing_greater_than_n = min([_ for _ in sketch_size_existing if _ >= n])
-                MHS_count_name = outpath + 'MH_counts/' + KMC_outname + '.sketch' + str(sketch_size_existing_greater_than_n) + '.MHScounts.pickle'
+                MHS_count_name = outpath + 'MH_counts/' + KMC_outname + '.sketch' + str(sketch_size_existing_greater_than_n) + '.MHScounts.byseq.pickle'
                 with open(MHS_count_name, 'rb') as MHS_sketch_count_file:
                     MHS_count = pickle.load(MHS_sketch_count_file)
                     counts = MHS_count[:n]
             # sketch_size_existing_greater_than_n is empty
             except (ValueError, FileNotFoundError):
-                MHS = MH.CountEstimator(n=n, ksize=k, save_kmers='n', input_file_name=genome, rev_comp=rev_comp)
+                MHS = MH.CountEstimator(n=n, ksize=k, save_kmers='y', input_file_name=genome, rev_comp=rev_comp)
                 counts = MHS._counts
         else:
-            MHS = MH.CountEstimator(n=n, ksize=k, save_kmers='n', input_file_name=genome, rev_comp=rev_comp)
+            MHS = MH.CountEstimator(n=n, ksize=k, save_kmers='y', input_file_name=genome, rev_comp=rev_comp)
             counts = MHS._counts
         # check if MHS counts with k & n is saved nor not
-        MHS_count_name = outpath + 'MH_counts/' + KMC_outname + '.sketch' + str(n) + '.MHScounts.pickle'
+        MHS_count_name = outpath + 'MH_counts/' + KMC_outname + '.sketch' + str(n) + '.MHScounts.byseq.pickle'
         if not os.path.isfile(MHS_count_name):
             with open(MHS_count_name, 'wb') as MHS_sketch_count_file:
                 pickle.dump(counts, MHS_sketch_count_file)
@@ -64,10 +64,10 @@ def k_mer_sketch_histogram(n, k, genome, rev_comp=False):
         for _c in counts:
             dist[_c - 1] = dist[_c - 1] + 1
         dist_norm = dist / np.sum(dist)
-        with open(outpath + KMC_outname + '.sketch' + str(n) + '.pickle', 'wb') as config_sketch_file:
+        with open(outpath + KMC_outname + '.sketch' + str(n) + '.byseq.pickle', 'wb') as config_sketch_file:
             pickle.dump([dist, dist_norm], config_sketch_file)
     else:
-        with open(outpath + KMC_outname + '.sketch' + str(n) + '.pickle', 'rb') as config_sketch_file:
+        with open(outpath + KMC_outname + '.sketch' + str(n) + '.byseq.pickle', 'rb') as config_sketch_file:
             dist, dist_norm = pickle.load(config_sketch_file)
     return dist, dist_norm  # np.array(list(dist))
 
@@ -211,8 +211,11 @@ def diff_percentage(histo1, histo2, occur_at_least=1, to_normalize=True):
 
 
 if __name__ == "__main__":
-    # n = number of hash functions
-    n_list = [10]
-    # k = k-mer size
-    k_list = [1]
-    exit('Use k_mer_dist_test_run.py to run this script.')
+    g1 = '/gpfs/scratch/xbz5174/short_term_work_Feb/data_real/data.12lines.fastq'
+    print(g1)
+    for k in [60]:
+        for g in [g1]:
+            for n in [1e4]:  # [1e3, 1e4, 5e4, 1e5, 5e5, 1e6]:
+                if g == g1:
+                    dist_sk, _ = k_mer_sketch_histogram(n, k, g, rev_comp=False)
+                    print(dist_sk)
