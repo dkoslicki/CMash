@@ -30,7 +30,7 @@ def return_data_frame(training_file_names: list, k_range: list, location_of_thre
 	:type location_of_thresh: int
 	:param containment_indices: the containment indicies matrix you wish to convert to a pandas data frame
 	:type containment_indices: numpy.ndarray
-	:param coverage_threshold: filter out those results that have containment indicies below this threshold
+	:param coverage_threshold: filter out those results that have containment indicies strictly below this threshold
 	:type coverage_threshold: float
 	"""
 	results = dict()
@@ -382,6 +382,9 @@ class Counters:
 		#  start with small kmer size, if see match, then continue looking for longer k-mer sizes, otherwise move on
 		small_k_size = k_range[0]  # start with the small k-size
 		to_return = []
+		seq = seq.upper()
+		# TODO: could, for efficiency, also remove non-ACTG, but those won't match anyways since they aren't in the TST
+		#  might not actually be more efficient to search for non-ACTG too
 		for i in range(len(seq) - small_k_size + 1):  # look at all k-mers
 			kmer = seq[i:i + small_k_size]
 			possible_match = False
