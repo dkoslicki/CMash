@@ -224,9 +224,9 @@ class Intersect:
 
 		# count the training k-mers
 		if self.verbose:
-			res = subprocess.run(f"{self.kmc} -v -k{self.ksize} -fa -ci1 -t{self.threads} {self.cmashDump} {out_path} .", shell=True)
+			res = subprocess.run(f"{self.kmc} -v -k{self.ksize} -fa -ci0 -cs3 -t{self.threads} {self.cmashDump} {out_path} .", shell=True)
 		else:
-			res = subprocess.run(f"{self.kmc} -v -k{self.ksize} -fa -ci1 -t{self.threads} {self.cmashDump} {out_path} .", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+			res = subprocess.run(f"{self.kmc} -v -k{self.ksize} -fa -ci0 -cs3 -t{self.threads} {self.cmashDump} {out_path} .", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 		if res.returncode != 0:
 			raise Exception(f"The command {res.args} failed to run and returned the returncode={res.returncode}")
 
@@ -250,9 +250,9 @@ class Intersect:
 		#count kmers in the input sample (not the training db)
 		# TODO: will need to try with/without -fm if type_arg == '-fa'
 		if self.verbose:
-			res = subprocess.run(f"{self.kmc} -v -k{self.ksize} {type_arg} -ci1 -t{self.threads} -fm {self.reads_path} {out_path} {self.temp_dir}", shell=True)
+			res = subprocess.run(f"{self.kmc} -v -k{self.ksize} {type_arg} -ci0 -cs3 -t{self.threads} -fm {self.reads_path} {out_path} {self.temp_dir}", shell=True)
 		else:
-			res = subprocess.run(f"{self.kmc} -v -k{self.ksize} {type_arg} -ci1 -t{self.threads} -fm {self.reads_path} {out_path} {self.temp_dir}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+			res = subprocess.run(f"{self.kmc} -v -k{self.ksize} {type_arg} -ci0 -cs3 -t{self.threads} -fm {self.reads_path} {out_path} {self.temp_dir}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 		if res.returncode != 0:
 			raise Exception(f"The command {res.args} failed to run and returned the returncode={res.returncode}")
 
@@ -275,9 +275,9 @@ class Intersect:
 
 		# intersect kmers
 		if self.verbose:
-			res = subprocess.run(f"{self.kmc_tools} simple {db_kmers_loc} {in_path} intersect {out_path}", shell=True)
+			res = subprocess.run(f"{self.kmc_tools} simple {db_kmers_loc} {in_path} -ci0 intersect {out_path} -ci0 ", shell=True)
 		else:
-			res = subprocess.run(f"{self.kmc_tools} simple {db_kmers_loc} {in_path} intersect {out_path}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+			res = subprocess.run(f"{self.kmc_tools} simple {db_kmers_loc} {in_path} -ci0 intersect {out_path} -ci0 ", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 		if res.returncode != 0:
 			raise Exception(f"The command {res.args} failed to run and returned the returncode={res.returncode}")
 
@@ -286,9 +286,9 @@ class Intersect:
 		if self.verbose:
 			print("dumping intersection to FASTA file")
 		if self.verbose:
-			res = subprocess.run(f"{self.kmc_dump} {out_path} {dump_path}", shell=True)
+			res = subprocess.run(f"{self.kmc_dump} -ci0 {out_path} {dump_path}", shell=True)
 		else:
-			res = subprocess.run(f"{self.kmc_dump} {out_path} {dump_path}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+			res = subprocess.run(f"{self.kmc_dump} -ci0 {out_path} {dump_path}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 		if res.returncode != 0:
 			raise Exception(f"The command {res.args} failed to run and returned the returncode={res.returncode}")
 

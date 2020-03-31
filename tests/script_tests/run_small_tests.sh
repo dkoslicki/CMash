@@ -41,7 +41,7 @@ fi
 echo "Classifying sample, sensitive settings"
 rm results.csv 2> /dev/null
 # make a streaming pre-filter
-/usr/bin/time python ${scriptsDir}/StreamingQueryDNADatabase.py ${testOrganism} TrainingDatabase.h5 results.csv 10-21-2 --sensitive
+/usr/bin/time python ${scriptsDir}/StreamingQueryDNADatabase.py ${testOrganism} TrainingDatabase.h5 results.csv 10-21-1 --sensitive
 if test -f results.csv; then
   echo "sensitive classify successful"
   cat results.csv
@@ -50,7 +50,7 @@ else
   exit 1
 fi
 
-
+: << 'END1'
 echo "Classifying sample, specific settings"
 rm results.csv 2> /dev/null
 # make a streaming pre-filter
@@ -62,13 +62,14 @@ else
   echo "SOMETHING WENT WRONG!!!!"
   exit 1
 fi
+END1
 
 # intersection tests
 
 echo "Classifying sample, sensitive settings, with KMC intersect"
 rm results.csv 2> /dev/null
 # make a streaming pre-filter
-/usr/bin/time python ${scriptsDir}/StreamingQueryDNADatabase.py ${testOrganism} TrainingDatabase.h5 results.csv 10-21-2 --sensitive --intersect
+/usr/bin/time python ${scriptsDir}/StreamingQueryDNADatabase.py ${testOrganism} TrainingDatabase.h5 results.csv 10-21-1 --sensitive --intersect
 if test -f results.csv; then
   echo "sensitive classify successful"
   cat results.csv
@@ -77,7 +78,7 @@ else
   exit 1
 fi
 
-
+: << 'END'
 echo "Classifying sample, specific settings, with KMC intersect"
 rm results.csv 2> /dev/null
 # make a streaming pre-filter
@@ -89,3 +90,4 @@ else
   echo "SOMETHING WENT WRONG!!!!"
   exit 1
 fi
+END

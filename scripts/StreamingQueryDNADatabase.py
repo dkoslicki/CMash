@@ -190,7 +190,7 @@ if __name__ == '__main__':
 	if args.intersect:
 		intersecter = Intersect(query_file, training_database_file)
 		intersecter.compute_intersection()
-		print("intersection located at: {}".format(intersecter.out_file))
+		#print("intersection located at: {}".format(intersecter.out_file))
 		# change query file to the intersection file
 		query_file = intersecter.out_file
 	# Open the file to prepare for processing
