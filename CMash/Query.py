@@ -240,8 +240,9 @@ class Intersect:
 			raise Exception("Only allowable input_types are 'fasta' and 'fastq'.")
 
 		out_path = self.reads_kmc_out_file
-		#count kmers in the input sample (not the training db)
 
+		#count kmers in the input sample (not the training db)
+		# TODO: will need to try with/without -fm if type_arg == '-fa'
 		if self.verbose:
 			res = subprocess.run(f"{self.kmc} -v -k{self.ksize} {type_arg} -ci1 -t{self.threads} -fm {self.reads_path} {out_path} {self.temp_dir}", shell=True)
 		else:
@@ -249,9 +250,6 @@ class Intersect:
 		if res.returncode != 0:
 			raise Exception(f"The command {res.args} failed to run and returned the returncode={res.returncode}")
 
-		#subprocess.Popen([self.kmc, '-v', '-k'+str(self.ksize),type_arg, '-ci1',
-		#		'-t' + str(self.threads), '-fm', '-jlog_sample', self.reads_path,
-		#		out_path, self.temp_dir]).wait()
 
 	def intersect(self):
 		"""
