@@ -16,6 +16,7 @@ from itertools import islice
 try:
 	from CMash import MinHash as MH
 	from Query import Create
+	from Query import Intersect
 	from Query import Counters
 	from Query import Containment
 	from Query import PostProcess
@@ -23,6 +24,7 @@ except ImportError:
 	try:
 		import MinHash as MH
 		import Create
+		import Intersect
 		import Counters
 		import Containment
 		import PostProcess
@@ -31,6 +33,7 @@ except ImportError:
 			sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 			from CMash import MinHash as MH
 			from CMash.Query import Create  # fix relative imports
+			from CMash.Query import Intersect
 			from CMash.Query import Counters
 			from CMash.Query import Containment
 			from CMash.Query import PostProcess
@@ -71,6 +74,7 @@ if __name__ == '__main__':
 	parser.add_argument('-f', '--filter_file',
 						help="Location of pre-filter bloom filter. Use only if you absolutely know what you're doing "
 							 "(hard to error check bloom filters).")
+	parser.add_argument('--intersect', action='store_true', help="intersect input & training k-mers before TST streaming")
 	parser.add_argument('-l', '--location_of_thresh', type=int,
 						help="Location in range to apply the threshold passed by the -c flag. -l 2 -c 5-50-10 means the"
 							 " threshold will be applied at k-size 25. Default is largest size.", default=-1)
@@ -179,6 +183,16 @@ if __name__ == '__main__':
 	if verbose:
 		print("Start streaming")
 		t0 = timeit.default_timer()
+
+	#if intersect option is used
+	#compute intersection of training & input
+	#feed intersection into read parser
+	if args.intersect:
+		intersecter = Intersect(query_file, training_database_file)
+		intersecter.compute_intersection()
+		print ("intersection located at: {}".format(intersecter.out_file))
+		#change query file to the intersection file
+		query_file = intersecter.out_file
 	# Open the file to prepare for processing
 	fid = khmer.ReadParser(query_file)  # This is faster than screed
 	match_tuples = []
@@ -294,4 +308,3 @@ if __name__ == '__main__':
 		if verbose:
 			t1 = timeit.default_timer()
 			print("Finished thresholding. Time: %f" % (t1 - t0))
-
