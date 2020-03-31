@@ -111,138 +111,143 @@ class Create:
 
 
 class Intersect:
-    """
-    This class computes the intersection of the kmers in the input sample
-    and the kmers in the training sample prior to testing each training sample
-    for membership in the input sample. This eliminates the need to pre-screen kmers
-    for presence in the TST via the prefilter since every kmer in the input must be
-    in both the input and the training samples.
-    """
-    def __init__(self, reads_path, training_path, input_type='fasta', threads=8, temp_dir="."):
-        self.reads_path = reads_path
-        self.input_type = input_type
-        #self.training_path = training_path
-        #returns "" (is not None) if the path ends in "/" or "\"
-        self.training_path = training_path 
-        self.kmc_dir = os.path.dirname \
-                (os.path.dirname(os.path.abspath(__file__))) + "/KMC/bin/"
-        self.kmc = self.kmc_dir + "kmc"
-        self.kmc_tools = self.kmc_dir + "kmc_tools"
-        self.kmc_dump = self.kmc_dir + "kmc_dump"
-        self.threads = threads
-        self.temp_dir = temp_dir
-#cmashBaseName="cmash_db_n1000_k60"
-        self.cmashBaseName=os.path.splitext(os.path.split(self.training_path)[-1])[0]
-        if self.cmashBaseName == "" or self.cmashBaseName == None:
-            raise Exception("Invalid training database file name/path")
-        self.cmashDatabase=self.cmashBaseName + ".h5"
-        self.cmashDump=self.cmashBaseName + "_dump.fa"
-        self.db_kmers_loc = self.cmashBaseName + '_dump'
-        self.ksize = self.get_kmer_size()
+	"""
+	This class computes the intersection of the kmers in the input sample
+	and the kmers in the training sample prior to testing each training sample
+	for membership in the input sample. This eliminates the need to pre-screen kmers
+	for presence in the TST via the prefilter since every kmer in the input must be
+	in both the input and the training samples.
+	"""
+	def __init__(self, reads_path, training_path, input_type='fasta', threads=8, temp_dir="."):
+		self.reads_path = os.path.abspath(reads_path)
+		self.input_type = input_type
+		#self.training_path = training_path
+		#returns "" (is not None) if the path ends in "/" or "\"
+		self.training_path = training_path
+		print (os.path.abspath(training_path))
+		self.kmc_dir = os.path.dirname \
+				(os.path.dirname(os.path.abspath(__file__))) + "/KMC/bin/"
+		self.kmc = self.kmc_dir + "kmc"
+		self.kmc_tools = self.kmc_dir + "kmc_tools"
+		self.kmc_dump = self.kmc_dir + "kmc_dump"
+		self.threads = threads
+		self.temp_dir = temp_dir
+		#cmashBaseName="cmash_db_n1000_k60"
+		self.cmashBaseName=os.path.splitext(os.path.split(self.training_path)[-1])[0]
+		if self.cmashBaseName == "" or self.cmashBaseName == None:
+			raise Exception("Invalid training database file name/path")
+		self.cmashDatabase=self.cmashBaseName + ".h5"
+		self.cmashDump=self.cmashBaseName + "_dump.fa"
+		self.db_kmers_loc = self.cmashBaseName + '_dump'
+		self.ksize = self.get_kmer_size()
 
-    """Reads the training database (in HDF5 format)
-       and returns the uniform size of the k-mers.
-       The ksize attribute is stored in the first
-       subgroup of the CountEstimators group.
-    """
-    def get_kmer_size(self):
-        db = File(self.cmashDatabase,"r")
-        ce = db["CountEstimators"]
-        for it in ce.values():
-            ksize = it.attrs["ksize"]
-            break
-        return ksize
+	"""Reads the training database (in HDF5 format)
+	   and returns the uniform size of the k-mers.
+	   The ksize attribute is stored in the first
+	   subgroup of the CountEstimators group.
+	"""
+	def get_kmer_size(self):
+		db = File(self.cmashDatabase,"r")
+		ce = db["CountEstimators"]
+		for it in ce.values():
+			ksize = it.attrs["ksize"]
+			break
+		return ksize
 
-    """
-    This code is based on dump_kmers.py in the Metalign repository.
-    Dumps the kmers from the input's CountEstimator to a fasta file.
-    """
-    def dump_training_kmers(self):
-        print("dumping training k-mers")
+	"""
+	This code is based on dump_kmers.py in the Metalign repository.
+	Dumps the kmers from the input's CountEstimator to a fasta file.
+	"""
+	def dump_training_kmers(self):
+		print("dumping training k-mers")
 
-        with open("/dev/null", 'w') as f:
-            subprocess.Popen(['rm', self.cmashDump], stderr=f).wait() 
+		with open("/dev/null", 'w') as f:
+			subprocess.Popen(['rm', self.cmashDump], stderr=f).wait()
 
-        training_database = self.cmashDatabase  # first input is the training file name
-        dump_file = self.cmashDump  # second input is the desired output dump file
-        CEs = MH.import_multiple_from_single_hdf5(training_database)
-        with open(dump_file, 'w') as fid:
-            i = 0
-            for CE in CEs:
-                for kmer in CE._kmers:
-                    fid.write('>seq%d\n' % i)
-                    fid.write('%s\n' % kmer)
-                    i += 1
+		training_database = self.cmashDatabase  # first input is the training file name
+		dump_file = self.cmashDump  # second input is the desired output dump file
+		CEs = MH.import_multiple_from_single_hdf5(training_database)
+		with open(dump_file, 'w') as fid:
+			i = 0
+			for CE in CEs:
+				for kmer in CE._kmers:
+					fid.write('>seq%d\n' % i)
+					fid.write('%s\n' % kmer)
+					i += 1
 
-    """
-    Opens a KMC process to count the dumped training kmers.
-    -ci1 excludes all kmers which appear less than one time (excludes no kmers).
-    """
-    def count_training_kmers(self):
-        print ("counting training k-mers")
-        out_path = os.path.join(self.temp_dir, self.cmashBaseName + '_dump')
-        with open("/dev/null", 'w') as f:
-            subprocess.Popen(['rm', self.cmashBaseName+".kmc_pre"], stderr=f).wait() 
-            subprocess.Popen(['rm', self.cmashBaseName+".kmc_suf"], stderr=f).wait() 
+	"""
+	Opens a KMC process to count the dumped training kmers.
+	-ci1 excludes all kmers which appear less than one time (excludes no kmers).
+	"""
+	def count_training_kmers(self):
+		print ("counting training k-mers")
+		out_path = os.path.join(self.temp_dir, self.cmashBaseName + '_dump')
+		with open("/dev/null", 'w') as f:
+			subprocess.Popen(['rm', self.cmashBaseName+".kmc_pre"], stderr=f).wait()
+			subprocess.Popen(['rm', self.cmashBaseName+".kmc_suf"], stderr=f).wait()
 
-        subprocess.Popen([self.kmc, '-v', '-k'+str(self.ksize), '-fa', '-ci1', \
-                '-t'+str(self.threads), '-jlogsample', self.cmashDump,\
-                out_path, '.']).wait()
-    """
-    Opens a KMC process to count the dumped kmers from the input sample.
-    -ci1 excludes all kmers which appear less than one time (excludes no kmers).
-    """
-    def count_input_kmers(self):
-        print("counting input k-mers")
-        #db_kmers_loc = args.data + 'cmash_db_n1000_k60_dump'
-        print (self.input_type)
-        if self.input_type == 'fastq':
-                type_arg = '-fq'
-        else:
-                type_arg = '-fa'
+		subprocess.Popen([self.kmc, '-v', '-k'+str(self.ksize), '-fa', '-ci1', \
+				'-t'+str(self.threads), '-jlogsample', self.cmashDump,\
+				out_path, '.']).wait()
+	"""
+	Opens a KMC process to count the dumped kmers from the input sample.
+	-ci1 excludes all kmers which appear less than one time (excludes no kmers).
+	"""
+	def count_input_kmers(self):
+		print("counting input k-mers")
+		#db_kmers_loc = args.data + 'cmash_db_n1000_k60_dump'
+		print (self.input_type)
+		if self.input_type == 'fastq':
+				type_arg = '-fq'
+		else:
+				type_arg = '-fa'
 
-        out_path = os.path.join(self.temp_dir,
-                'reads_' + str(self.ksize) + 'mers_dump')
-        #count kmers in the input sample (not the training db)
-        subprocess.Popen([self.kmc, '-v', '-k'+str(self.ksize),type_arg, '-ci1',
-                '-t' + str(self.threads), '-jlog_sample', self.reads_path,
-                out_path, self.temp_dir]).wait()
+		out_path = os.path.join(self.temp_dir,
+				'reads_' + str(self.ksize) + 'mers_dump')
+		#count kmers in the input sample (not the training db)
+		subprocess.Popen([self.kmc, '-v', '-k'+str(self.ksize),type_arg, '-ci1',
+				'-t' + str(self.threads), '-fm', '-jlog_sample', self.reads_path,
+				out_path, self.temp_dir]).wait()
 
-    """
-    This source is from the Metalign repository.
-    Opens a new KMC process to intersect the kmers
-    from the input sample and the training database.
-    The kmers in the intersection are written to a file as-is. Then,
-    the contents of the file are read and rewritten in FASTA format. 
-    """
-    def intersect(self):
-        #intersect kmers
-        db_kmers_loc = self.cmashBaseName + '_dump'
-        in_path = os.path.join(self.temp_dir, 
-                'reads_' + str(self.ksize) + 'mers_dump') 
-        out_path = os.path.join(self.temp_dir,
-                str(self.ksize) + 'mers_intersection')
-        print("Intersecting input sample & training sample...")
+	"""
+	This source is from the Metalign repository.
+	Opens a new KMC process to intersect the kmers
+	from the input sample and the training database.
+	The kmers in the intersection are written to a file as-is. Then,
+	the contents of the file are read and rewritten in FASTA format.
+	"""
+	def intersect(self):
+		#intersect kmers
+		db_kmers_loc = self.cmashBaseName + '_dump'
+		in_path = os.path.join(self.temp_dir,
+				'reads_' + str(self.ksize) + 'mers_dump')
+		out_path = os.path.join(self.temp_dir,
+				str(self.ksize) + 'mers_intersection')
+		print("Intersecting input sample & training sample...")
 
-        subprocess.Popen([self.kmc_tools, 'simple', db_kmers_loc,
-                in_path, 'intersect',
-                out_path]).wait()
+		subprocess.Popen([self.kmc_tools, 'simple', db_kmers_loc,
+				in_path, 'intersect',
+				out_path]).wait()
 
-        #dump intersection
-        dump_path = os.path.join(self.temp_dir,
-                str(self.ksize) + 'mers_intersection_dump')
-        print ("dumping intersection to FASTA file")
-        subprocess.Popen([self.kmc_dump, out_path,
-                dump_path]).wait()
+		#dump intersection
+		dump_path = os.path.join(self.temp_dir,
+				str(self.ksize) + 'mers_intersection_dump')
+		print ("dumping intersection to FASTA file")
+		subprocess.Popen([self.kmc_dump, out_path,
+				dump_path]).wait()
 
-        #read intersection & rewrite in fasta format
-        with(open(dump_path, 'r')) as infile:
-                with(open(dump_path + '.fa', 'w')) as fasta:
-                        for line in infile:
-                                seq = line.split()[0]
-                                fasta.write('>seq' + '\n' + seq + '\n')
-
-
+		#read intersection & rewrite in fasta format
+		with(open(dump_path, 'r')) as infile:
+				with(open(dump_path + '.fa', 'w')) as fasta:
+						for line in infile:
+								seq = line.split()[0]
+								fasta.write('>seq' + '\n' + seq + '\n')
+		self.out_file = dump_path + '.fa'
+	def compute_intersection(self):
+		self.dump_training_kmers()
+		self.count_training_kmers()
+		self.count_input_kmers()
+		self.intersect()
 
 
 # shared object that will update the intersection counts
@@ -277,7 +282,7 @@ class Counters:
 		:param input_kmer: an input k-mer
 		:type input_kmer: str
 		:param k_size_loc: where in self.k_range this k-mer (via it's length) belongs
-		:type k_size_loc: int
+		:type k_size_loc: inst
 		:return: a tuple: first of which is a list of strings (all the matches in the TST), and the second is a Boolean indicating if you saw a match
 		:rtype: tuple
 		"""
