@@ -25,7 +25,7 @@ testOrganism="../Organisms/taxid_1192839_4_genomic.fna.gz"
 echo "Training on data"
 rm TrainingDatabase.h5 2> /dev/null
 rm TrainingDatabase.tst 2> /dev/null
-/usr/bin/time python ${scriptsDir}/MakeStreamingDNADatabase.py filenames.txt TrainingDatabase.h5
+/usr/bin/time python ${scriptsDir}/MakeStreamingDNADatabase.py filenames.txt TrainingDatabase.h5 -k 10
 if test -f TrainingDatabase.h5; then
   if test -f TrainingDatabase.tst; then
     echo "Training file successfully created"
@@ -41,7 +41,7 @@ fi
 echo "Classifying sample, sensitive settings"
 rm results.csv 2> /dev/null
 # make a streaming pre-filter
-/usr/bin/time python ${scriptsDir}/StreamingQueryDNADatabase.py ${testOrganism} TrainingDatabase.h5 results.csv 10-21-1 --sensitive
+/usr/bin/time python ${scriptsDir}/StreamingQueryDNADatabase.py ${testOrganism} TrainingDatabase.h5 results.csv 10-10-1 --sensitive
 if test -f results.csv; then
   echo "sensitive classify successful"
   cat results.csv
@@ -69,7 +69,7 @@ END1
 echo "Classifying sample, sensitive settings, with KMC intersect"
 rm results.csv 2> /dev/null
 # make a streaming pre-filter
-/usr/bin/time python ${scriptsDir}/StreamingQueryDNADatabase.py ${testOrganism} TrainingDatabase.h5 results.csv 10-21-1 --sensitive --intersect
+/usr/bin/time python ${scriptsDir}/StreamingQueryDNADatabase.py ${testOrganism} TrainingDatabase.h5 results.csv 10-10-1 --sensitive --intersect
 if test -f results.csv; then
   echo "sensitive classify successful"
   cat results.csv
