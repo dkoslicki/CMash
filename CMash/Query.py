@@ -166,6 +166,8 @@ class Intersect:
 
 		# read counts file
 		self.reads_kmc_out_file = os.path.join(self.temp_dir, 'reads_' + str(self.ksize) + 'mers_dump')
+		# intersection dump file
+		self.intersection_out_file = os.path.join(self.temp_dir, str(self.ksize) + 'mers_intersection')
 
 	def get_kmer_size(self):
 		"""Reads the training database (in HDF5 format)
@@ -260,11 +262,10 @@ class Intersect:
 		the contents of the file are read and rewritten in FASTA format.
 		"""
 		#intersect kmers
-		db_kmers_loc = self.cmashBaseName + '_dump'
-		in_path = os.path.join(self.temp_dir,
-				'reads_' + str(self.ksize) + 'mers_dump')
-		out_path = os.path.join(self.temp_dir,
-				str(self.ksize) + 'mers_intersection')
+		db_kmers_loc = self.db_kmers_loc
+		in_path = self.reads_kmc_out_file
+		out_path = self.intersection_out_file
+
 		print("Intersecting input sample & training sample...")
 
 		subprocess.Popen([self.kmc_tools, 'simple', db_kmers_loc,
