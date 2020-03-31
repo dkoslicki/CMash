@@ -241,9 +241,17 @@ class Intersect:
 
 		out_path = self.reads_kmc_out_file
 		#count kmers in the input sample (not the training db)
-		subprocess.Popen([self.kmc, '-v', '-k'+str(self.ksize),type_arg, '-ci1',
-				'-t' + str(self.threads), '-fm', '-jlog_sample', self.reads_path,
-				out_path, self.temp_dir]).wait()
+
+		if self.verbose:
+			res = subprocess.run(f"{self.kmc} -v -k{self.ksize} {type_arg} -ci1 -t{self.threads} -fm {self.reads_path} {out_path} {self.temp_dir}", shell=True)
+		else:
+			res = subprocess.run(f"{self.kmc} -v -k{self.ksize} {type_arg} -ci1 -t{self.threads} -fm {self.reads_path} {out_path} {self.temp_dir}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+		if res.returncode != 0:
+			raise Exception(f"The command {res.args} failed to run and returned the returncode={res.returncode}")
+
+		#subprocess.Popen([self.kmc, '-v', '-k'+str(self.ksize),type_arg, '-ci1',
+		#		'-t' + str(self.threads), '-fm', '-jlog_sample', self.reads_path,
+		#		out_path, self.temp_dir]).wait()
 
 	def intersect(self):
 		"""
