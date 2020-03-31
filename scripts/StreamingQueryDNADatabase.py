@@ -184,14 +184,14 @@ if __name__ == '__main__':
 		print("Start streaming")
 		t0 = timeit.default_timer()
 
-	#if intersect option is used
-	#compute intersection of training & input
-	#feed intersection into read parser
+	# If intersect option is used:
+	# compute intersection of training & input
+	# feed intersection into read parser
 	if args.intersect:
 		intersecter = Intersect(query_file, training_database_file)
 		intersecter.compute_intersection()
-		print ("intersection located at: {}".format(intersecter.out_file))
-		#change query file to the intersection file
+		print("intersection located at: {}".format(intersecter.out_file))
+		# change query file to the intersection file
 		query_file = intersecter.out_file
 	# Open the file to prepare for processing
 	fid = khmer.ReadParser(query_file)  # This is faster than screed

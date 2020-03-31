@@ -118,47 +118,67 @@ class Intersect:
 	for presence in the TST via the prefilter since every kmer in the input must be
 	in both the input and the training samples.
 	"""
-	def __init__(self, reads_path, training_path, input_type='fasta', threads=8, temp_dir="."):
+	def __init__(self, reads_path, training_path, input_type='fasta', threads=8, temp_dir=None):
+		# handle file paths
+		#reads
 		self.reads_path = os.path.abspath(reads_path)
-		self.input_type = input_type
-		#self.training_path = training_path
-		#returns "" (is not None) if the path ends in "/" or "\"
-		self.training_path = training_path
-		print (os.path.abspath(training_path))
-		self.kmc_dir = os.path.dirname \
-				(os.path.dirname(os.path.abspath(__file__))) + "/KMC/bin/"
+		if not os.path.exists(self.reads_path):
+			raise Exception(f"It appears that the input reads {reads_path} does not exist.")
+
+		# training database
+		if not os.path.exists(training_path):
+			raise Exception(f"It appears that the training database {training_path} does not exist.")
+		# get the full path to the training database
+		self.cmashDatabase = os.path.abspath(training_path)
+		# get just the name of the training database
+		self.cmashBaseName = os.path.splitext(os.path.abspath(training_path))[0]
+		if self.cmashBaseName == "" or self.cmashBaseName == None:
+			raise Exception("Invalid training database file name/path")
+		# these are names we are setting ourselves. Might want to consider picking a name that won't cause conflicts
+		# if running in parallel
+		self.cmashDump = self.cmashBaseName + "_dump.fa"
+		self.db_kmers_loc = self.cmashBaseName + '_dump'
+
+		# if no temp directory was provided, place it in the same place the database was found
+		if not temp_dir:
+			self.temp_dir = os.path.dirname(self.cmashDatabase)
+		else:
+			# otherwise, just use what was provided
+			self.temp_dir = temp_dir
+		# handle the kmc commands
+		self.kmc_dir = ""
 		self.kmc = self.kmc_dir + "kmc"
 		self.kmc_tools = self.kmc_dir + "kmc_tools"
 		self.kmc_dump = self.kmc_dir + "kmc_dump"
-		self.threads = threads
-		self.temp_dir = temp_dir
-		#cmashBaseName="cmash_db_n1000_k60"
-		self.cmashBaseName=os.path.splitext(os.path.split(self.training_path)[-1])[0]
-		if self.cmashBaseName == "" or self.cmashBaseName == None:
-			raise Exception("Invalid training database file name/path")
-		self.cmashDatabase=self.cmashBaseName + ".h5"
-		self.cmashDump=self.cmashBaseName + "_dump.fa"
-		self.db_kmers_loc = self.cmashBaseName + '_dump'
-		self.ksize = self.get_kmer_size()
+		# test if KMC is installed correctly
+		res = subprocess.run("kmc -h", shell=True, stdout=subprocess.DEVNULL)
+		if res.returncode != 0:
+			raise Exception("It appears KMC is not installed. Please try '$ conda install -c bioconda KMC' and try again.")
 
-	"""Reads the training database (in HDF5 format)
-	   and returns the uniform size of the k-mers.
-	   The ksize attribute is stored in the first
-	   subgroup of the CountEstimators group.
-	"""
+		# set remaining properties
+		self.threads = threads
+		self.ksize = self.get_kmer_size()
+		self.input_type = input_type
+
 	def get_kmer_size(self):
-		db = File(self.cmashDatabase,"r")
+		"""Reads the training database (in HDF5 format)
+		and returns the uniform size of the k-mers.
+		The ksize attribute is stored in the first
+		subgroup of the CountEstimators group.
+		"""
+		db = File(self.cmashDatabase, "r")
 		ce = db["CountEstimators"]
 		for it in ce.values():
 			ksize = it.attrs["ksize"]
 			break
 		return ksize
 
-	"""
-	This code is based on dump_kmers.py in the Metalign repository.
-	Dumps the kmers from the input's CountEstimator to a fasta file.
-	"""
+
 	def dump_training_kmers(self):
+		"""
+		This code is based on dump_kmers.py in the Metalign repository.
+		Dumps the kmers from the input's CountEstimator to a fasta file.
+		"""
 		print("dumping training k-mers")
 
 		with open("/dev/null", 'w') as f:
@@ -175,11 +195,11 @@ class Intersect:
 					fid.write('%s\n' % kmer)
 					i += 1
 
-	"""
-	Opens a KMC process to count the dumped training kmers.
-	-ci1 excludes all kmers which appear less than one time (excludes no kmers).
-	"""
 	def count_training_kmers(self):
+		"""
+		Opens a KMC process to count the dumped training kmers.
+		-ci1 excludes all kmers which appear less than one time (excludes no kmers).
+		"""
 		print ("counting training k-mers")
 		out_path = os.path.join(self.temp_dir, self.cmashBaseName + '_dump')
 		with open("/dev/null", 'w') as f:
@@ -189,11 +209,12 @@ class Intersect:
 		subprocess.Popen([self.kmc, '-v', '-k'+str(self.ksize), '-fa', '-ci1', \
 				'-t'+str(self.threads), '-jlogsample', self.cmashDump,\
 				out_path, '.']).wait()
-	"""
-	Opens a KMC process to count the dumped kmers from the input sample.
-	-ci1 excludes all kmers which appear less than one time (excludes no kmers).
-	"""
+
 	def count_input_kmers(self):
+		"""
+		Opens a KMC process to count the dumped kmers from the input sample.
+		-ci1 excludes all kmers which appear less than one time (excludes no kmers).
+		"""
 		print("counting input k-mers")
 		#db_kmers_loc = args.data + 'cmash_db_n1000_k60_dump'
 		print (self.input_type)
@@ -209,14 +230,14 @@ class Intersect:
 				'-t' + str(self.threads), '-fm', '-jlog_sample', self.reads_path,
 				out_path, self.temp_dir]).wait()
 
-	"""
-	This source is from the Metalign repository.
-	Opens a new KMC process to intersect the kmers
-	from the input sample and the training database.
-	The kmers in the intersection are written to a file as-is. Then,
-	the contents of the file are read and rewritten in FASTA format.
-	"""
 	def intersect(self):
+		"""
+		This source is from the Metalign repository.
+		Opens a new KMC process to intersect the kmers
+		from the input sample and the training database.
+		The kmers in the intersection are written to a file as-is. Then,
+		the contents of the file are read and rewritten in FASTA format.
+		"""
 		#intersect kmers
 		db_kmers_loc = self.cmashBaseName + '_dump'
 		in_path = os.path.join(self.temp_dir,
@@ -243,6 +264,7 @@ class Intersect:
 								seq = line.split()[0]
 								fasta.write('>seq' + '\n' + seq + '\n')
 		self.out_file = dump_path + '.fa'
+
 	def compute_intersection(self):
 		self.dump_training_kmers()
 		self.count_training_kmers()
