@@ -158,8 +158,10 @@ class Intersect:
 		# set remaining properties
 		self.threads = threads
 		self.ksize = self.get_kmer_size()
-		self.input_type = input_type
 		self.verbose = verbose
+		self.input_type = input_type
+		if input_type != "fasta" and input_type != "fastq":
+			raise Exception("only allowable input_types are fasta and fastq")
 
 	def get_kmer_size(self):
 		"""Reads the training database (in HDF5 format)
@@ -223,13 +225,15 @@ class Intersect:
 		Opens a KMC process to count the dumped kmers from the input sample.
 		-ci1 excludes all kmers which appear less than one time (excludes no kmers).
 		"""
-		print("counting input k-mers")
-		#db_kmers_loc = args.data + 'cmash_db_n1000_k60_dump'
-		print (self.input_type)
+		if self.verbose:
+			print("counting input k-mers")
+
 		if self.input_type == 'fastq':
 				type_arg = '-fq'
-		else:
+		elif self.input_type == 'fasta':
 				type_arg = '-fa'
+		else:
+			raise Exception("Only allowable input_types are 'fasta' and 'fastq'.")
 
 		out_path = os.path.join(self.temp_dir,
 				'reads_' + str(self.ksize) + 'mers_dump')
