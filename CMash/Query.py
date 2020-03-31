@@ -118,7 +118,7 @@ class Intersect:
 	for presence in the TST via the prefilter since every kmer in the input must be
 	in both the input and the training samples.
 	"""
-	def __init__(self, reads_path, training_path, input_type='fasta', threads=8, temp_dir=None):
+	def __init__(self, reads_path, training_path, input_type='fasta', threads=8, temp_dir=None, verbose=False):
 		# handle file paths
 		#reads
 		self.reads_path = os.path.abspath(reads_path)
@@ -159,6 +159,7 @@ class Intersect:
 		self.threads = threads
 		self.ksize = self.get_kmer_size()
 		self.input_type = input_type
+		self.verbose = verbose
 
 	def get_kmer_size(self):
 		"""Reads the training database (in HDF5 format)
@@ -179,7 +180,8 @@ class Intersect:
 		This code is based on dump_kmers.py in the Metalign repository.
 		Dumps the kmers from the input's CountEstimator to a fasta file.
 		"""
-		print("dumping training k-mers")
+		if self.verbose:
+			print("dumping training k-mers")
 
 		with open("/dev/null", 'w') as f:
 			subprocess.Popen(['rm', self.cmashDump], stderr=f).wait()
@@ -200,11 +202,14 @@ class Intersect:
 		Opens a KMC process to count the dumped training kmers.
 		-ci1 excludes all kmers which appear less than one time (excludes no kmers).
 		"""
-		print ("counting training k-mers")
-		out_path = os.path.join(self.temp_dir, self.cmashBaseName + '_dump')
-		with open("/dev/null", 'w') as f:
-			subprocess.Popen(['rm', self.cmashBaseName+".kmc_pre"], stderr=f).wait()
-			subprocess.Popen(['rm', self.cmashBaseName+".kmc_suf"], stderr=f).wait()
+		if self.verbose:
+			print("counting training k-mers")
+
+		out_path = self.db_kmers_loc
+		# remove the old dumped database if it exists
+		subprocess.run(f"rm {out_path}.kmc_pre", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+		subprocess.run(f"rm {out_path}.kmc_suf", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
 
 		subprocess.Popen([self.kmc, '-v', '-k'+str(self.ksize), '-fa', '-ci1', \
 				'-t'+str(self.threads), '-jlogsample', self.cmashDump,\
