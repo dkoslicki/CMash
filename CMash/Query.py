@@ -275,9 +275,9 @@ class Intersect:
 
 		# intersect kmers
 		if self.verbose:
-			res = subprocess.run(f"{self.kmc_tools} simple {db_kmers_loc} {in_path} -ci0 intersect {out_path} -ci0 ", shell=True)
+			res = subprocess.run(f"{self.kmc_tools} simple {db_kmers_loc} -ci0 {in_path} -ci0 intersect {out_path} -ci0 ", shell=True)
 		else:
-			res = subprocess.run(f"{self.kmc_tools} simple {db_kmers_loc} {in_path} -ci0 intersect {out_path} -ci0 ", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+			res = subprocess.run(f"{self.kmc_tools} simple {db_kmers_loc} -ci0 {in_path} -ci0 intersect {out_path} -ci0 ", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 		if res.returncode != 0:
 			raise Exception(f"The command {res.args} failed to run and returned the returncode={res.returncode}")
 
