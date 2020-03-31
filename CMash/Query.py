@@ -145,6 +145,7 @@ class Intersect:
 		else:
 			# otherwise, just use what was provided
 			self.temp_dir = temp_dir
+
 		# handle the kmc commands
 		self.kmc_dir = ""
 		self.kmc = self.kmc_dir + "kmc"
@@ -162,6 +163,9 @@ class Intersect:
 		self.input_type = input_type
 		if input_type != "fasta" and input_type != "fastq":
 			raise Exception("only allowable input_types are fasta and fastq")
+
+		# read counts file
+		self.reads_kmc_out_file = os.path.join(self.temp_dir, 'reads_' + str(self.ksize) + 'mers_dump')
 
 	def get_kmer_size(self):
 		"""Reads the training database (in HDF5 format)
@@ -235,8 +239,7 @@ class Intersect:
 		else:
 			raise Exception("Only allowable input_types are 'fasta' and 'fastq'.")
 
-		out_path = os.path.join(self.temp_dir,
-				'reads_' + str(self.ksize) + 'mers_dump')
+		out_path = self.reads_kmc_out_file
 		#count kmers in the input sample (not the training db)
 		subprocess.Popen([self.kmc, '-v', '-k'+str(self.ksize),type_arg, '-ci1',
 				'-t' + str(self.threads), '-fm', '-jlog_sample', self.reads_path,
