@@ -210,10 +210,10 @@ class Intersect:
 		subprocess.run(f"rm {out_path}.kmc_pre", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 		subprocess.run(f"rm {out_path}.kmc_suf", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-
-		subprocess.Popen([self.kmc, '-v', '-k'+str(self.ksize), '-fa', '-ci1', \
-				'-t'+str(self.threads), '-jlogsample', self.cmashDump,\
-				out_path, '.']).wait()
+		# count the training k-mers
+		res = subprocess.run(f"{self.kmc} -v -k{self.ksize} -fa -ci1 -t{self.threads} {self.cmashDump} {out_path} .", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+		if res.returncode != 0:
+			raise Exception(f"The command {res.args} failed to run and returned the returncode={res.returncode}")
 
 	def count_input_kmers(self):
 		"""
