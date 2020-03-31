@@ -195,8 +195,8 @@ class Intersect:
 		if self.verbose:
 			print("dumping training k-mers")
 
-		with open("/dev/null", 'w') as f:
-			subprocess.Popen(['rm', self.cmashDump], stderr=f).wait()
+		# delete the dump if it already exists
+		subprocess.run(f"rm {self.cmashDump}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 		training_database = self.cmashDatabase  # first input is the training file name
 		dump_file = self.cmashDump  # second input is the desired output dump file
