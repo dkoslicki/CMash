@@ -211,7 +211,10 @@ class Intersect:
 		subprocess.run(f"rm {out_path}.kmc_suf", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 		# count the training k-mers
-		res = subprocess.run(f"{self.kmc} -v -k{self.ksize} -fa -ci1 -t{self.threads} {self.cmashDump} {out_path} .", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+		if self.verbose:
+			res = subprocess.run(f"{self.kmc} -v -k{self.ksize} -fa -ci1 -t{self.threads} {self.cmashDump} {out_path} .", shell=True)
+		else:
+			res = subprocess.run(f"{self.kmc} -v -k{self.ksize} -fa -ci1 -t{self.threads} {self.cmashDump} {out_path} .", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 		if res.returncode != 0:
 			raise Exception(f"The command {res.args} failed to run and returned the returncode={res.returncode}")
 
