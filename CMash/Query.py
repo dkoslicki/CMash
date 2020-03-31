@@ -178,9 +178,12 @@ class Intersect:
 		"""
 		db = File(self.cmashDatabase, "r")
 		ce = db["CountEstimators"]
+		ksize = None
 		for it in ce.values():
 			ksize = it.attrs["ksize"]
 			break
+		if not ksize:
+			raise Exception(f"Failed to automatically detect k-mer size in {self.cmashDatabase}")
 		return ksize
 
 
