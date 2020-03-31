@@ -167,7 +167,8 @@ class Intersect:
 		# read counts file
 		self.reads_kmc_out_file = os.path.join(self.temp_dir, 'reads_' + str(self.ksize) + 'mers_dump')
 		# intersection dump file
-		self.intersection_out_file = os.path.join(self.temp_dir, str(self.ksize) + 'mers_intersection')
+		self.intersection_kmc_out_file = os.path.join(self.temp_dir, str(self.ksize) + 'mers_intersection')
+		self.intersection_kmc_dump_file = os.path.join(self.temp_dir, str(self.ksize) + 'mers_intersection_dump')
 
 	def get_kmer_size(self):
 		"""Reads the training database (in HDF5 format)
@@ -261,23 +262,32 @@ class Intersect:
 		The kmers in the intersection are written to a file as-is. Then,
 		the contents of the file are read and rewritten in FASTA format.
 		"""
-		#intersect kmers
+
 		db_kmers_loc = self.db_kmers_loc
 		in_path = self.reads_kmc_out_file
-		out_path = self.intersection_out_file
+		out_path = self.intersection_kmc_out_file
 
-		print("Intersecting input sample & training sample...")
+		if self.verbose:
+			print("Intersecting input sample & training sample...")
 
-		subprocess.Popen([self.kmc_tools, 'simple', db_kmers_loc,
-				in_path, 'intersect',
-				out_path]).wait()
+		# intersect kmers
+		if self.verbose:
+			res = subprocess.run(f"{self.kmc_tools} simple {db_kmers_loc} {in_path} intersect {out_path}", shell=True)
+		else:
+			res = subprocess.run(f"{self.kmc_tools} simple {db_kmers_loc} {in_path} intersect {out_path}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+		if res.returncode != 0:
+			raise Exception(f"The command {res.args} failed to run and returned the returncode={res.returncode}")
 
 		#dump intersection
-		dump_path = os.path.join(self.temp_dir,
-				str(self.ksize) + 'mers_intersection_dump')
-		print ("dumping intersection to FASTA file")
-		subprocess.Popen([self.kmc_dump, out_path,
-				dump_path]).wait()
+		dump_path = self.intersection_kmc_dump_file
+		if self.verbose:
+			print("dumping intersection to FASTA file")
+		if self.verbose:
+			res = subprocess.run(f"{self.kmc_dump} {out_path} {dump_path}", shell=True)
+		else:
+			res = subprocess.run(f"{self.kmc_dump} {out_path} {dump_path}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+		if res.returncode != 0:
+			raise Exception(f"The command {res.args} failed to run and returned the returncode={res.returncode}")
 
 		#read intersection & rewrite in fasta format
 		with(open(dump_path, 'r')) as infile:
