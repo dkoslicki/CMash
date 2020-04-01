@@ -38,6 +38,7 @@ import argparse
 import khmer
 import marisa_trie as mt
 import subprocess
+import sys
 
 # for IDE REPL testing
 os.chdir("/home/dkoslicki/Desktop/CMash/tests/script_tests_debug15/python_output")
@@ -52,7 +53,8 @@ verbose = True
 I = Intersect(reads_path, training_path, input_type=input_type, threads=threads, temp_dir=temp_dir, verbose=verbose)
 
 
-
+#####################################################
+# dumping database k-mers: count_training_kmers
 # this is KMC-free, so I can just call Isaac's code
 I.cmashDump = "TrainingDatabase_dump.fa"
 I.dump_training_kmers()
@@ -88,25 +90,74 @@ I.count_training_kmers()
 # which looks much more correct
 
 # check this in python
-true_canonical_kmers = set()
+python_training_kmers = set()
 CEs = MH.import_multiple_from_single_hdf5(training_path)
 for CE in CEs:
 	for kmer in CE._kmers:
 		kmer_rc = khmer.reverse_complement(kmer)
 		if kmer < kmer_rc:
-			true_canonical_kmers.add(kmer)
+			python_training_kmers.add(kmer)
 		else:
-			true_canonical_kmers.add(kmer_rc)
+			python_training_kmers.add(kmer_rc)
 
-print(f"Python's count of number of k-mers: {len(true_canonical_kmers)}")
+print(f"Python's count of number of k-mers: {len(python_training_kmers)}")
 #with open("python_training_canonical_kmers.txt", 'w') as fid:
 #	for kmer in true_canonical_kmers:
 #		fid.write(f"{kmer}\n")
 
 # dump kmc version of the canonical kmers
 result = subprocess.run(f"kmc_dump TrainingDatabase_dump /dev/fd/1", capture_output=True, shell=True)
-kmc_canonical_kmers = set(map(lambda x: x.split('\t')[0], result.stdout.decode('utf-8').split('\n')))
-kmc_canonical_kmers.remove('')
+kmc_training_kmers = set(map(lambda x: x.split('\t')[0], result.stdout.decode('utf-8').split('\n')))
+kmc_training_kmers.remove('')
 
-if sorted(list(true_canonical_kmers)) == sorted(list(kmc_canonical_kmers)):
+if sorted(list(python_training_kmers)) == sorted(list(kmc_training_kmers)):
 	print("Yes! Python and KMC agree on the database dumped k-mers")
+else:
+	raise Exception("NO! Python and KMC DO NOT agree on the database dumped k-mers")
+
+
+#####################################################
+# test the counting of input k-mers count_input_kmers()
+I.count_input_kmers()
+
+# do it in python
+python_read_kmers = set()
+fid = khmer.ReadParser(reads_path)
+for record in fid:
+	seq = record.sequence
+	for kmer in MH.kmers(seq, I.ksize):
+		kmer_rc = khmer.reverse_complement(kmer)
+		if kmer < kmer_rc:
+			python_read_kmers.add(kmer)
+		else:
+			python_read_kmers.add(kmer_rc)
+
+# do it with KMC
+I.count_input_kmers()
+result = subprocess.run(f"kmc_dump {I.reads_kmc_out_file} /dev/fd/1", capture_output=True, shell=True)
+kmc_reads_kmers = set(map(lambda x: x.split('\t')[0], result.stdout.decode('utf-8').split('\n')))
+kmc_reads_kmers.remove('')
+if sorted(list(python_read_kmers)) == sorted(list(kmc_reads_kmers)):
+	print("Yes! Python and KMC agree on the read dumped k-mers")
+else:
+	raise Exception("NO! Python and KMC DO NOT agree on the read dumped k-mers")
+
+
+#####################################################
+# test the intersection: intersect()
+
+I.intersect()
+
+# do the intersection in python
+python_intersection_kmers = python_read_kmers.intersection(python_training_kmers)
+
+# do the intersection with KMC
+# FIXME: kmc_dump doesn't like output to stdout
+result = subprocess.run(f"kmc_dump {I.intersection_kmc_dump_file} /dev/fd/1", capture_output=True, shell=True)
+kmc_intersection_kmers = set(map(lambda x: x.split('\t')[0], result.stdout.decode('utf-8').split('\n')))
+kmc_intersection_kmers.remove('')
+if sorted(list(python_intersection_kmers)) == sorted(list(kmc_intersection_kmers)):
+	print("Yes! Python and KMC agree on the intersection k-mers")
+else:
+	raise Exception("NO! Python and KMC DO NOT agree on the intersection k-mers")
+
