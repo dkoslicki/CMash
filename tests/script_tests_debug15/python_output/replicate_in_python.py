@@ -37,6 +37,7 @@ from itertools import *
 import argparse
 import khmer
 import marisa_trie as mt
+import subprocess
 
 # for IDE REPL testing
 os.chdir("/home/dkoslicki/Desktop/CMash/tests/script_tests_debug15/python_output")
@@ -85,3 +86,27 @@ I.count_training_kmers()
 #   Total no. of super-k-mers          :            0
 
 # which looks much more correct
+
+# check this in python
+true_canonical_kmers = set()
+CEs = MH.import_multiple_from_single_hdf5(training_path)
+for CE in CEs:
+	for kmer in CE._kmers:
+		kmer_rc = khmer.reverse_complement(kmer)
+		if kmer < kmer_rc:
+			true_canonical_kmers.add(kmer)
+		else:
+			true_canonical_kmers.add(kmer_rc)
+
+print(f"Python's count of number of k-mers: {len(true_canonical_kmers)}")
+#with open("python_training_canonical_kmers.txt", 'w') as fid:
+#	for kmer in true_canonical_kmers:
+#		fid.write(f"{kmer}\n")
+
+# dump kmc version of the canonical kmers
+result = subprocess.run(f"kmc_dump TrainingDatabase_dump /dev/fd/1", capture_output=True, shell=True)
+kmc_canonical_kmers = set(map(lambda x: x.split('\t')[0], result.stdout.decode('utf-8').split('\n')))
+kmc_canonical_kmers.remove('')
+
+if sorted(list(true_canonical_kmers)) == sorted(list(kmc_canonical_kmers)):
+	print("Yes! Python and KMC agree on the database dumped k-mers")
