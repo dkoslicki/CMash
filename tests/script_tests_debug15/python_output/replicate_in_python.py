@@ -73,3 +73,15 @@ I.count_training_kmers()
 # AAAATCGCTC      1
 # AAGTACTGAA      1
 # ATACATAGCA      1
+
+# NOTE: after changing kmc from -fa to -fm (since Isaac is dumping in multifasta format, we get:
+#Stats:
+#   No. of k-mers below min. threshold :            0
+#   No. of k-mers above max. threshold :            0
+#   No. of unique k-mers               :          544
+#   No. of unique counted k-mers       :          544
+#   Total no. of k-mers                :         1000
+#   Total no. of sequences             :         1000
+#   Total no. of super-k-mers          :            0
+
+# which looks much more correct

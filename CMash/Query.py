@@ -224,9 +224,9 @@ class Intersect:
 
 		# count the training k-mers
 		if self.verbose:
-			res = subprocess.run(f"{self.kmc} -v -k{self.ksize} -fa -ci0 -cs3 -t{self.threads} {self.cmashDump} {out_path} .", shell=True)
+			res = subprocess.run(f"{self.kmc} -v -k{self.ksize} -fm -ci0 -cs3 -t{self.threads} {self.cmashDump} {out_path} .", shell=True)
 		else:
-			res = subprocess.run(f"{self.kmc} -v -k{self.ksize} -fa -ci0 -cs3 -t{self.threads} {self.cmashDump} {out_path} .", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+			res = subprocess.run(f"{self.kmc} -v -k{self.ksize} -fm -ci0 -cs3 -t{self.threads} {self.cmashDump} {out_path} .", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 		if res.returncode != 0:
 			raise Exception(f"The command {res.args} failed to run and returned the returncode={res.returncode}")
 
