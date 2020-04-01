@@ -1,0 +1,2 @@
+../Organisms/taxid_28901_877_genomic.fna.gz
+../Organisms/taxid_1192839_4_genomic.fna.gz
