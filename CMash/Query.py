@@ -169,6 +169,8 @@ class Intersect:
 		# intersection dump file
 		self.intersection_kmc_out_file = os.path.join(self.temp_dir, str(self.ksize) + 'mers_intersection')
 		self.intersection_kmc_dump_file = os.path.join(self.temp_dir, str(self.ksize) + 'mers_intersection_dump')
+		# final output file
+		self.final_out_file = self.intersection_kmc_dump_file + '.fa'
 
 	def get_kmer_size(self):
 		"""Reads the training database (in HDF5 format)
@@ -294,11 +296,10 @@ class Intersect:
 
 		#read intersection & rewrite in fasta format
 		with(open(dump_path, 'r')) as infile:
-				with(open(dump_path + '.fa', 'w')) as fasta:
+				with(open(self.final_out_file, 'w')) as fasta:
 						for line in infile:
 								seq = line.split()[0]
 								fasta.write('>seq' + '\n' + seq + '\n')
-		self.out_file = dump_path + '.fa'
 
 	def compute_intersection(self):
 		self.dump_training_kmers()

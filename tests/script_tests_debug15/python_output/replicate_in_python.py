@@ -39,6 +39,7 @@ import khmer
 import marisa_trie as mt
 import subprocess
 import sys
+import re
 
 # for IDE REPL testing
 os.chdir("/home/dkoslicki/Desktop/CMash/tests/script_tests_debug15/python_output")
@@ -173,3 +174,82 @@ if sorted(list(python_intersection_kmers)) == sorted(list(fasta_intersection_kme
 	print("Yes! Python and fasta dump agree on the intersection k-mers")
 else:
 	raise Exception("NO! Python and fasta dump DO NOT agree on the intersection k-mers")
+
+
+#########################################################
+# test the StreamingQueryDNADatabas.py code on the original file vs the kmc reduced file
+def parseNumList(input):
+	"""Thank you stack overflow"""
+	m = re.match(r'(\d+)(?:-(\d+))?(?:-(\d+))?$', input)
+	start = int(m.group(1))
+	end = int(m.group(2))
+	if m.group(3):
+		increment = int(m.group(3))
+	else:
+		increment = 1
+	return list(range(start, end+1, increment))
+
+TST_file = "../TrainingDatabase.tst"
+k_range_str = '5-15-2'
+k_range = parseNumList(k_range_str)
+C = Create(training_database_file=training_path, bloom_filter_file="", TST_file=TST_file, k_range=k_range)
+C.import_TST()
+C.create_BF_prefilter()
+
+# on the original reads
+counter = Counters(tree=C.tree, k_range=C.k_range, all_kmers_bf=C.all_kmers_bf)
+fid = khmer.ReadParser(reads_path)
+to_proc = [record.sequence for record in fid]
+fid.close()
+res = map(counter.process_seq, to_proc)
+flattened_res = [item for sublist in res if sublist for item in sublist]
+all_reads_match_tuples = list(set(flattened_res))
+
+# on the kmc dumped reads
+counter = Counters(tree=C.tree, k_range=C.k_range, all_kmers_bf=C.all_kmers_bf)
+fid = khmer.ReadParser(I.final_out_file)
+to_proc = [record.sequence for record in fid]
+fid.close()
+res = map(counter.process_seq, to_proc)
+flattened_res = [item for sublist in res if sublist for item in sublist]
+kmc_reads_match_tuples = list(set(flattened_res))
+
+if sorted(all_reads_match_tuples) == sorted(kmc_reads_match_tuples):
+	print("Yes! match_tuples are the same for original reads or kmc reads")
+else:
+	raise Exception("NO! match_tuples are NOT the same for original reads or kmc reads")
+
+missing_matches = set(all_reads_match_tuples) - set(kmc_reads_match_tuples)
+missing_match = list(missing_matches)[0]
+ce_index = missing_match[0]
+k_range_loc = missing_match[1]
+sketch_index = missing_match[2]
+print(f"A missing kmer: {CEs[ce_index]._kmers[sketch_index]}")
+print(f"A missing kmer_rc: {khmer.reverse_complement(CEs[ce_index]._kmers[sketch_index])}")
+print(f"at kmer size: {k_range[k_range_loc]}")
+missing_kmer_trunc = CEs[ce_index]._kmers[sketch_index][0:k_range[k_range_loc]]
+print(f"kmer trunc: {missing_kmer_trunc}")
+print(f"kmer_rc trunc: {khmer.reverse_complement(CEs[ce_index]._kmers[sketch_index])[0:k_range[k_range_loc]]}")
+print(f"trunc kmer_rc: {khmer.reverse_complement(CEs[ce_index]._kmers[sketch_index][0:k_range[k_range_loc]])}")
+
+# Look for that k-mer in the query file:
+result = subprocess.run(f"zgrep -c -i {missing_kmer_trunc} {reads_path}", capture_output=True, shell=True)
+print(f"matches in reads to missing_kmer_trunc: {result.stdout}")
+
+# look for that k-mer in the intersection file
+result = subprocess.run(f"zgrep -c -i {missing_kmer_trunc} {I.final_out_file}", capture_output=True, shell=True)
+print(f"matches in intersection to missing_kmer_trunc: {result.stdout}")
+
+# look for the k-mer in the reads dump
+result = subprocess.run(f"kmc_dump {I.reads_kmc_out_file} /dev/fd/1 | cut -f 1 | grep -c -i {missing_kmer_trunc}", capture_output=True, shell=True)
+print(f"matches in kmc reads dump to missing_kmer_trunc: {result.stdout}")
+# so indeed, the kmer_trunc is in the reads dump, but it only matches as prefixes to k-mers that aren't in the training database:
+# kmc_dump reads_15mers_dump /dev/fd/1 | cut -f 1 | grep -i TGCCCTGTGGC
+#ATGCCCTGTGGCTGG
+#ATGCTGCCCTGTGGC
+#CCCCTGCCCTGTGGC
+#CTGCCCTGTGGCAGC
+#TGCCCTGTGGCAGCA  #<---------------
+# grep -c TGCCCTGTGGCAGCA TrainingDatabase_dump.fa
+# 0
+
