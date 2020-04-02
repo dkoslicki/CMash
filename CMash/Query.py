@@ -288,6 +288,9 @@ class Intersect:
 		if self.verbose:
 			print("dumping intersection to FASTA file")
 		if self.verbose:
+			# replacing out_path with in_path would mean we stream all the read k-mers through, instead of all the reads through
+			# this may speed things up in real-world applications, and it returns (basically) the same results
+			# so might be worth considering...
 			res = subprocess.run(f"{self.kmc_dump} -ci0 {out_path} {dump_path}", shell=True)
 		else:
 			res = subprocess.run(f"{self.kmc_dump} -ci0 {out_path} {dump_path}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

@@ -192,7 +192,7 @@ if __name__ == '__main__':
 		intersecter.compute_intersection()
 		#print("intersection located at: {}".format(intersecter.out_file))
 		# change query file to the intersection file
-		query_file = intersecter.out_file
+		query_file = intersecter.final_out_file
 	# Open the file to prepare for processing
 	fid = khmer.ReadParser(query_file)  # This is faster than screed
 	match_tuples = []
