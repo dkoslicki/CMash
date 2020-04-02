@@ -153,7 +153,8 @@ python_intersection_kmers = python_read_kmers.intersection(python_training_kmers
 
 # do the intersection with KMC
 # FIXME: kmc_dump doesn't like output to stdout
-result = subprocess.run(f"kmc_dump {I.intersection_kmc_dump_file} /dev/fd/1", capture_output=True, shell=True)
+#result = subprocess.run(f"kmc_dump {I.intersection_kmc_dump_file} /dev/fd/1", capture_output=True, shell=True)
+result = subprocess.run(f"kmc_dump {I.intersection_kmc_out_file} /dev/fd/1", capture_output=True, shell=True)
 kmc_intersection_kmers = set(map(lambda x: x.split('\t')[0], result.stdout.decode('utf-8').split('\n')))
 kmc_intersection_kmers.remove('')
 if sorted(list(python_intersection_kmers)) == sorted(list(kmc_intersection_kmers)):
@@ -161,3 +162,14 @@ if sorted(list(python_intersection_kmers)) == sorted(list(kmc_intersection_kmers
 else:
 	raise Exception("NO! Python and KMC DO NOT agree on the intersection k-mers")
 
+# Make sure they have been written in FASTA correctly
+fasta_intersection_kmers = set()
+fid = khmer.ReadParser(I.intersection_kmc_dump_file+'.fa')
+for record in fid:
+	seq = record.sequence
+	fasta_intersection_kmers.add(seq)
+
+if sorted(list(python_intersection_kmers)) == sorted(list(fasta_intersection_kmers)):
+	print("Yes! Python and fasta dump agree on the intersection k-mers")
+else:
+	raise Exception("NO! Python and fasta dump DO NOT agree on the intersection k-mers")

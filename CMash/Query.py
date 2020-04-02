@@ -269,6 +269,7 @@ class Intersect:
 		db_kmers_loc = self.db_kmers_loc
 		in_path = self.reads_kmc_out_file
 		out_path = self.intersection_kmc_out_file
+		dump_path = self.intersection_kmc_dump_file
 
 		if self.verbose:
 			print("Intersecting input sample & training sample...")
@@ -282,7 +283,6 @@ class Intersect:
 			raise Exception(f"The command {res.args} failed to run and returned the returncode={res.returncode}")
 
 		#dump intersection
-		dump_path = self.intersection_kmc_dump_file
 		if self.verbose:
 			print("dumping intersection to FASTA file")
 		if self.verbose:
