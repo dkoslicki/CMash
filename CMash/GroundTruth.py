@@ -330,6 +330,33 @@ class TrueContainmentKMC:
 			res = json.load(fid)
 			return res['Stats']['#Unique_k-mers']
 
+	@staticmethod
+	def _kmc_return_intersection_count(kmc_input_file1: str, kmc_input_file2: str) -> int:
+		"""
+		Takes two kmc counted files, returns the number of k-mers in their intersection
+		:param kmc_input_file1:
+		:type kmc_input_file1:
+		:param kmc_input_file2:
+		:type kmc_input_file2:
+		"""
+		dir_name = os.path.dirname(kmc_input_file1)
+		intersect_file = os.path.join(dir_name, f"{os.path.basename(kmc_input_file1)}_intersect_{os.path.basename(kmc_input_file2)}")
+		dump_file = os.path.join(dir_name, f"{os.path.basename(kmc_input_file1)}_intersect_{os.path.basename(kmc_input_file2)}_dump")
+		res = subprocess.run(f"kmc_tools simple {kmc_input_file1} -ci1 {kmc_input_file2} -ci1 intersect {intersect_file}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+		if res.returncode != 0:
+			raise Exception(f"The command {res.args} failed to run and returned the returncode={res.returncode}")
+		res = subprocess.run(f"kmc_dump {intersect_file} {dump_file}; cat {dump_file} | wc -l", shell=True, capture_output=True)
+		if res.returncode != 0:
+			raise Exception(f"The command {res.args} failed to run and returned the returncode={res.returncode}")
+
+		intersect_count = int(res.stdout)
+
+		# then clean up the mess
+		os.remove(f"{intersect_file}.kmc_pre")
+		os.remove(f"{intersect_file}.kmc_suf")
+		os.remove(dump_file)
+
+		return intersect_count
 
 	@staticmethod
 	def __kmers(seq, ksize):
