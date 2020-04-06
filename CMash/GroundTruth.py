@@ -13,6 +13,7 @@ import multiprocessing
 import argparse
 import subprocess
 import json
+from itertools import starmap
 
 # The following is for ease of development (so I don't need to keep re-installing the tool)
 try:
@@ -247,12 +248,12 @@ class TrueContainmentKMC:
 	2. Databases that were formed using genomes that you have direct access to (i.e. live on your file system)
 	"""
 
-	def __init__(self, training_database_file: str, k_sizes: str):
+	def __init__(self, training_database_file: str, k_sizes: str, temp_dir: str):
 		self.training_database_file = training_database_file
 		self.k_sizes = self.__parseNumList(k_sizes)
 		self.CEs = self.__import_database()
 		self.training_file_names = self.__return_file_names()
-		self.training_file_to_ksize_to_kmers = self.__compute_all_training_kmers()
+		self.temp_dir = temp_dir
 
 	def __import_database(self) -> list:
 		"""
@@ -295,7 +296,7 @@ class TrueContainmentKMC:
 		return list(range(start, end + 1, increment))
 
 	@staticmethod
-	def _kmc_count(input_file_name: str, output_file_name: str, kmer_size: int) -> None:
+	def _kmc_count(input_file_name: str, output_file_name: str, kmer_size: int, threads=2) -> None:
 		"""
 		Calls KMC to compute the k-mers for a given input file name
 		:param input_file_name:
@@ -308,14 +309,12 @@ class TrueContainmentKMC:
 		input_types = ['-fm', '-fq', '-fa', '-fbam']
 		success = False
 		for input_type in input_types:
-			res = subprocess.run(f"kmc -k{kmer_size} {input_type} -ci0 -cs3 -j{output_file_name}.log {input_file_name} {output_file_name} .", shell=True, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+			res = subprocess.run(f"kmc -k{kmer_size} {input_type} -r -t{threads} -ci0 -cs3 -j{output_file_name}.log {input_file_name} {output_file_name} .", shell=True, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
 			if res.returncode == 0:
 				success = True
 				break
-			else:
-				continue
 		if not success:
-			raise Exception("Unknown sequence format: must be one of multifasta, fastq, fasta, or BAM (gzipped or uncompressed)")
+			raise Exception(f"Unknown sequence format: must be one of multifasta, fastq, fasta, or BAM (gzipped or uncompressed). Culprit file is {input_file_name}. Command was {res.args}")
 
 	@staticmethod
 	def _kmc_return_distinct_kmers(kmc_log_file: str) -> int:
@@ -358,65 +357,17 @@ class TrueContainmentKMC:
 
 		return intersect_count
 
-	@staticmethod
-	def __kmers(seq, ksize):
-		"""
-		yield all k-mers of len ksize from seq.
-		Returns an iterable object
-		:param seq: a DNA sequence
-		:type seq: str
-		:param ksize: a k-mer size
-		:type ksize: int
-		"""
-		for i in range(len(seq) - ksize + 1):
-			yield seq[i:i + ksize]
-
-	def _return_ksize_to_kmers(self, input_file: str) -> dict:
-		"""
-		Enumerates all the k-mers specified by self.k_sizes in the genome/metagenome specified by input_file.
-		:param input_file: a file path to a fna/fq/gzipped file containing DNA sequences
-		:type input_file: str
-		:return: a dictionary with keys corresponding to k-mer sizes in self.k_sizes, and values dictionaries containing canonical k-mers
-		:rtype: dict
-		"""
-		k_sizes = self.k_sizes
-		k_size_to_kmers = dict()
-		# initialize all the k-mer sizes for the query file
-		for k_size in k_sizes:
-			k_size_to_kmers[k_size] = set()
-
-		# iterate over the file only once
-		for record in screed.open(input_file):
-			seq = record.sequence  # get the sequence
-			seq = seq.upper()  # convert to upper-case
-			seq_split_onlyACTG = notACTG.split(seq)  # split it on non-ACTG sequences
-			# if there are no non-ACTG's we get only a single one
-			if len(seq_split_onlyACTG) == 1:
-				for k_size in k_sizes:
-					for kmer in self.__kmers(seq, k_size):
-						if kmer:
-							# Use canonical k-mers
-							temp_kmer = kmer
-							temp_kmer_rc = khmer.reverse_complement(kmer)
-							if temp_kmer < temp_kmer_rc:
-								k_size_to_kmers[k_size].add(temp_kmer)  # add the kmer
-							else:
-								k_size_to_kmers[k_size].add(temp_kmer_rc)  # add the reverse complement
-			# otherwise, we need to do the same thing for each of the subsequences
-			else:
-				for sub_seq in seq_split_onlyACTG:
-					if sub_seq:
-						for k_size in k_sizes:
-							for kmer in self.__kmers(seq, k_size):
-								if kmer:
-									# Use canonical k-mers
-									temp_kmer = kmer
-									temp_kmer_rc = khmer.reverse_complement(kmer)
-									if temp_kmer < temp_kmer_rc:
-										k_size_to_kmers[k_size].add(temp_kmer)  # add the kmer
-									else:
-										k_size_to_kmers[k_size].add(temp_kmer_rc)  # add the reverse complement
-		return k_size_to_kmers
+	def _compute_all_training_kmers_kmc(self):
+		num_threads = int(multiprocessing.cpu_count()/float(2))
+		to_compute = []
+		temp_dir = self.temp_dir
+		# create the tuples to be computed on: (input file, ouput_kmc_file, k_kmer_size)
+		for training_file in self.training_file_names:
+			for k_size in self.k_sizes:
+				to_compute.append((training_file, f"{os.path.join(temp_dir, os.path.basename(training_file))}_k_{k_size}", k_size))
+		pool = multiprocessing.Pool(processes=int(min(num_threads, len(self.training_file_names))))
+		pool.starmap(self._kmc_count, to_compute)
+		pool.close()
 
 	@staticmethod
 	def __return_containment_index(set1: set, set2: set):
