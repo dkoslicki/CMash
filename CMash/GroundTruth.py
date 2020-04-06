@@ -11,6 +11,8 @@ import screed
 from argparse import ArgumentTypeError
 import multiprocessing
 import argparse
+import subprocess
+import json
 
 # The following is for ease of development (so I don't need to keep re-installing the tool)
 try:
@@ -291,6 +293,29 @@ class TrueContainmentKMC:
 		else:
 			increment = 1
 		return list(range(start, end + 1, increment))
+
+	@staticmethod
+	def _kmc_count(input_file_name: str, output_file_name: str, kmer_size: int) -> None:
+		"""
+		Calls KMC to compute the k-mers for a given input file name
+		:param input_file_name:
+		:type input_file_name:
+		:param output_file_name:
+		:type output_file_name:
+		:param kmer_size:
+		:type kmer_size:
+		"""
+		input_types = ['-fm', '-fq', '-fa', '-fbam']
+		success = False
+		for input_type in input_types:
+			res = subprocess.run(f"kmc -k{kmer_size} {input_type} -ci0 -cs3 -j{output_file_name}.log {input_file_name} {output_file_name} .", shell=True, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+			if res.returncode == 0:
+				success = True
+				break
+			else:
+				continue
+		if not success:
+			raise Exception("Unknown sequence format: must be one of multifasta, fastq, fasta, or BAM (gzipped or uncompressed)")
 
 	@staticmethod
 	def __kmers(seq, ksize):
