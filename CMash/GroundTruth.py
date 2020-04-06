@@ -318,6 +318,20 @@ class TrueContainmentKMC:
 			raise Exception("Unknown sequence format: must be one of multifasta, fastq, fasta, or BAM (gzipped or uncompressed)")
 
 	@staticmethod
+	def _kmc_return_distinct_kmers(kmc_log_file: str) -> int:
+		"""
+		Parses the KMC log file to return the number of distinct k-mers
+		:param kmc_log_file:
+		:type kmc_log_file:
+		:return:
+		:rtype:
+		"""
+		with open(kmc_log_file, 'r') as fid:
+			res = json.load(fid)
+			return res['Stats']['#Unique_k-mers']
+
+
+	@staticmethod
 	def __kmers(seq, ksize):
 		"""
 		yield all k-mers of len ksize from seq.
