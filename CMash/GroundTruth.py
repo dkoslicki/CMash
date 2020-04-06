@@ -357,7 +357,7 @@ class TrueContainmentKMC:
 
 		return intersect_count
 
-	def _compute_all_training_kmers_kmc(self):
+	def _compute_all_training_kmers(self):
 		num_threads = int(multiprocessing.cpu_count()/float(2))
 		to_compute = []
 		temp_dir = self.temp_dir
@@ -368,35 +368,6 @@ class TrueContainmentKMC:
 		pool = multiprocessing.Pool(processes=int(min(num_threads, len(self.training_file_names))))
 		pool.starmap(self._kmc_count, to_compute)
 		pool.close()
-
-	@staticmethod
-	def __return_containment_index(set1: set, set2: set):
-		"""
-		Computes the containment index
-		:param set1: a set of k-mers
-		:type set1: set
-		:param set2: another set of k-mers
-		:type set2: set
-		:return: containment index  |set1 \cap set2| / |set 1|
-		:rtype: float
-		"""
-		return len(set1.intersection(set2)) / float(len(set1))
-
-	def __compute_all_training_kmers(self):
-		"""
-		In a parallelized fashion, enumerate all the k-mers for the given self.k_sizes in the input training genomes.
-		:return: a dictionary with keys given by self.training_file_names, values are dictionaries: keys are k_sizes, values are sets of canonical k-mers
-		:rtype: dict
-		"""
-		training_file_to_ksize_to_kmers = dict()
-		num_threads = multiprocessing.cpu_count()
-		pool = multiprocessing.Pool(processes=int(min(num_threads, len(self.training_file_names))))
-		# res is returned in the same order as self.training_file_names according to the docs
-		res = pool.map(self._return_ksize_to_kmers, self.training_file_names)
-		for (item, file_name) in zip(res, self.training_file_names):
-			training_file_to_ksize_to_kmers[file_name] = item
-		pool.close()
-		return training_file_to_ksize_to_kmers
 
 	def __return_containment_indicies(self, query_file: str) -> np.ndarray:
 		"""
@@ -409,6 +380,12 @@ class TrueContainmentKMC:
 		:return: a numpy matrix of containment indicies: containment_indicies[i ,k] = |query_file_k-mers \cap training_file_i_k-mers| / |training_file_i_k-mers|
 		:rtype: np.ndarray
 		"""
+		# TODO:
+		#  compute the k-mers in the query file using _kmc_count with a lot of threads (maybe without ram?)
+		#  use _kmc_return_intersection_count to get the numerator
+		#  use _kmc_return_distinct_kmers to get the denominator
+		#  make use of to_compute construct above
+
 		training_file_names = self.training_file_names
 		k_sizes = self.k_sizes
 		training_file_to_ksize_to_kmers = self.training_file_to_ksize_to_kmers
