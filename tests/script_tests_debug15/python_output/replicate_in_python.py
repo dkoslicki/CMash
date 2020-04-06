@@ -102,6 +102,7 @@ for CE in CEs:
 			python_training_kmers.add(kmer_rc)
 
 print(f"Python's count of number of k-mers: {len(python_training_kmers)}")
+
 #with open("python_training_canonical_kmers.txt", 'w') as fid:
 #	for kmer in true_canonical_kmers:
 #		fid.write(f"{kmer}\n")
@@ -110,6 +111,7 @@ print(f"Python's count of number of k-mers: {len(python_training_kmers)}")
 result = subprocess.run(f"kmc_dump TrainingDatabase_dump /dev/fd/1", capture_output=True, shell=True)
 kmc_training_kmers = set(map(lambda x: x.split('\t')[0], result.stdout.decode('utf-8').split('\n')))
 kmc_training_kmers.remove('')
+print(f"KMC's count of number of k-mers: {len(kmc_training_kmers)}")
 
 if sorted(list(python_training_kmers)) == sorted(list(kmc_training_kmers)):
 	print("Yes! Python and KMC agree on the database dumped k-mers")
