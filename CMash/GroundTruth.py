@@ -139,8 +139,7 @@ class TrueContainment:
 				for sub_seq in seq_split_onlyACTG:
 					if sub_seq:
 						for k_size in k_sizes:
-							for kmer in self.__kmers(seq, k_size):
-								if kmer:
+							for kmer in self.__kmers(sub_seq, k_size):
 									# Use canonical k-mers
 									temp_kmer = kmer
 									temp_kmer_rc = khmer.reverse_complement(kmer)
@@ -254,6 +253,8 @@ class TrueContainmentKMC:
 		self.CEs = self.__import_database()
 		self.training_file_names = self.__return_file_names()
 		self.temp_dir = temp_dir
+		if not os.path.exists(temp_dir):
+			os.mkdir(temp_dir)
 
 	def __import_database(self) -> list:
 		"""
