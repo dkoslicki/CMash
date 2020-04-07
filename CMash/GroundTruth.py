@@ -357,6 +357,10 @@ class TrueContainmentKMC:
 
 		return intersect_count
 
+	def __kmc_output_name_converter(self, input_file: str, k_size: str) -> str:
+		temp_dir = self.temp_dir
+		return f"{os.path.join(temp_dir, os.path.basename(input_file))}_k_{k_size}"
+
 	def _compute_all_training_kmers(self):
 		num_threads = int(multiprocessing.cpu_count()/float(2))
 		to_compute = []
@@ -364,12 +368,22 @@ class TrueContainmentKMC:
 		# create the tuples to be computed on: (input file, ouput_kmc_file, k_kmer_size)
 		for training_file in self.training_file_names:
 			for k_size in self.k_sizes:
-				to_compute.append((training_file, f"{os.path.join(temp_dir, os.path.basename(training_file))}_k_{k_size}", k_size))
+				output_file = self.__kmc_output_name_converter(training_file, k_size)
+				to_compute.append((training_file, output_file, k_size))
 		pool = multiprocessing.Pool(processes=int(min(num_threads, len(self.training_file_names))))
 		pool.starmap(self._kmc_count, to_compute)
 		pool.close()
 
-	def __return_containment_indicies(self, query_file: str) -> np.ndarray:
+	def _return_containment_index(self, query_file: str, i: int, j: int) -> tuple:
+		k_size = self.k_sizes[j]
+		training_file = self.training_file_names[i]
+		training_kmc_output = self.__kmc_output_name_converter(training_file, k_size)
+		query_kmc_output = self.__kmc_output_name_converter(query_file, k_size)
+		numerator = self._kmc_return_intersection_count(query_kmc_output, training_kmc_output)
+		denomenator = self._kmc_return_distinct_kmers(f"{training_kmc_output}.log")
+		return (i, j, numerator / float(denomenator))  # | train \cap query| / | train |
+
+	def _return_containment_indicies(self, query_file: str) -> np.ndarray:
 		"""
 		Creates a matrix of containment indicies:
 			for each i in self.training_file_names:
@@ -380,35 +394,38 @@ class TrueContainmentKMC:
 		:return: a numpy matrix of containment indicies: containment_indicies[i ,k] = |query_file_k-mers \cap training_file_i_k-mers| / |training_file_i_k-mers|
 		:rtype: np.ndarray
 		"""
-		# TODO:
-		#  compute the k-mers in the query file using _kmc_count with a lot of threads (maybe without ram?)
-		#  use _kmc_return_intersection_count to get the numerator
-		#  use _kmc_return_distinct_kmers to get the denominator
-		#  make use of to_compute construct above
-
 		training_file_names = self.training_file_names
 		k_sizes = self.k_sizes
-		training_file_to_ksize_to_kmers = self.training_file_to_ksize_to_kmers
-		num_files = len(training_file_names)
+		# compute the k-mers in the query file
+		for k_size in k_sizes:
+			# store the query file kmc outputs to a dict for future convenience
+			self._kmc_count(query_file, self.__kmc_output_name_converter(query_file, k_size), k_size, threads=multiprocessing.cpu_count())
+
+		# compute the containment indicies
 		# rows are the files, columns are the k-mer sizes
-		containment_indicies = np.zeros((num_files, len(k_sizes)))
-		# if the query file is part of the training files, then nothing extra to do
-		if query_file in training_file_names:
-			for (j, k_size) in enumerate(k_sizes):
-				query_kmers = training_file_to_ksize_to_kmers[query_file][k_size]
-				for (i, file_name) in enumerate(training_file_names):
-					training_kmers = training_file_to_ksize_to_kmers[file_name][k_size]
-					# | train \cap query| / | train |
-					containment_indicies[i, j] = self.__return_containment_index(training_kmers, query_kmers)
-		else:
-			# need to compute the k-mers in the query file
-			query_file_to_ksize_to_kmers = self._return_ksize_to_kmers(query_file)
-			for (j, k_size) in enumerate(k_sizes):
-				query_kmers = query_file_to_ksize_to_kmers[k_size]
-				for (i, file_name) in enumerate(training_file_names):
-					training_kmers = training_file_to_ksize_to_kmers[file_name][k_size]
-					# | train \cap query| / | train |
-					containment_indicies[i, j] = self.__return_containment_index(training_kmers, query_kmers)
+		containment_indicies = np.zeros((len(training_file_names), len(k_sizes)))
+
+		# serial version
+		#for (j, k_size) in enumerate(k_sizes):
+		#	query_kmc_output = self.__kmc_output_name_converter(query_file, k_size)
+		#	for (i, training_file) in enumerate(training_file_names):
+		#		training_kmc_output = self.__kmc_output_name_converter(training_file, k_size)
+		#		numerator = self._kmc_return_intersection_count(query_kmc_output, training_kmc_output)
+		#		denomenator = self._kmc_return_distinct_kmers(f"{training_kmc_output}.log")
+		#		containment_indicies[i, j] = numerator / float(denomenator)  # | train \cap query| / | train |
+
+		# parallel version
+		to_compute = []
+		for i in range(len(training_file_names)):
+			for j in range(len(k_sizes)):
+				to_compute.append((query_file, i, j))
+		pool = multiprocessing.Pool(processes=int(min(multiprocessing.cpu_count(), len(self.training_file_names))))
+		res = pool.starmap(self._return_containment_index, to_compute)
+		for (i, j, ci) in res:
+			containment_indicies[i, j] = ci
+		pool.close()
+
+		pool.close()
 		return containment_indicies
 
 	def return_containment_data_frame(self, query_file: str, location_of_thresh: int, coverage_threshold: float) -> pd.DataFrame:
@@ -427,7 +444,7 @@ class TrueContainmentKMC:
 		"""
 		k_range = self.k_sizes
 		training_file_names = self.training_file_names
-		containment_indices = self.__return_containment_indicies(query_file)
+		containment_indices = self._return_containment_indicies(query_file)
 		df = Query.return_data_frame(training_file_names=training_file_names,
 		                             k_range=k_range,
 		                             location_of_thresh=location_of_thresh,
