@@ -20,7 +20,7 @@ else
 fi
 
 testOrganism="../Organisms/taxid_1192839_4_genomic.fna.gz"
-maxK=10
+maxK=21
 kSizes="5-${maxK}-2"
 numHashes=2000
 containmentThresh=0
