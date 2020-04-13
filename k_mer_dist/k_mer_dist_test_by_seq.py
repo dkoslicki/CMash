@@ -152,14 +152,18 @@ def histogram_draw_multi(dist_norm_1, dist_norm_2, genome, histogram_name=None, 
     pass
 
 
-def total_variation_Metric(histo1, histo2, occur_at_least=1, to_normalize=True):
+def total_variation_Metric(histo1, histo2, occur_at_least=1, occur_at_most=2999, to_normalize=True):
     # histo1, histo2 are normalized distributions
-    return L1_metric(histo1, histo2, occur_at_least, to_normalize)/2
+    return L1_metric(histo1, histo2, occur_at_least, occur_at_most, to_normalize)/2
 
 
-def wasserstein_metric(histo1, histo2, occur_at_least=1, to_normalize=True):
+def wasserstein_metric(histo1, histo2, occur_at_least=1, occur_at_most=2999, to_normalize=True):
     # histo1, histo2 are normalized distributions
     # make two distribution have the same dim
+    if len(histo1) > occur_at_most:
+        histo1 = histo1[:occur_at_most]
+    if len(histo2) > occur_at_most:
+        histo2 = histo2[:occur_at_most]
     histo1[:occur_at_least] = np.zeros(occur_at_least)
     histo2[:occur_at_least] = np.zeros(occur_at_least)
     if to_normalize:
@@ -174,9 +178,13 @@ def wasserstein_metric(histo1, histo2, occur_at_least=1, to_normalize=True):
     return wasserstein_distance(histo1, histo2)
 
 
-def L1_metric (histo1, histo2, occur_at_least=1, to_normalize=True):
+def L1_metric (histo1, histo2, occur_at_least=1, occur_at_most=2999, to_normalize=True):
     # histo1, histo2 are normalized distributions
     # make two distribution have the same dim
+    if len(histo1) > occur_at_most:
+        histo1 = histo1[:occur_at_most]
+    if len(histo2) > occur_at_most:
+        histo2 = histo2[:occur_at_most]
     histo1[:occur_at_least] = np.zeros(occur_at_least)
     histo2[:occur_at_least] = np.zeros(occur_at_least)
     if to_normalize:
@@ -191,9 +199,13 @@ def L1_metric (histo1, histo2, occur_at_least=1, to_normalize=True):
     return distance.cityblock(histo1, histo2)
 
 
-def diff_percentage(histo1, histo2, occur_at_least=1, to_normalize=True):
+def diff_percentage(histo1, histo2, occur_at_least=1, occur_at_most=2999, to_normalize=True):
     # histo1, histo2 are normalized distributions
     # make two distribution have the same dim
+    if len(histo1) > occur_at_most:
+        histo1 = histo1[:occur_at_most]
+    if len(histo2) > occur_at_most:
+        histo2 = histo2[:occur_at_most]
     histo1[:occur_at_least] = np.zeros(occur_at_least)
     histo2[:occur_at_least] = np.zeros(occur_at_least)
     if to_normalize:
