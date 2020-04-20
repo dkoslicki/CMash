@@ -1,6 +1,7 @@
 '''
     A function to output k-mer distribution histogram
     w.r.t different k (k-mer size) and n (sketch size)
+    using CMash
 '''
 import os
 import sys
@@ -29,7 +30,7 @@ except ImportError:
 def k_mer_sketch_histogram(n, k, genome, rev_comp=False):
     n = int(n); k = int(k)
     # input: n - sketch size (# Hash function), k - k-mer size, genome - fasta(.gz)
-    # return np.array of distribution and histogram
+    # return np.array of abundance and normalized abundance distribution
     KMC_outname = genome.split('/')[-1] + '.ksize' + str(k) + '.res'
     outpath = os.path.dirname(os.path.realpath(__file__)) + '/kmc_global_count/'
     # if the value not stored, compute it, else load it
@@ -73,6 +74,9 @@ def k_mer_sketch_histogram(n, k, genome, rev_comp=False):
 
 
 def k_mer_global_histogram_KMC(k, genome, runKMC=False):
+    # input: k - k-mer size, genome - fasta(.gz)
+    # return np.array of abundance and normalized abundance distribution
+
     # create KMC database
     KMC_outname = genome.split('/')[-1] + '.ksize' + str(k) + '.res'
     outpath = os.path.dirname(os.path.realpath(__file__)) + '/kmc_global_count/'
@@ -91,7 +95,6 @@ def k_mer_global_histogram_KMC(k, genome, runKMC=False):
                 print("Is file fa/fq? Check file and its name!", file=sys.stderr)
                 exit(2)
         # read KMC database to get count values
-        # TODO: KMC doesnot count k-mers more than 255 times
         kmer_data_base = kmc.KMCFile()
         kmer_data_base.OpenForListing(outpath + KMC_outname)
         kmer_object = kmc.KmerAPI(kmer_data_base.Info().kmer_length)
@@ -102,7 +105,7 @@ def k_mer_global_histogram_KMC(k, genome, runKMC=False):
                 counter_dict[int(counter.value)] = counter_dict[int(counter.value)] + 1
             except KeyError:
                 counter_dict[int(counter.value)] = 1
-        # get distribution
+        # get normalized distribution
         dist = np.zeros(max(counter_dict.keys()))
         for _k, _v in counter_dict.items():
             dist[_k - 1] = _v
@@ -116,6 +119,7 @@ def k_mer_global_histogram_KMC(k, genome, runKMC=False):
 
 
 def histogram_draw(dist, genome, histogram_name=None, k=0, n=0, rm_occur_leq=0, to_normalize=False, to_log=False):
+    # deprecated
     if histogram_name:
         figure_name = histogram_name
     else:
@@ -146,19 +150,14 @@ def histogram_draw(dist, genome, histogram_name=None, k=0, n=0, rm_occur_leq=0, 
     plt.savefig(os.path.dirname(os.path.realpath(__file__)) + '/kmc_global_count/' + figure_name)
 
 
-def histogram_draw_multi(dist_norm_1, dist_norm_2, genome, histogram_name=None, k=0, n=0):
-    # TODO: put two histo in one figure
-    # bar chart with 2 bars
-    pass
-
-
 def total_variation_Metric(histo1, histo2, occur_at_least=1, occur_at_most=2999, to_normalize=True):
     # histo1, histo2 are normalized distributions
     return L1_metric(histo1, histo2, occur_at_least, occur_at_most, to_normalize)/2
 
 
 def wasserstein_metric(histo1, histo2, occur_at_least=1, occur_at_most=2999, to_normalize=True):
-    # histo1, histo2 are normalized distributions
+    # k-mers occur less than occur_at_least or more than occur_at_most would be ignored
+    # by default, the distribution would be re-normalized
     # make two distribution have the same dim
     if len(histo1) > occur_at_most:
         histo1 = histo1[:occur_at_most]
@@ -179,7 +178,8 @@ def wasserstein_metric(histo1, histo2, occur_at_least=1, occur_at_most=2999, to_
 
 
 def L1_metric (histo1, histo2, occur_at_least=1, occur_at_most=2999, to_normalize=True):
-    # histo1, histo2 are normalized distributions
+    # k-mers occur less than occur_at_least or more than occur_at_most would be ignored
+    # by default, the distribution would be re-normalized
     # make two distribution have the same dim
     if len(histo1) > occur_at_most:
         histo1 = histo1[:occur_at_most]
@@ -200,7 +200,9 @@ def L1_metric (histo1, histo2, occur_at_least=1, occur_at_most=2999, to_normaliz
 
 
 def diff_percentage(histo1, histo2, occur_at_least=1, occur_at_most=2999, to_normalize=True):
-    # histo1, histo2 are normalized distributions
+    # return error rate compared to histo1
+    # k-mers occur less than occur_at_least or more than occur_at_most would be ignored
+    # by default, the distribution would be re-normalized
     # make two distribution have the same dim
     if len(histo1) > occur_at_most:
         histo1 = histo1[:occur_at_most]
