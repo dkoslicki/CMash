@@ -189,6 +189,8 @@ if __name__ == '__main__':
 	# feed intersection into read parser
 	if args.intersect:
 		intersecter = Intersect(query_file, training_database_file)
+		if len(k_range) != 1 or k_range[0] != intersecter.ksize:
+			raise Exception("To use the KMC prefilter, the k-mer size range must be in the form K-K-1, where K is the training db k-mer size.")
 		intersecter.compute_intersection()
 		#print("intersection located at: {}".format(intersecter.out_file))
 		# change query file to the intersection file
