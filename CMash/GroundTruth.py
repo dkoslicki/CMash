@@ -116,7 +116,7 @@ class TrueContainment:
 	@staticmethod
 	def _kmc_return_distinct_kmers(kmc_log_file: str) -> int:
 		"""
-		Parses the KMC log file to return the number of distinct k-mers
+	Parses the KMC log file to return the number of distinct k-mers
 		:param kmc_log_file:
 		:type kmc_log_file:
 		:return:
@@ -159,7 +159,7 @@ class TrueContainment:
 		return f"{os.path.join(temp_dir, os.path.basename(input_file))}_k_{k_size}"
 
 	def _compute_all_training_kmers(self):
-		num_threads = int(multiprocessing.cpu_count()/float(2))
+		num_threads = int(multiprocessing.cpu_count()/float(8))
 		to_compute = []
 		# create the tuples to be computed on: (input file, ouput_kmc_file, k_kmer_size)
 		for training_file in self.training_file_names:
@@ -198,7 +198,7 @@ class TrueContainment:
 		# compute the k-mers in the query file
 		for k_size in k_sizes:
 			# store the query file kmc outputs to a dict for future convenience
-			self._kmc_count(query_file, self.__kmc_output_name_converter(query_file, k_size), k_size, threads=multiprocessing.cpu_count())
+			self._kmc_count(query_file, self.__kmc_output_name_converter(query_file, k_size), k_size, threads=int(multiprocessing.cpu_count()/float(4)))
 
 		# compute the containment indicies
 		# rows are the files, columns are the k-mer sizes
@@ -218,7 +218,7 @@ class TrueContainment:
 		for i in range(len(training_file_names)):
 			for j in range(len(k_sizes)):
 				to_compute.append((query_file, i, j))
-		pool = multiprocessing.Pool(processes=int(min(multiprocessing.cpu_count(), len(self.training_file_names))))
+		pool = multiprocessing.Pool(processes=int(min(multiprocessing.cpu_count()/float(4), len(self.training_file_names))))
 		res = pool.starmap(self._return_containment_index, to_compute)
 		for (i, j, ci) in res:
 			containment_indicies[i, j] = ci
