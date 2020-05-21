@@ -7,7 +7,14 @@ CMash is a fast and accurate way to estimate the similarity of two sets. This is
 # Be aware, this is a work in progress and isn't guaranteed to be functional
 
 ## Installation
-The easiest way to install this is to use [virtualenv](https://virtualenv.pypa.io/en/stable/):
+[![install with bioconda](https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat)](http://bioconda.github.io/recipes/cmash/README.html)
+
+The best way to install is via bioconda:
+```bash
+conda install cmash
+```
+
+Alternatively: use [virtualenv](https://virtualenv.pypa.io/en/stable/):
 ```bash
 virtualenv CMashVE
 source CMashVE/bin/activate
