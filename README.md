@@ -26,6 +26,10 @@ pip install -r requirements.txt
 
 Note: if installing on Ubuntu and you get a ``no package 'cairo' found`` error, this can be fixed by running ``sudo apt install libcairo2-dev`` and installing again.
 
+
+# The below is very outdated and will be changed upon v1.0.0 release
+
+
 ## Usage
 The basic paradigm is to create a reference/training database, form a sample bloom filter, and then query the database.
 
