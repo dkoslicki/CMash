@@ -93,7 +93,7 @@ class TrueContainment:
 		return list(range(start, end + 1, increment))
 
 	@staticmethod
-	def _kmc_count(input_file_name: str, output_file_name: str, kmer_size: int, threads=2) -> None:
+	def _kmc_count(input_file_name: str, output_file_name: str, kmer_size: int, threads=1) -> None:
 		"""
 		Calls KMC to compute the k-mers for a given input file name
 		:param input_file_name:
@@ -159,7 +159,7 @@ class TrueContainment:
 		return f"{os.path.join(temp_dir, os.path.basename(input_file))}_k_{k_size}"
 
 	def _compute_all_training_kmers(self):
-		num_threads = int(multiprocessing.cpu_count()/float(8))
+		num_threads = 48
 		to_compute = []
 		# create the tuples to be computed on: (input file, ouput_kmc_file, k_kmer_size)
 		for training_file in self.training_file_names:
@@ -198,7 +198,7 @@ class TrueContainment:
 		# compute the k-mers in the query file
 		for k_size in k_sizes:
 			# store the query file kmc outputs to a dict for future convenience
-			self._kmc_count(query_file, self.__kmc_output_name_converter(query_file, k_size), k_size, threads=int(multiprocessing.cpu_count()/float(4)))
+			self._kmc_count(query_file, self.__kmc_output_name_converter(query_file, k_size), k_size, threads=48)
 
 		# compute the containment indicies
 		# rows are the files, columns are the k-mer sizes
@@ -260,6 +260,7 @@ def main():
 	parser.add_argument('-l', '--location_of_thresh', type=int,
 	                    help="Location in range to apply the threshold passed by the -c flag. -l 2 -c 5-50-10 means the"
 	                         " threshold will be applied at k-size 25. Default is largest size.", default=-1)
+	parser.add_argument('-t', '--threads', type=int, help="Number of threads to use", default=multiprocessing.cpu_count())
 	parser.add_argument('in_file', help="Input file: FASTA/Q file to be processes")
 	parser.add_argument('reference_file',
 	                    help='Training database/reference file (in HDF5 format). Created with MakeStreamingDNADatabase.py')
