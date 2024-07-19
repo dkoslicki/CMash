@@ -1,6 +1,6 @@
 # CMash
 
-# Please Note: CMash has largely been supplanted by [Sourmash](https://github.com/sourmash-bio/sourmash). While Sourmash technically does not possess the ability to change k-mer sizes, we have decided to adopt Sourmash and incorporate our other results (eg. estimating ANI and AAI) into the Sourmash code base. Consider this repo depreciated.
+# Please Note: CMash has largely been supplanted by [Sourmash](https://github.com/sourmash-bio/sourmash) and [YACHT](https://github.com/KoslickiLab/YACHT). While these packages technically does not possess the ability to change k-mer sizes, we have decided to adopt Sourmash and incorporate our other results (eg. estimating ANI and AAI) into the Sourmash code base and build tooling, YACHT, on top of that. Consider this repo depreciated.
 
 CMash is a fast and accurate way to estimate the similarity of two sets. This is a probabilisitic data analysis approach, and uses containment min hashing. Please see the [associated paper]( https://doi.org/10.1101/2021.12.06.471436) for further details (and please cite if you use it):
 ```
